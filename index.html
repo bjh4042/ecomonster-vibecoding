@@ -58,19 +58,48 @@
   .chatbar .sqs { color: #c8ff2e; } .chatbar small { color: #8a8fb0; }
   #hint { position: absolute; right: 16px; bottom: 12px; font-size: 11px; color: #9a9ab0; }
   /* ── 작업 패널 (오른쪽) ── */
-  #ctrl { position: absolute; top: 62px; right: 18px; width: 370px; max-height: calc(100vh - 80px); overflow: auto; background: rgba(22,26,48,.96); border: 1px solid #3c4677; border-radius: 14px; padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
-  #ctrl.hide { display: none; }
-  #ctrl textarea, #ctrl input, #ctrl select { width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #3b4466; background: #0f1424; color: #fff; font-family: inherit; font-size: 14px; }
+  #ctrl { position: absolute; top: 62px; right: 18px; width: 410px; max-height: calc(100vh - 78px); overflow: auto; background: rgba(22,26,48,.97); border: 1px solid #3c4677; border-radius: 16px; padding: 0 16px 16px; box-shadow: 0 12px 34px rgba(0,0,0,.5); font-size: 14px; zoom: var(--fs, 1); transition: transform .18s ease, opacity .18s ease; scroll-behavior: smooth; }
+  #ctrl.hide { display: block; transform: translateX(24px); opacity: 0; pointer-events: none; }
+  .ptop { position: sticky; top: 0; z-index: 2; background: rgba(22,26,48,.99); padding-top: 12px; margin: 0 -16px 12px; padding-left: 16px; padding-right: 16px; border-bottom: 1px solid #2c3563; }
+  .phead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; } .phead b { font-size: 17px; }
+  .pclose { cursor: pointer; font-size: 20px; color: #9aa; padding: 2px 8px; border-radius: 8px; } .pclose:hover { background: #2a3352; color: #fff; }
+  .secTitle { font-size: 14px; font-weight: 800; color: #fff; margin: 14px 0 8px; display: flex; align-items: center; gap: 8px; } .secTitle small { font-weight: 400; color: #8a8fb0; font-size: 12px; }
+  .secTitle .num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #c8ff2e; color: #111; font-size: 12px; font-weight: 900; }
+  .tplGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  #ctrl .tplGrid .chip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 12px; font-size: 12.5px; line-height: 1.2; min-height: 62px; justify-content: center; text-align: center; }
+  #ctrl .tplGrid .chip .ic { font-size: 20px; }
+  #ctrl .tplGrid .chip.add { border-style: dashed; color: #9aa; }
+  .opts { margin-top: 10px; background: #10162c; border: 1px solid #2c3563; border-radius: 10px; padding: 0 12px; } .opts summary { cursor: pointer; padding: 10px 0; font-weight: 700; color: #ccd; } .opts[open] { padding-bottom: 10px; }
+  #optSummary { font-weight: 400; color: #8a8fb0; font-size: 12px; margin-left: 4px; }
+  .startRow { margin-top: 12px; } #ctrl .bigBtn { font-size: 16px; padding: 13px; }
+  .stepper { margin-top: 12px; background: #10162c; border: 1px solid #2c3563; border-radius: 12px; padding: 10px 12px; }
+  .stepper .sp { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 13px; color: #8a8fb0; } .stepper .sp i { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-style: normal; font-size: 11px; background: #2a3352; color: #9aa; flex: 0 0 20px; }
+  .stepper .sp.done { color: #aeb3d6; } .stepper .sp.done i { background: #3ddc84; color: #111; } .stepper .sp.now { color: #fff; font-weight: 800; } .stepper .sp.now i { background: #c8ff2e; color: #111; animation: blink 1s infinite; }
+  .stepper .sp.wait i { background: #4fc3f7; color: #111; animation: blink 1s infinite; } .stepper .sthead { font-size: 12px; color: #c8ff2e; font-weight: 800; margin-bottom: 4px; }
+  .resCard { margin-top: 12px; background: #10162c; border: 1px solid #3c4677; border-radius: 12px; padding: 4px 12px 12px; } .resCard #result { max-height: 32vh; cursor: zoom-in; }
+  .resMain { margin-top: 8px; } #ctrl .resMain button { padding: 11px; }
+  .setSec { background: #10162c; border: 1px solid #2c3563; border-radius: 12px; padding: 0 12px; margin-bottom: 10px; } .setSec summary { cursor: pointer; padding: 12px 0; font-weight: 800; font-size: 14px; } .setSec[open] { padding-bottom: 12px; }
+  #roster { position: absolute; top: 62px; right: 18px; width: 300px; display: none; background: rgba(22,26,48,.98); border: 1px solid #3c4677; border-radius: 14px; padding: 10px; z-index: 4; box-shadow: 0 12px 30px rgba(0,0,0,.5); }
+  #roster.show { display: block; } #roster .rt { font-size: 12px; color: #9aa; margin: 6px 4px; font-weight: 800; }
+  #roster .ra { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 8px; cursor: pointer; font-size: 13px; } #roster .ra:hover { background: #2a3352; } #roster .ra img { width: 28px; height: 28px; image-rendering: pixelated; }
+  #roster .ra small { color: #8a8fb0; display: block; font-size: 11px; } #roster .ra .sd { margin-left: auto; font-size: 11px; font-weight: 800; }
+  #chat, #viewer .vbox, #card { zoom: var(--fs, 1); }
+  #ctrl textarea, #ctrl input, #ctrl select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #3b4466; background: #0f1424; color: #fff; font-family: inherit; font-size: 15px; }
+  #ctrl textarea:focus, #ctrl input:focus, #ctrl select:focus { outline: 2px solid #c8ff2e; outline-offset: 1px; border-color: transparent; }
   #ctrl textarea { resize: vertical; }
-  #ctrl button { padding: 10px; border: 0; border-radius: 8px; background: #c8ff2e; color: #111; font-weight: 800; cursor: pointer; font-family: inherit; }
+  #ctrl button { padding: 10px; border: 0; border-radius: 10px; background: #c8ff2e; color: #111; font-weight: 800; cursor: pointer; font-family: inherit; font-size: 14px; min-height: 40px; }
+  #ctrl button:hover:not(:disabled) { filter: brightness(1.08); } #ctrl button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   #ctrl button:disabled { opacity: .5; cursor: default; }
   .wide { width: 100%; margin-top: 8px; }
   .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
-  #ctrl .tabs button { flex: 1; padding: 7px 2px; background: #1d2440; color: #ccd; border: 1px solid #3b4466; font-size: 13px; }
-  #ctrl .tabs button.on { background: #c8ff2e; color: #111; }
+  #ctrl .tabs button { flex: 1; padding: 6px 2px 7px; background: transparent; color: #9aa; border: 0; border-bottom: 3px solid transparent; border-radius: 0; font-size: 18px; display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 52px; }
+  #ctrl .tabs button span { font-size: 12.5px; font-weight: 800; }
+  #ctrl .tabs button.on { color: #c8ff2e; border-bottom-color: #c8ff2e; background: transparent; }
+  .tabs { margin-bottom: 0 !important; }
   .seg { display: flex; gap: 6px; margin-bottom: 10px; }
   #ctrl .seg button { flex: 1; background: #1d2440; color: #ccd; border: 1px solid #3b4466; }
   #ctrl .seg button.on { background: #fff; color: #111; }
+  #ctrl .seg.big button { padding: 12px; font-size: 15px; }
   .view { display: none; } .view.on { display: block; }
   #ctrl label { display: block; font-size: 12px; color: #aab; margin: 10px 0 4px; }
   #ctrl label.chk { display: flex; gap: 6px; align-items: center; } #ctrl label.chk input { width: auto; }
@@ -139,7 +168,11 @@
     .ttl b { font-size: 17px; } .ttl span:not(#mode) { display: none; }
     .card { padding: 9px 12px; } #pct { font-size: 24px; } .chips { display: none; }
     #topr { top: auto; bottom: 14px; right: 14px; }
-    #ctrl { top: auto; bottom: 64px; left: 10px; right: 10px; width: auto; max-height: 62vh; }
+    #ctrl { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 86vh; border-radius: 18px 18px 0 0; padding-bottom: 20px; }
+    body.panel-open #topr { display: none; } #ctrl.hide { transform: translateY(30px); }
+    .ptop { padding-top: 8px; } .ptop::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: #4a5280; margin: 0 auto 8px; }
+    .tplGrid { grid-template-columns: repeat(3, 1fr); } #roster { right: 10px; left: 10px; width: auto; top: auto; bottom: 70px; }
+    #topr { z-index: 3; }
     #chat { display: none; } #hint { display: none; }
   }
 </style>
@@ -170,10 +203,10 @@
 <div id="topr">
   <button class="pill" id="gatePill" style="display:none;background:#4fc3f7;animation:blink 1s infinite">🔔 확인 필요</button>
   <button class="pill" id="installPill" style="display:none;background:#4fc3f7">📲 앱 설치</button>
-  <button class="pill dark" id="briefPill">☀️</button>
+  <button class="pill dark" id="briefPill" title="오늘 브리핑">☀️ 오늘</button>
   <button class="pill dark" id="donePill">📂 완료함 0</button>
-  <button class="pill dark" id="openCtrl">📝 작업 요청</button>
-  <span class="pill" id="agentPill">에이전트 9</span>
+  <button class="pill dark" id="openCtrl">✏️ 맡기기</button>
+  <button class="pill" id="agentPill" title="누가 무엇을 하는지 보기">에이전트 9</button>
 </div>
 
 <div id="chat">
@@ -184,6 +217,7 @@
   </div>
 </div>
 <div id="hint">캐릭터를 누르면 정보 · 끌어서 이동 · 휠로 확대 · 두 번 눌러 전체 보기 · <label style="cursor:pointer"><input type="checkbox" id="sound" checked style="vertical-align:middle"> 완료 알림음</label></div>
+<div id="roster"></div>
 <div id="card"><span class="x" id="cardX">✕</span><div id="cardBody"></div></div>
 <div id="viewer"><div class="vbox">
   <div class="vhead"><img id="vAv" alt=""><div style="flex:1;min-width:0"><div id="vWho"></div><small id="vSub"></small></div><span class="x" id="vX">✕</span></div>
@@ -198,45 +232,55 @@
 <div id="toast"><span id="toastTxt"></span><button id="toastBtn">보기</button></div>
 
 <div id="ctrl" class="hide">
-  <div class="tabs">
-    <button data-v="work" class="on">작업</button><button data-v="todo">할 일</button><button data-v="dash">현황</button><button data-v="key">API 키</button><button data-v="ctx">맥락</button><button data-v="hist">완료함</button>
+  <div class="ptop">
+    <div class="phead"><b id="pTitle">✏️ 업무 맡기기</b><span class="pclose" id="pClose" title="닫기 (Esc)">✕</span></div>
+    <div class="tabs">
+      <button data-v="work" class="on">✏️<span>맡기기</span></button><button data-v="hist">📂<span>완료함</span></button><button data-v="todo">📋<span>오늘</span></button><button data-v="set">⚙️<span>설정</span></button>
+    </div>
   </div>
   <div class="view on" id="v-work">
-    <div class="seg"><button data-team="edu" class="on">🏫 교무팀</button><button data-team="vibe">💻 바이브코딩팀</button></div>
-    <div id="eduOpts"><div class="row">
-      <select id="eduType"></select>
-      <select id="eduMode"><option value="std">꼼꼼하게 (초안→검토→수정)</option><option value="quick">빠르게 (담당자만)</option></select>
-    </div></div>
-    <div id="tplBar" class="tplBar"></div>
+    <div class="seg big"><button data-team="edu" class="on">🏫 교무팀</button><button data-team="vibe">💻 바이브코딩팀</button></div>
+    <div class="secTitle"><span class="num">1</span> 무엇을 맡길까요? <small>버튼을 누르면 빈칸만 채우면 돼요</small></div>
+    <div id="tplBar" class="tplGrid"></div>
     <div id="tplForm" class="tplForm" style="display:none"></div>
-    <div id="vibeOpts" style="display:none"><div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + Claude Code에 넘길 작업 지시문</div></div>
-    <label>요청 내용</label>
+    <div class="secTitle"><span class="num">2</span> 요청 내용 <small>직접 적어도 돼요</small></div>
     <textarea id="topic" rows="4"></textarea>
     <div class="row" style="align-items:center;margin-top:6px"><button id="attachBtn" class="ghost mini fit">📎 자료 첨부</button><span id="attachList" class="note" style="margin:0"></span></div>
     <input type="file" id="attachFile" multiple accept=".pdf,.hwpx,.hwp,.txt,.md,.csv" style="display:none">
-    <label class="chk"><input type="checkbox" id="mask" checked> 전화번호·주민번호가 섞여 있으면 자동으로 가리기</label>
-    <label class="chk"><input type="checkbox" id="gate"> 최종본 전에 내가 먼저 확인하기 (선생님 확인 단계)</label>
-    <label class="chk"><input type="checkbox" id="combineRev" checked> 동료 검토를 한 번에 받기 (호출 절약)</label>
-    <div class="row" style="margin-top:8px"><button id="go">작업 시작</button><button id="demo" class="ghost fit">시연 보기</button></div>
-    <button id="retry" class="ghost wide" style="display:none">↻ 끝난 단계는 건너뛰고 다시 시도</button>
+    <details id="opts" class="opts"><summary>⚙️ 세부 옵션 <span id="optSummary"></span></summary>
+      <div id="eduOpts">
+        <label>누가 맡을까요?</label><select id="eduType"></select>
+        <label>얼마나 꼼꼼하게?</label><select id="eduMode"><option value="std">꼼꼼하게 — 초안 → 동료 검토 → 수정</option><option value="quick">빠르게 — 담당자 혼자</option></select>
+      </div>
+      <div id="vibeOpts" style="display:none"><div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + Claude Code에 넘길 작업 지시문</div></div>
+      <label class="chk"><input type="checkbox" id="gate"> 최종본 전에 내가 먼저 확인하기</label>
+      <label class="chk"><input type="checkbox" id="combineRev" checked> 동료 검토를 한 번에 받기 (호출 절약)</label>
+      <label class="chk"><input type="checkbox" id="mask" checked> 전화번호·주민번호가 섞여 있으면 자동으로 가리기</label>
+    </details>
+    <div class="row startRow"><button id="go" class="bigBtn">▶ 작업 시작</button><button id="demo" class="ghost fit" title="API 호출 없이 동작만 보기">시연</button></div>
     <div class="note" id="estCalls" style="margin-top:6px"></div>
+    <button id="retry" class="ghost wide" style="display:none">↻ 끝난 단계는 건너뛰고 다시 시도</button>
+    <div class="note" id="teamNote"></div>
+    <div id="stepper" class="stepper" style="display:none"></div>
     <div id="liveBox" class="liveBox" style="display:none"><div class="resTitle" id="liveWho" style="margin-top:6px;color:#c8ff2e"></div><div id="liveText" class="liveText"></div></div>
     <div id="gateBox" style="display:none">
-      <div class="resTitle" style="color:#4fc3f7;font-weight:800">🔔 선생님 확인 단계 — 초안을 보고 정해 주세요</div>
+      <div class="resTitle" style="color:#4fc3f7;font-weight:800">🔔 선생님 확인 — 초안을 보고 정해 주세요</div>
       <div id="gateBody" class="gateBody" title="두 번 누르면 크게 보기"></div><button class="ghost mini" id="gateBig">🔍 초안 크게 보기</button>
       <textarea id="gateNote" rows="2" placeholder="고칠 점이 있으면 적어 주세요 (예: 더 짧게, 준비물에 우산 추가)"></textarea>
       <div class="row" style="margin-top:6px"><button id="gateOk">이대로 진행</button><button id="gateEdit" class="ghost">고쳐서 진행</button><button id="gateStop" class="danger fit">중단</button></div>
     </div>
-    <div class="note" id="teamNote"></div>
-    <div class="resTitle" id="resTitle" style="display:none"></div>
-    <div id="result"></div>
-    <div class="row" id="resultBtns" style="display:none"><button class="mini" id="bigRes">🔍 크게</button><button class="mini" id="hwpRes">📄 한글(HWPX)</button><button class="ghost mini" id="copyRes">서식 복사</button><button class="ghost mini" id="copyTxt">글자만 복사</button><button class="ghost mini" id="dlRes">.md</button></div>
-    <div id="reviseBox" style="display:none">
-      <div class="tplBar" id="refineChips" style="margin:10px 0 4px"></div>
-      <div class="row"><input id="reviseNote" placeholder="✏️ 직접 적기: 예) 준비물에 우산 추가" /><button id="reviseGo" class="fit">고치기</button></div>
-      <div class="note" style="margin-top:4px">담당자 한 명이 한 번만 고쳐요 (Gemini 1회). 고친 결과는 완료함에 따로 남아요.</div>
+    <div id="resCard" class="resCard" style="display:none">
+      <div class="resTitle" id="resTitle" style="display:none"></div>
+      <div id="result" title="두 번 누르면 크게 보기"></div>
+      <div class="row resMain"><button id="bigRes">🔍 크게 보기</button><button id="hwpRes">📄 한글로 받기</button></div>
+      <div class="row" id="resultBtns" style="display:none"><button class="ghost mini" id="copyRes">서식 복사</button><button class="ghost mini" id="copyTxt">글자만 복사</button><button class="ghost mini" id="dlRes">.md</button></div>
+      <div id="reviseBox" style="display:none">
+        <div class="secTitle" style="margin-top:12px"><span class="num">✎</span> 이어서 고치기 <small>담당자가 한 번만 고쳐요</small></div>
+        <div class="tplBar" id="refineChips" style="margin:4px 0"></div>
+        <div class="row"><input id="reviseNote" placeholder="직접 적기: 예) 준비물에 우산 추가" /><button id="reviseGo" class="fit">고치기</button></div>
+      </div>
+      <div id="issueBox" style="display:none"><button id="issueGo" class="wide" style="background:#4fc3f7">🐙 Claude Code에 GitHub 이슈로 보내기</button><div id="issueStatus" class="note"></div></div>
     </div>
-    <div id="issueBox" style="display:none"><button id="issueGo" class="wide" style="background:#4fc3f7">🐙 Claude Code에 GitHub 이슈로 보내기</button><div id="issueStatus" class="note"></div></div>
   </div>
   <div class="view" id="v-todo">
     <small>교무기획실 화이트보드에 보이는 오늘 할 일 (한 줄에 하나, 끝낸 일은 앞에 ✓)</small>
@@ -253,18 +297,8 @@
       <div id="schoolStatus" class="note"></div>
     </div>
   </div>
-  <div class="view" id="v-dash">
-    <small>게임 저장소의 Claude Code 작업 현황을 사무실에 띄워요 (공개 저장소)</small>
-    <label>게임 저장소 (아이디/저장소이름)</label>
-    <div class="row"><input id="repoIn" placeholder="bjh4042/게임저장소" /><button id="loadRepo" class="fit">불러오기</button></div>
-    <label>GitHub 토큰 (비공개 저장소 읽기·이슈 보내기용, 선택)</label>
-    <input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..." />
-    <label>자동 새로고침</label><select id="dashEvery"><option value="1">1분마다</option><option value="3">3분마다</option><option value="10">10분마다</option><option value="0">끄기</option></select>
-    <div id="dash" class="note"></div>
-    <button id="copyCC" class="ghost wide">📋 Claude Code에 붙여넣을 안내문 복사</button>
-    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.<br>토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 <b>그 저장소 하나만</b> 고르고 <b>Contents: Read-only</b>, (이슈로 보내기를 쓰려면) <b>Issues: Read and write</b>만 주세요. 이 브라우저에만 저장돼요.</div>
-  </div>
-  <div class="view" id="v-key">
+  <div class="view" id="v-set">
+    <details class="setSec" id="d-key" open><summary>🔑 API 키 · 모델</summary>
     <label>Gemini API 키</label>
     <div class="row"><input id="keyIn" type="password" autocomplete="off" placeholder="AIza..." /><button id="eye" class="ghost fit">보기</button></div>
     <label>모델</label>
@@ -277,8 +311,8 @@
     <div id="keyStatus" class="note"></div>
     <div class="note warn">⚠️ 무료 키(결제 미연결)로 보낸 내용은 구글이 서비스 개선에 쓸 수 있고 검토자가 볼 수도 있어요. 개인정보·민감한 내용은 넣지 마세요.</div>
     <div class="note">🔒 키는 <b>이 브라우저에만</b> 저장되고 Google 서버로만 직접 전송돼요. 사이트 코드나 GitHub에는 들어가지 않아요.<br>공용 PC에서는 "이 기기에 저장"을 끄고, 다 쓰면 [삭제]를 누르세요.</div>
-  </div>
-  <div class="view" id="v-ctx">
+    </details>
+    <details class="setSec" id="d-ctx"><summary>🏫 학교·게임 맥락 · 내 말투 · 개인정보</summary>
     <div class="seg"><button data-ctx="edu" class="on">🏫 학교 맥락</button><button data-ctx="vibe">💻 게임 맥락</button><button data-ctx="style">✍️ 내 말투</button><button data-ctx="roster" id="rosterTabBtn" style="display:none">🔒 학생 명단</button></div>
     <small id="ctxHelp"></small>
     <textarea id="ctxBox" class="ctxBox"></textarea>
@@ -295,8 +329,26 @@
     </div>
     <div class="row" style="margin-top:10px"><button class="ghost mini" id="expTpl">⭐ 내 버튼 내보내기</button><button class="ghost mini" id="impTpl">⭐ 내 버튼 불러오기</button><button class="ghost mini" id="wzAgain">👋 시작 안내 다시 보기</button></div>
     <input type="file" id="impTplFile" accept=".json" style="display:none">
+    </details>
+    <details class="setSec" id="d-dash"><summary>💻 게임 저장소 현황 (Claude Code 연동)</summary>
+    <small>게임 저장소의 Claude Code 작업 현황을 사무실에 띄워요 (공개 저장소)</small>
+    <label>게임 저장소 (아이디/저장소이름)</label>
+    <div class="row"><input id="repoIn" placeholder="bjh4042/게임저장소" /><button id="loadRepo" class="fit">불러오기</button></div>
+    <label>GitHub 토큰 (비공개 저장소 읽기·이슈 보내기용, 선택)</label>
+    <input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..." />
+    <label>자동 새로고침</label><select id="dashEvery"><option value="1">1분마다</option><option value="3">3분마다</option><option value="10">10분마다</option><option value="0">끄기</option></select>
+    <div id="dash" class="note"></div>
+    <button id="copyCC" class="ghost wide">📋 Claude Code에 붙여넣을 안내문 복사</button>
+    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.<br>토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 <b>그 저장소 하나만</b> 고르고 <b>Contents: Read-only</b>, (이슈로 보내기를 쓰려면) <b>Issues: Read and write</b>만 주세요. 이 브라우저에만 저장돼요.</div>
+    </details>
+    <details class="setSec" id="d-view"><summary>🅰 화면 · 소리</summary>
+      <label>글자 크기</label>
+      <div class="seg" id="fsSeg"><button data-fs="1">보통</button><button data-fs="1.12">크게</button><button data-fs="1.25">아주 크게</button></div>
+      <label class="chk"><input type="checkbox" id="motionOff"> 움직임 줄이기 (낙엽·잡담 끄기)</label>
+      <div class="note">완료 알림음은 오른쪽 아래에서 켜고 끌 수 있어요.</div>
+    </details>
   </div>
-  <div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 50개)</small>
+<div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 50개)</small>
     <div class="row" style="margin:8px 0"><button class="ghost mini" id="expHist">⬇ 백업 파일 받기</button><button class="ghost mini" id="impHist">⬆ 백업 불러오기</button><input type="file" id="impFile" accept=".json" style="display:none"></div>
     <div class="note" style="margin-top:0">학교 PC ↔ 집 PC로 옮길 때: 한쪽에서 백업 파일을 받고, 다른 쪽에서 불러오세요. API 키·명단은 백업에 들어가지 않아요.</div>
     <div id="histList"></div></div>
@@ -755,7 +807,7 @@ const endPtr = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = nul
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
 function clickAt(mx, my) {
   { const [x, y] = sc(...iso(pet.x, pet.y, 5)); if (Math.hypot(mx - x, my - y) < 8 * Zs) { for (let i = 0; i < 3; i++) pet.hearts.push({ t: performance.now() + i * 150, dx: -8 + i * 8 }); pet.sleepUntil = 0; say(agents.teacher, '갯냥이 귀여워 😺', 2000); return; } }
-  { const [x1, y1] = sc(...iso(.6, 0, 32)), [x2, y2] = sc(...iso(4.2, 0, 12)); if (mx > Math.min(x1, x2) && mx < Math.max(x1, x2) && my > y1 - 4 && my < y2 + 4) { $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('todo'); return; } }
+  { const [x1, y1] = sc(...iso(.6, 0, 32)), [x2, y2] = sc(...iso(4.2, 0, 12)); if (mx > Math.min(x1, x2) && mx < Math.max(x1, x2) && my > y1 - 4 && my < y2 + 4) { openPanel(); showTab('todo'); return; } }
   let best = null, bd = 30;
   for (const a of Object.values(agents)) { const [x, y] = sc(...iso(a.x, a.y, 7)); const d = Math.hypot(mx - x, my - y); if (d < bd + 10 * Zs / 2) { bd = d; best = a; } }
   if (typeof showAgentCard === 'function') showAgentCard(best, mx, my);
@@ -846,7 +898,7 @@ const NIGHT_LIGHTS = [[10.8, 0], [13.3, 0]].map(([x]) => { const [sx, sy] = iso(
 const LEAVES = Array.from({ length: 26 }, () => ({ x: Math.random(), y: Math.random(), s: rnd(.4, 1), c: Math.random() < .5 ? '#e8893a' : '#f2a7c0' }));
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function drawLeaves(t) {
-  if (calm) return;
+  if (calm || store.getL('eco_motion') === '0') return;
   for (const l of LEAVES) {
     l.y += .0004 * l.s * 16; l.x += Math.sin(t / 900 + l.s * 9) * .0004; if (l.y > 1.02) { l.y = -.02; l.x = Math.random(); }
     const x = l.x * cv.width, y = l.y * cv.height, r = Math.max(2, Zs * 1.5 * l.s);
@@ -860,6 +912,7 @@ const CHAT = {
   mix: [['게임 테스트 해 볼래요?', '수업 끝나고 할게요!'], ['교무팀은 오늘 바빠요?', '조금요. 커피 한잔 해요 ☕'], ['갯냥이 또 졸고 있네요', '저 자리가 제일 따뜻한가 봐요']],
 };
 setInterval(() => {
+  if (store.getL('eco_motion') === '0') return;
   const idle = Object.values(agents).filter((a) => a.state === 'idle' && !a.busy && a.key !== 'teacher' && performance.now() > a.bubbleUntil);
   for (let i = 0; i < idle.length; i++) for (let j = i + 1; j < idle.length; j++) {
     const a = idle[i], b = idle[j]; if (Math.hypot(a.x - b.x, a.y - b.y) > 2.4 || Math.random() > .5) continue;
@@ -1091,7 +1144,31 @@ function persistJobs() {
   const o = {}; for (const t of ['edu', 'vibe']) if (jobs[t]) { const { masker, resolveGate, ...rest } = jobs[t]; if (rest.attach) rest.attach = { ...rest.attach, pdfs: [] }; o[t] = rest; }
   store.setL('eco_jobs', JSON.stringify(o));
 }
+function stepsOf(job) {
+  const N = (k) => agents[k].name;
+  if (job.kind === 'revise') return [[N(job.lead), '고치기']];
+  if (job.team === 'vibe') { const st = [[N('planner'), '아이디어 초안'], [N('coder'), '구현 난이도'], [N('qa'), '원작·밸런스 점검'], [N('reviewer'), '우선순위']]; if (job.gate) st.push(['담임(나)', '선생님 확인', 'gate']); st.push([N('planner'), '최종 정리 + 작업 지시문']); return st; }
+  const type = EDU_TYPES.find((t) => t.id === job.typeId), rv = job.mode === 'quick' ? [] : type.reviewers, st = [[N(type.lead), '초안 작성']];
+  if (rv.length) { if (job.combine && rv.length > 1) st.push([rv.map(N).join('·'), '함께 검토']); else rv.forEach((k) => st.push([N(k), '검토'])); }
+  if (job.gate) st.push(['담임(나)', '선생님 확인', 'gate']);
+  if (rv.length || job.gate) st.push([N(type.lead), '최종본']);
+  return st;
+}
+function renderStepper() {
+  const j = jobs[currentTeam], el = $('stepper');
+  if (!j) { el.style.display = 'none'; return; }
+  const st = stepsOf(j), gateDone = Object.keys(j.outputs).some((k) => k[0] === 'g'); let api = j.done, cur = -1;
+  const rows = st.map(([who, what, kind], i) => {
+    let state;
+    if (kind === 'gate') state = gateDone ? 'done' : j.waiting ? 'wait' : '';
+    else if (api > 0) { api--; state = 'done'; } else state = '';
+    if (!state && cur < 0) { cur = i; state = 'now'; } if (state === 'wait') cur = i;
+    return `<div class="sp ${state}"><i>${state === 'done' ? '✓' : state === 'wait' ? '?' : i + 1}</i><span>${esc(what)} <small style="color:#8a8fb0">· ${esc(who)}</small></span></div>`;
+  }).join('');
+  el.innerHTML = `<div class="sthead">${j.team === 'edu' ? '🏫' : '💻'} 진행 중 · ${esc(j.topic.slice(0, 28))}</div>${rows}`; el.style.display = 'block';
+}
 function updateProgress() {
+  renderStepper();
   const act = Object.values(jobs).filter(Boolean), total = act.reduce((n, j) => n + j.total, 0), done = act.reduce((n, j) => n + j.done, 0);
   if (!act.length) return;
   const v = total ? Math.min(100, done / total * 100) : 0;
@@ -1136,6 +1213,7 @@ async function teacherGate(job, leadKey, text) {
   return ans;
 }
 function refreshGate() {
+  renderStepper();
   const w = Object.values(jobs).filter((j) => j && j.waiting);
   $('gatePill').style.display = w.length ? '' : 'none'; $('gatePill').textContent = `🔔 확인 필요 ${w.length}`;
   const j = jobs[currentTeam];
@@ -1225,6 +1303,7 @@ async function runJob(demo) {
 }
 async function execute(job) {
   const team = job.team; jobs[team] = job; job.si = 0; persistJobs(); syncButtons(); updateProgress();
+  if (team === currentTeam) setTimeout(() => $('stepper').scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 100);
   try {
     const res = job.kind === 'revise' ? await runRevise(job) : team === 'vibe' ? await runVibe(job) : await runEdu(job);
     res.final = job.masker.unmask(res.final); res.md = job.masker.unmask(res.md);
@@ -1233,7 +1312,7 @@ async function execute(job) {
     saveHistory(r);
     doneJobs++; $('cDone').textContent = `완료 ${doneJobs}`; chime();
     if (document.hidden) notify('AI 오피스 작업 완료', `${team === 'edu' ? '교무팀' : '바이브코딩팀'}: ${job.topic.slice(0, 40)}`);
-    toast(`✅ ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 완료: ${job.topic.slice(0, 24)}`, () => showResult(r));
+    toast(`✅ ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 완료: ${job.topic.slice(0, 24)}`, () => { setTeam(team); showResult(r); $('bigRes').click(); });
     if (currentTeam === team && !$('ctrl').classList.contains('hide')) showResult(r);
   } catch (e) {
     if (String(e.message) === '__STOP__') logLine('시스템', null, '작업을 중단했어요.');
@@ -1241,12 +1320,18 @@ async function execute(job) {
     for (const a of Object.values(agents)) if (a.team === team && a.key !== 'teacher') { a.state = 'idle'; a.busy = false; }
     if (String(e.message) !== '__STOP__' && !e.keep) { failedJob[team] = job; }
   } finally {
-    jobs[team] = null; persistJobs(); syncButtons(); counts(); refreshGate();
+    jobs[team] = null; persistJobs(); syncButtons(); counts(); refreshGate(); renderStepper();
     if (!jobs.edu && !jobs.vibe) { $('pctLbl').textContent = '전체 공정률'; if (dashData) applyDash(); } else updateProgress();
   }
 }
 const failedJob = { edu: null, vibe: null };
+function optSummary() {
+  const bits = [];
+  if (currentTeam === 'edu') { const t = $('eduType'); bits.push(t.value === 'auto' ? '자동 배정' : t.options[t.selectedIndex]?.text.split(' — ')[0]); bits.push($('eduMode').value === 'quick' ? '빠르게' : '꼼꼼하게'); }
+  if ($('gate').checked) bits.push('내가 확인'); $('optSummary').textContent = '· ' + bits.filter(Boolean).join(' · ');
+}
 function syncButtons() {
+  try { optSummary(); } catch {}
   const busy = !!jobs[currentTeam], failed = failedJob[currentTeam];
   $('go').disabled = $('demo').disabled = busy; $('go').textContent = busy ? (jobs[currentTeam].waiting ? '선생님 확인 기다리는 중' : '이 팀은 작업 중…') : '작업 시작';
   $('retry').style.display = !busy && failed ? '' : 'none';
@@ -1285,12 +1370,12 @@ function mdToHtml(md) {
   close(); return out.join('');
 }
 let shownResult = null;
-function resExtras(r) { $('reviseBox').style.display = r ? 'block' : 'none'; $('issueBox').style.display = r && r.team === 'vibe' && !r.demo ? 'block' : 'none'; $('issueStatus').textContent = ''; }
+function resExtras(r) { $('resCard').style.display = r ? 'block' : 'none'; $('reviseBox').style.display = r ? 'block' : 'none'; $('issueBox').style.display = r && r.team === 'vibe' && !r.demo ? 'block' : 'none'; $('issueStatus').textContent = ''; }
 function showResult(r) {
   shownResult = r;
   $('result').innerHTML = mdToHtml(r.final || r.md); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; resExtras(r);
   $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${r.team === 'edu' ? '교무팀' : '바이브코딩팀'} 결과${r.demo ? ' (시연)' : ''} · ${r.topic.slice(0, 30)} · ${r.at || ''}`;
-  $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work');
+  openPanel('work'); setTimeout(() => $('resCard').scrollIntoView({ block: 'start', behavior: 'smooth' }), 80);
 }
 function download(name, data, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1500); }
 const fname = (t, ext) => t.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '').slice(0, 40) + ext;
@@ -1505,7 +1590,7 @@ const TEMPLATES = {
 };
 function renderTemplates() {
   const list = [...TEMPLATES[currentTeam].filter((t) => !t.personal || personalOn()), ...customTemplates(currentTeam)];
-  $('tplBar').innerHTML = list.map((t, i) => `<button class="chip" data-i="${i}">${t.icon} ${esc(t.label)}</button>`).join('') + '<button class="chip" id="addTpl" title="지금 요청 내용을 버튼으로 저장">＋ 내 버튼</button>';
+  $('tplBar').innerHTML = list.map((t, i) => `<button class="chip" data-i="${i}"><span class="ic">${t.icon}</span>${esc(t.label)}</button>`).join('') + '<button class="chip add" id="addTpl" title="지금 요청 내용을 버튼으로 저장"><span class="ic">＋</span>내 버튼</button>';
   $('addTpl').onclick = addMyButton;
   $('tplBar').querySelectorAll('button[data-i]').forEach((b) => (b.onclick = () => openTemplate(list[b.dataset.i])));
   $('tplForm').style.display = 'none';
@@ -1751,7 +1836,7 @@ function wzSave() {
   if (wzStep === 3) { const t = $('wzStyle').value.trim(); if (t) store.setL('eco_style', t); }
 }
 function wzClose() { $('wizard').classList.remove('show'); store.setL('eco_onboarded', '1'); showCtx(ctxTeam); }
-$('wzNext').onclick = () => { wzSave(); if (wzStep < WZ.length - 1) { wzStep++; wzShow(); } else { wzClose(); $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work'); toast('준비 끝! 아래 버튼으로 첫 업무를 맡겨 보세요 📒', null); } };
+$('wzNext').onclick = () => { wzSave(); if (wzStep < WZ.length - 1) { wzStep++; wzShow(); } else { wzClose(); openPanel(); showTab('work'); toast('준비 끝! 아래 버튼으로 첫 업무를 맡겨 보세요 📒', null); } };
 $('wzSkip').onclick = () => { if (wzStep < WZ.length - 1) { wzStep++; wzShow(); } else wzClose(); };
 $('wzBack').onclick = () => { if (wzStep) { wzStep--; wzShow(); } };
 $('wzX').onclick = wzClose;
@@ -1768,14 +1853,23 @@ $('installPill').onclick = async () => { if (!installEvt) return; installEvt.pro
   const q = new URLSearchParams(location.search), shared = [q.get('title'), q.get('text'), q.get('url')].filter(Boolean).join('\n');
   if (!shared) return;
   history.replaceState(null, '', location.pathname);
-  $('topic').value = shared; $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work');
+  $('topic').value = shared; openPanel(); showTab('work');
   toast('📥 공유받은 글을 요청 칸에 넣었어요. 무엇을 할지 덧붙여 주세요', () => $('topic').focus());
 })();
 
 // =====================================================================
 // 13. UI 연결
 // =====================================================================
-function showTab(v) { document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === v)); document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v)); }
+const TAB_TITLE = { work: '✏️ 업무 맡기기', hist: '📂 완료함', todo: '📋 오늘', set: '⚙️ 설정' };
+function showTab(v) {
+  const sec = { key: 'd-key', ctx: 'd-ctx', dash: 'd-dash' }[v]; if (sec) v = 'set';
+  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v));
+  $('pTitle').textContent = TAB_TITLE[v] || '';
+  if (sec) { $(sec).open = true; setTimeout(() => $(sec).scrollIntoView({ block: 'start' }), 30); } else $('ctrl').scrollTop = 0;
+}
+function openPanel(tab) { $('ctrl').classList.remove('hide'); document.body.classList.add('panel-open'); $('openCtrl').textContent = '✕ 닫기'; if (tab) showTab(tab); }
+function closePanel() { $('ctrl').classList.add('hide'); document.body.classList.remove('panel-open'); $('openCtrl').textContent = '✏️ 맡기기'; }
 document.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.v)));
 function setTeam(team) {
   currentTeam = team;
@@ -1784,7 +1878,7 @@ function setTeam(team) {
   $('topic').placeholder = team === 'edu' ? '예: 다음 주 금요일 현장체험학습(거제 해양생태관) 학부모 안내 문자 써 줘' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)';
   const n = getRoster().length;
   $('teamNote').innerHTML = team === 'edu' ? (personalOn() && n ? `🔒 학생 명단 ${n}명을 가려서 보내요.` : '🔒 학생 이름·개인정보는 넣지 마세요. (생기부·상담 기록 업무는 꺼져 있어요)') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
-  syncButtons(); refreshGate();
+  syncButtons(); refreshGate(); optSummary();
   renderTemplates();
   const r = lastResult[team]; if (r) { shownResult = r; $('result').innerHTML = mdToHtml(r.final); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; resExtras(r); $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 최근 결과${r.demo ? ' (시연)' : ''} · ${r.topic.slice(0, 30)} · ${r.at || ''}`; }
   else { $('result').classList.remove('show'); $('resultBtns').style.display = 'none'; $('resTitle').style.display = 'none'; resExtras(null); }
@@ -1855,15 +1949,35 @@ $('sound').checked = store.getL('eco_sound') !== '0'; $('sound').onchange = () =
 
 // 화면 구성
 $('toggleLog').onclick = () => { const c = $('logWrap').classList.toggle('closed'); $('toggleTxt').textContent = c ? '펼치기' : '접기'; };
-$('openCtrl').onclick = () => { const h = $('ctrl').classList.toggle('hide'); $('openCtrl').textContent = h ? '📝 작업 요청' : '✕ 닫기'; };
+$('openCtrl').onclick = () => ($('ctrl').classList.contains('hide') ? openPanel() : closePanel());
+$('pClose').onclick = closePanel;
+addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if ($('viewer').classList.contains('show') || $('wizard').classList.contains('show')) return;
+  if ($('roster').classList.contains('show')) return $('roster').classList.remove('show');
+  if ($('card').style.display === 'block') return ($('card').style.display = 'none');
+  closePanel();
+});
+function renderRoster() {
+  const row = (a) => `<div class="ra" data-k="${a.key}"><img src="${AVATAR[a.name]}"><div><b>${esc(a.name)}</b><small>${esc(a.title || '')}</small></div><span class="sd" style="color:${a.state === 'working' ? '#3ddc84' : a.state === 'waiting' ? '#4fc3f7' : '#ffb020'}">${a.state === 'working' ? '일하는 중' : a.state === 'waiting' ? '확인 대기' : '대기'}</span></div>`;
+  const list = (team) => Object.values(agents).filter((a) => a.team === team && a.key !== 'teacher').map(row).join('');
+  $('roster').innerHTML = `<div class="rt">🏫 교무팀</div>${list('edu')}<div class="rt">💻 바이브코딩팀</div>${list('vibe')}`;
+  $('roster').querySelectorAll('.ra').forEach((el) => (el.onclick = (e) => { $('roster').classList.remove('show'); showAgentCard(agents[el.dataset.k], innerWidth - 600, 120); }));
+}
+$('agentPill').onclick = () => { renderRoster(); $('roster').classList.toggle('show'); };
+// 글자 크기 · 움직임 줄이기
+function setFs(v) { document.documentElement.style.setProperty('--fs', v); store.setL('eco_fs', v); document.querySelectorAll('#fsSeg button').forEach((b) => b.classList.toggle('on', b.dataset.fs === String(v))); }
+document.querySelectorAll('#fsSeg button').forEach((b) => (b.onclick = () => setFs(b.dataset.fs)));
+setFs(store.getL('eco_fs') || '1');
+$('motionOff').checked = store.getL('eco_motion') === '0'; $('motionOff').onchange = () => store.setL('eco_motion', $('motionOff').checked ? '0' : '1');
 const tick = () => { $('clock').textContent = new Date().toTimeString().slice(0, 5); }; tick(); setInterval(tick, 10000);
 
 for (const l of LOGS) logLine(l[0], l[1], l[2], l[3], l[4], l[5], true);
 $('dashEvery').value = store.getL('eco_dashEvery') || '3'; $('dashEvery').onchange = () => store.setL('eco_dashEvery', $('dashEvery').value);
 $('gateBig').onclick = $('gateBody').ondblclick = () => { const j = jobs[currentTeam]; if (j?.waiting) openViewer({ who: agents[j.waiting.lead].name, to: '담임(나)', sub: '선생님 확인 단계 · ' + j.topic, md: j.waiting.text }); };
 $('gateOk').onclick = () => answerGate('ok'); $('gateEdit').onclick = () => answerGate('edit'); $('gateStop').onclick = () => confirm('이 작업을 중단할까요?') && answerGate('stop');
-$('gatePill').onclick = () => { const t = jobs.edu?.waiting ? 'edu' : 'vibe'; setTeam(t); $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work'); };
-$('donePill').onclick = () => { $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('hist'); };
+$('gatePill').onclick = () => { const t = jobs.edu?.waiting ? 'edu' : 'vibe'; setTeam(t); openPanel(); showTab('work'); };
+$('donePill').onclick = () => { openPanel(); showTab('hist'); };
 $('reviseGo').onclick = startRevise; $('reviseNote').onkeydown = (e) => { if (e.key === 'Enter') startRevise(); }; $('issueGo').onclick = sendIssue;
 $('retry').onclick = () => { const j = failedJob[currentTeam]; if (!j) return; failedJob[currentTeam] = null; logLine('시스템', null, '끝난 단계는 건너뛰고 이어서 다시 시도해요.'); execute(j); };
 ['eduType', 'eduMode', 'gate', 'combineRev'].forEach((id) => ($(id).onchange = syncButtons));
