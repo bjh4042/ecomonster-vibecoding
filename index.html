@@ -99,6 +99,10 @@
   .seg { display: flex; gap: 6px; margin-bottom: 10px; }
   #ctrl .seg button { flex: 1; background: #1d2440; color: #ccd; border: 1px solid #3b4466; }
   #ctrl .seg button.on { background: #fff; color: #111; }
+  .projTag { display: block; font-size: 10px; opacity: .75; font-weight: 600; }
+  #projRow select { flex: 1; min-width: 0; }
+  .projLbl { font-size: 12px; font-weight: 800; white-space: nowrap; color: #c8a2ff; }
+  .tag.t-proj { background: #c8a2ff; color: #111; }
   #ctrl .seg.big button { padding: 12px; font-size: 15px; }
   .view { display: none; } .view.on { display: block; }
   #ctrl label { display: block; font-size: 12px; color: #aab; margin: 10px 0 4px; }
@@ -267,7 +271,8 @@
     </div>
   </div>
   <div class="view on" id="v-work">
-    <div class="seg big"><button data-team="edu" class="on">🏫 교무팀</button><button data-team="vibe">💻 바이브코딩팀</button></div>
+    <div class="seg big"><button data-team="edu" class="on">🏫 교무팀</button><button data-team="vibe">💻 바이브코딩팀<small id="projTag" class="projTag"></small></button></div>
+    <div id="projRow" style="display:none"><div class="row" style="align-items:center;gap:6px"><span class="projLbl">🎮 게임</span><select id="projSel" title="어떤 게임 일을 할까요?"></select><button id="projEdit" class="ghost fit" title="이름·단계 고치기">✏️</button><button id="projAdd" class="ghost fit" title="새 게임 프로젝트">＋</button></div><div class="note" id="projNote" style="margin:4px 0 6px"></div></div>
     <div class="seg" id="vibeMode" style="display:none"><button data-vm="cc">🤖 Claude Code 지시문</button><button data-vm="idea">💡 아이디어 회의</button></div>
     <div class="secTitle"><span class="num">1</span> 무엇을 맡길까요? <small>버튼을 누르면 빈칸만 채우면 돼요</small></div>
     <div id="tplBar" class="tplGrid"></div>
@@ -1008,6 +1013,7 @@ const DEFAULT_CTX = {
 - 배경: 거제도의 실제 생태와 지역
 - 기술: 웹(HTML5/JavaScript), GitHub Pages 배포, 스마트폰·태블릿·PC 반응형 + 터치 조작
 - 실제 개발은 Claude Code가 담당 (이 팀은 아이디어·검토용)
+- 후속작 「생태몬스터: 대한민국」 기획 중 → 엔진·데이터 구조는 후속작에서 다시 쓸 수 있게
 - (폴더 구조, 엔진, 지금 알려진 문제를 여기에 추가)`,
   edu: `# 학교 맥락
 - 학교급: 초등학교
@@ -1020,7 +1026,7 @@ const DEFAULT_CTX = {
 };
 const getKey = () => store.get('eco_key') || '';
 const getModel = () => store.getL('eco_model') || DEFAULT_MODEL;
-const getCtx = (team) => store.getL('eco_ctx_' + team) || DEFAULT_CTX[team];
+const getCtx = (team) => team === 'vibe' ? projCtx(curProj()) : store.getL('eco_ctx_' + team) || DEFAULT_CTX[team];
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // =====================================================================
@@ -1207,7 +1213,7 @@ function updateProgress() {
   const v = total ? Math.min(100, done / total * 100) : 0;
   $('pct').innerHTML = `${Math.round(v)}<small>%</small>`; $('barFill').style.width = v + '%'; $('doneLbl').textContent = `${done}/${total}`;
   $('pctLbl').textContent = act.length > 1 ? `작업 ${act.length}개 동시 진행` : '작업 공정률';
-  $('topicLbl').textContent = act.map((j) => (j.team === 'edu' ? '🏫 ' : '💻 ') + j.topic.slice(0, 26)).join('   ');
+  $('topicLbl').textContent = act.map((j) => (j.team === 'edu' ? '🏫 ' : '💻 ' + (j.project ? `[${j.project.short}] ` : '')) + j.topic.slice(0, 26)).join('   ');
 }
 async function step(job, agentKey, prompt, to, sayFn, opt = {}) {
   const id = 's' + job.si++, a = agents[agentKey];
@@ -1318,7 +1324,7 @@ async function runJob(demo) {
   const team = currentTeam;
   if (jobs[team]) return;
   let topic = $('topic').value.trim();
-  if (!topic && demo) topic = team === 'edu' ? '내일 현장체험학습 학부모 안내 문자 써 줘' : '거제도 지역 몬스터 아이디어 회의';
+  if (!topic && demo) topic = team === 'edu' ? '내일 현장체험학습 학부모 안내 문자 써 줘' : curProj().short + ' 지역 몬스터 아이디어 회의';
   if (!topic) return $('topic').focus();
   if (team === 'edu' && !personalOn() && PERSONAL_RE.test(topic)) {
     logLine('시스템', null, '학생 개인정보가 필요한 업무(생기부·상담·관찰 기록)는 꺼져 있어요. 학생 정보는 넣지 말아 주세요.', 'err');
@@ -1330,7 +1336,7 @@ async function runJob(demo) {
   const job = { id: Date.now(), team, topic, sent: masker.mask(topic), mock: !!demo, useMask, gate: $('gate').checked, combine: $('combineRev').checked, outputs: {}, done: 0, total: estimateCalls(team), si: 0, masker };
   job.attach = takeAttach(masker); if (job.attach) logLine('시스템', null, `자료 ${job.attach.names.length}개를 함께 보냈어요: ${job.attach.names.join(', ')}`);
   if (team === 'edu') { const sel = $('eduType').value; job.typeId = sel === 'auto' ? classify(topic).id : sel; job.mode = $('eduMode').value; }
-  if (team === 'vibe') { job.vmode = vibeMode; job.ccMode = ccModeSel(); job.total = vibeMode === 'cc' ? (job.ccMode === 'quick' ? 1 : 3) : 5; }
+  if (team === 'vibe') { job.project = projRef(); job.vmode = vibeMode; job.ccMode = ccModeSel(); job.total = vibeMode === 'cc' ? (job.ccMode === 'quick' ? 1 : 3) : 5; }
   if (masker.count && job.sent !== topic) logLine('시스템', null, `학생 이름을 가려서 보냈어요: "${job.sent.slice(0, 40)}"`);
   $('topic').value = '';
   execute(job);
@@ -1341,7 +1347,7 @@ async function execute(job) {
   try {
     const res = job.kind === 'revise' ? await runRevise(job) : job.kind === 'recheck' ? await runRecheck(job) : team === 'vibe' ? (job.vmode === 'cc' ? await runCC(job) : await runVibe(job)) : await runEdu(job);
     res.final = job.masker.unmask(res.final); res.md = job.masker.unmask(res.md);
-    const r = lastResult[team] = { team, topic: job.topic, ...res, demo: job.mock, at: new Date().toLocaleString('ko-KR') };
+    const r = lastResult[team] = { team, project: job.project, topic: job.topic, ...res, demo: job.mock, at: new Date().toLocaleString('ko-KR') };
     store.setL('eco_last', JSON.stringify(lastResult));
     saveHistory(r);
     doneJobs++; $('cDone').textContent = `완료 ${doneJobs}`; chime();
@@ -1365,6 +1371,7 @@ function optSummary() {
   if ($('gate').checked) bits.push('내가 확인'); $('optSummary').textContent = '· ' + bits.filter(Boolean).join(' · ');
 }
 function syncButtons() {
+  try { renderProj(); } catch {}
   try { optSummary(); } catch {}
   const busy = !!jobs[currentTeam], failed = failedJob[currentTeam];
   $('go').disabled = $('demo').disabled = busy; $('go').textContent = busy ? (jobs[currentTeam].waiting ? '선생님 확인 기다리는 중' : '이 팀은 작업 중…') : '작업 시작';
@@ -1376,6 +1383,7 @@ function resumeSaved() {
   for (const t of ['edu', 'vibe']) {
     const j = saved[t]; if (!j) continue;
     j.masker = j.useMask ? makeMasker() : NO_MASK;
+    if (t === 'vibe' && j.project && j.project.id !== curProj().id && projects.some((p) => p.id === j.project.id)) switchProject(j.project.id, true);
     logLine('시스템', null, `새로고침 전에 하던 ${t === 'edu' ? '교무팀' : '바이브코딩팀'} 작업을 이어서 해요 (${j.done}단계 완료됨): ${j.topic.slice(0, 30)}`);
     execute(j);
   }
@@ -1472,7 +1480,7 @@ let dashData = null; const ETAG = {};
 async function loadDash() {
   const repo = $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { $('dash').innerHTML = '<span class="warn">"아이디/저장소이름" 형식으로 적어 주세요.</span>'; return; }
-  store.setL('eco_repo', repo); const tok = $('ghToken').value.trim(); if (tok) store.setL('eco_ghtoken', tok); else store.del('eco_ghtoken');
+  store.setL('eco_repo', repo); projSaveRepo(); const tok = $('ghToken').value.trim(); if (tok) store.setL('eco_ghtoken', tok); else store.del('eco_ghtoken');
   $('dash').textContent = '불러오는 중…';
   const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
   const api = async (p) => { const url = `https://api.github.com/repos/${repo}/${p}`, c = ETAG[url];
@@ -1553,12 +1561,12 @@ function refreshMode() { $('mode').innerHTML = getKey() ? '' : '<span class="bad
 function loadHist() { try { return JSON.parse(store.getL('eco_hist3') || store.getL('eco_hist2') || '[]'); } catch { return []; } }
 function saveHist(h) { store.setL('eco_hist3', JSON.stringify(h.slice(0, 50))); renderHist(); }
 const updDonePill = () => { $('donePill').textContent = `📂 완료함 ${loadHist().length}`; };
-function saveHistory(r) { const h = loadHist(); h.unshift({ team: r.team, topic: r.topic, title: r.title, final: r.final, md: r.md, at: r.at, demo: !!r.demo, lead: r.lead }); saveHist(h); }
+function saveHistory(r) { const h = loadHist(); h.unshift({ team: r.team, project: r.project, topic: r.topic, title: r.title, final: r.final, md: r.md, at: r.at, demo: !!r.demo, lead: r.lead }); saveHist(h); }
 function renderHist() {
   const list = $('histList'), h = loadHist(); updDonePill(); list.innerHTML = h.length ? '' : '<div class="note">아직 완료된 작업이 없어요. 작업이 끝나면 여기에 쌓여요.</div>';
   h.forEach((it, i) => {
     const d = document.createElement('div'); d.className = 'hist';
-    d.innerHTML = `<div><span class="tag t-${it.team}">${it.team === 'edu' ? '교무팀' : '바이브코딩팀'}</span>${it.demo ? '<span class="tag" style="background:#555;color:#ddd">시연</span>' : ''}<b></b></div><small></small><div><button class="mini">보기</button><button class="ghost mini">한글</button><button class="ghost mini">.md</button><button class="danger mini">삭제</button></div>`;
+    d.innerHTML = `<div><span class="tag t-${it.team}">${it.team === 'edu' ? '교무팀' : '바이브코딩팀'}</span>${it.project ? `<span class="tag t-proj">🎮 ${esc(it.project.short)}</span>` : ''}${it.demo ? '<span class="tag" style="background:#555;color:#ddd">시연</span>' : ''}<b></b></div><small></small><div><button class="mini">보기</button><button class="ghost mini">한글</button><button class="ghost mini">.md</button><button class="danger mini">삭제</button></div>`;
     d.querySelector('b').textContent = it.topic; d.querySelector('small').textContent = it.at;
     const [view, hw, md, del] = d.querySelectorAll('button'), r = { ...it, final: it.final || it.md };
     view.onclick = () => { showResult(r); openViewer({ who: (r.team === 'edu' ? '🏫 교무팀' : '💻 바이브코딩팀') + ' 결과', sub: r.topic + ' · ' + (r.at || ''), md: r.final, result: r }); };
@@ -1612,14 +1620,22 @@ const TEMPLATES = {
       make: (v) => `"${v.title}"을 학교 공문서 개조식으로 써 줘. 목적: ${v.purpose}. 세부: ${v.detail}. 목적-근거-운영 개요(표)-세부 계획-안전 대책-예산-기대 효과 순서, 모르는 수치는 ○○로.` },
   ],
   vibe: [
-    { icon: '👾', label: '몬스터 아이디어', fields: [['place', '지역·서식지', '학동 몽돌해변, 동백섬'], ['count', '개수', '6'], ['type', '타입·역할', '물·풀 타입 초반 몬스터']],
-      make: (v) => `${v.place}에 사는 ${v.type} ${v.count}종 아이디어. 실제 거제 생물을 모티브로, 이름·타입·특징·진화 여부·원작에서 비슷한 포지션.` },
-    { icon: '🗺', label: '맵·지역 구성', fields: [['area', '지역', '두 번째 마을과 1번 도로'], ['badge', '구간', '배지 1~2개 사이'], ['want', '넣고 싶은 것', '갯벌 지름길, 낚시 포인트', 1]],
-      make: (v) => `${v.area} 맵 구성 아이디어 (${v.badge}). 넣고 싶은 것: ${v.want}. 원작 FRLG 초반 도로·마을 구성 관례(트레이너 배치, 풀숲, 숨은 아이템)를 참고해서.` },
-    { icon: '💬', label: '대사·스토리', fields: [['scene', '장면', '박사 연구소 첫 몬스터 고르기'], ['tone', '분위기', '따뜻하고 거제 사투리 살짝']],
-      make: (v) => `"${v.scene}" 장면 대사를 써 줘. 분위기: ${v.tone}. 원작 인트로처럼 짧은 대사 여러 줄, 선택지 포함.` },
-    { icon: '⚖️', label: '밸런스 점검', fields: [['target', '점검 대상', '배지 4개까지 체육관 관장 레벨'], ['now', '지금 상태 (아는 만큼)', '1관 Lv12, 2관 Lv18, 3관 Lv25, 4관 Lv30', 1]],
-      make: (v) => `${v.target} 밸런스 점검. 현재: ${v.now}. 원작 FRLG 곡선과 비교해 너무 어렵거나 쉬운 구간과 조정안.` },
+    { icon: '👾', label: '몬스터 아이디어', fields: [['place', '지역·서식지', () => projPH('place')], ['count', '개수', '6'], ['type', '타입·역할', '물·풀 타입 초반 몬스터']],
+      make: (v) => `「${curProj().name}」 ${v.place}에 사는 ${v.type} ${v.count}종 아이디어. 그 지역 실제 생물을 모티브로, 이름·타입·특징·진화 여부·원작에서 비슷한 포지션. 다른 시리즈 작품 몬스터와 겹치지 않게.` },
+    { icon: '🗺', label: '맵·지역 구성', fields: [['area', '지역', () => projPH('area')], ['badge', '구간', '배지 1~2개 사이'], ['want', '넣고 싶은 것', () => projPH('want'), 1]],
+      make: (v) => `「${curProj().name}」 ${v.area} 맵 구성 아이디어 (${v.badge}). 넣고 싶은 것: ${v.want}. 원작 FRLG 초반 도로·마을 구성 관례(트레이너 배치, 풀숲, 숨은 아이템)를 참고해서.` },
+    { icon: '💬', label: '대사·스토리', fields: [['scene', '장면', '박사 연구소 첫 몬스터 고르기'], ['tone', '분위기', () => projPH('tone')]],
+      make: (v) => `「${curProj().name}」 "${v.scene}" 장면 대사를 써 줘. 분위기: ${v.tone}. 원작 인트로처럼 짧은 대사 여러 줄, 선택지 포함.` },
+    { icon: '⚖️', label: '밸런스 점검', fields: [['target', '점검 대상', '배지 4개까지 체육관 관장 레벨'], ['now', '지금 상태 (아는 만큼)', () => projPH('now'), 1]],
+      make: (v) => `「${curProj().name}」 ${v.target} 밸런스 점검. 현재: ${v.now}. 원작 FRLG 곡선과 비교해 너무 어렵거나 쉬운 구간과 조정안.` },
+    { icon: '🏞', label: '지역·배지 구성', seq: 1, fields: [['scope', '범위', () => projPH('scope')], ['badge', '배지 수', '8개'], ['must', '꼭 넣고 싶은 생태지', () => projPH('must'), 1]],
+      make: (v) => `「${curProj().name}」 전체 지역·배지 구성안. 범위: ${v.scope}. 배지 ${v.badge}. 꼭 넣을 곳: ${v.must}. 권역별 대표 생태(서식지)·체육관 타입·추천 레벨·이동 순서를 표로 (원작 관동·성도 구조 참고). 실제 지명·생물은 사실과 맞게, 확실하지 않으면 [확인 필요]로 표시.` },
+    { icon: '🔗', label: '전작 연계', seq: 1, fields: [['prev', '연결할 작품', () => otherProj()?.name || '생태몬스터: 거제도'], ['carry', '이어받고 싶은 것', '도감 기록, 몬스터 데려오기, 주인공 이름', 1], ['worry', '걱정되는 점 (선택)', '밸런스 붕괴, 세이브 호환']],
+      make: (v) => `「${v.prev}」과 「${curProj().name}」의 연계 방안. 이어받을 것: ${v.carry}. 걱정: ${v.worry}. 원작 HGSS의 이전 세대 연동처럼 세이브 데이터 형식·이어받기 규칙·밸런스 보호 장치를 정하고, 전작을 안 해 본 사람도 문제없게. 방식별 장단점 표와 추천안, 지금 거제도 쪽에서 미리 해 둘 일까지.` },
+    { icon: '🧭', label: '버전 로드맵', seq: 1, fields: [['now', '지금 단계', () => curProj().status || '기획 중'], ['goal', '목표', () => projPH('goal')], ['time', '기간·여유', '주말 위주, 6개월']],
+      make: (v) => `「${curProj().name}」 버전별 로드맵. 지금: ${v.now}. 목표: ${v.goal}. 기간: ${v.time}. 버전(체험판 → 0.5 → 1.0)마다 범위·완료 조건·위험 요소를 표로, 시리즈의 다른 작품 작업과 겹치지 않는 순서로.` },
+    { icon: '♻️', label: '공통 엔진 정리', seq: 1, vm: 'cc', fields: [['what', '같이 쓸 부분', '전투 계산, 대화창, 맵 이동, 세이브, 터치 조작', 1], ['how', '방식', '거제도 저장소 안에 engine/ 폴더로 먼저 분리']],
+      make: (v) => `생태몬스터 시리즈 공통 엔진 정리. 거제도와 대한민국이 같이 쓸 부분: ${v.what}. 방식: ${v.how}. 지금 게임 동작은 그대로(회귀 금지), 엔진 코드와 데이터(몬스터·맵·대사)를 분리하고 단계마다 커밋, 끝나면 실제 플레이로 확인.` },
   ],
 };
 function renderTemplates() {
@@ -1632,12 +1648,12 @@ function renderTemplates() {
 function openTemplate(t) {
   const f = $('tplForm'); f.style.display = 'block';
   f.innerHTML = `<div class="resTitle" style="margin-top:0;color:#fff;font-weight:800">${t.icon} ${t.label} — 아는 칸만 채우세요</div>` +
-    t.fields.map(([k, label, ph, multi]) => `<label>${label}</label>${multi ? `<textarea data-k="${k}" rows="2" placeholder="${esc(ph)}"></textarea>` : `<input data-k="${k}" placeholder="${esc(ph)}">`}`).join('') +
+    t.fields.map(([k, label, ph0, multi]) => { const ph = typeof ph0 === 'function' ? ph0() : ph0; return `<label>${label}</label>${multi ? `<textarea data-k="${k}" rows="2" placeholder="${esc(ph)}"></textarea>` : `<input data-k="${k}" placeholder="${esc(ph)}">`}`; }).join('') +
     (t.fields.length ? '' : `<div class="note" style="margin-top:0">${esc(t.make({}).slice(0, 160))}</div>`) +
     `<div class="row" style="margin-top:8px"><button id="tplGo">바로 시작</button><button id="tplFill" class="ghost">요청문만 만들기</button>${t.custom != null ? '<button id="tplDel" class="danger fit">🗑</button>' : ''}<button id="tplX" class="ghost fit">닫기</button></div>`;
   if (t.custom != null) $('tplDel').onclick = () => { if (!confirm(`"${t.label}" 버튼을 지울까요?`)) return; const m = loadMyTpl(); m[currentTeam].splice(t.custom, 1); saveMyTpl(m); renderTemplates(); };
   const build = () => { const v = {}; f.querySelectorAll('[data-k]').forEach((el) => (v[el.dataset.k] = el.value.trim() || el.placeholder)); return t.make(v); };
-  const fill = () => { $('topic').value = build(); if (t.type) $('eduType').value = t.type; syncButtons(); f.style.display = 'none'; };
+  const fill = () => { $('topic').value = build(); if (t.type) $('eduType').value = t.type; if (t.vm && currentTeam === 'vibe') setVibeMode(t.vm); syncButtons(); f.style.display = 'none'; };
   $('tplFill').onclick = () => { fill(); $('topic').focus(); };
   $('tplGo').onclick = () => { fill(); runJob(false); };
   $('tplX').onclick = () => (f.style.display = 'none');
@@ -1660,7 +1676,7 @@ function startRevise() {
   const useMask = $('mask').checked, masker = useMask ? makeMasker() : NO_MASK;
   const lead = r.lead || (r.team === 'vibe' ? 'planner' : classify(r.topic).lead);
   const topic = r.topic.startsWith('(수정) ') ? r.topic : '(수정) ' + r.topic;
-  const job = { id: Date.now(), kind: 'revise', team: r.team, topic, title: r.title || r.topic, lead, note: masker.mask(note), base: masker.mask(r.final), sent: '', mock: !getKey(), useMask, outputs: {}, done: 0, total: 1, si: 0, masker };
+  const job = { id: Date.now(), kind: 'revise', team: r.team, project: r.project, topic, title: r.title || r.topic, lead, note: masker.mask(note), base: masker.mask(r.final), sent: '', mock: !getKey(), useMask, outputs: {}, done: 0, total: 1, si: 0, masker };
   $('reviseNote').value = ''; setTeam(r.team); execute(job);
 }
 
@@ -1903,7 +1919,7 @@ function setVibeMode(m) {
        <label>교정 단계</label><select id="ccMode"><option value="check">만들고 → 교정 검토 → 반영 (Gemini 3회, 추천)</option><option value="quick">만들기만 (Gemini 1회)</option></select>`
     : '<div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + 작업 지시문</div>';
   if ($('ccMode')) { $('ccMode').value = ccModeSel(); $('ccMode').onchange = () => { store.setL('eco_ccmode', $('ccMode').value); syncButtons(); }; }
-  if (currentTeam === 'vibe') { $('topic').placeholder = m === 'cc' ? '예: 배틀 화면에서 HP바가 줄어드는 애니메이션 넣어줘. 원작처럼 초록→노랑→빨강으로. 모바일에서도 잘 보이게.' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)'; }
+  if (currentTeam === 'vibe') { $('topic').placeholder = m === 'cc' ? '예: 배틀 화면에서 HP바가 줄어드는 애니메이션 넣어줘. 원작처럼 초록→노랑→빨강으로. 모바일에서도 잘 보이게.' : projPH('idea'); }
   syncButtons();
 }
 document.querySelectorAll('#vibeMode button').forEach((b) => (b.onclick = () => setVibeMode(b.dataset.vm)));
@@ -1911,7 +1927,8 @@ MOCK.cc = '## 목표\n배틀 화면 HP바가 원작처럼 부드럽게 줄어들
 // ── 받는 곳 (대화창 링크 / GitHub 이슈) ──
 const loadDests = () => { try { return JSON.parse(store.getL('eco_dests') || '[]'); } catch { return []; } };
 const saveDests = (d) => store.setL('eco_dests', JSON.stringify(d));
-let hoText = '', hoTitle = '', hoDest = null;
+let hoText = '', hoTitle = '', hoDest = null, hoProj = null;
+const hoRepo = () => (hoProj && projects.find((p) => p.id === hoProj.id)?.repo) || store.getL('eco_repo');
 function hoOpen(text, title) {
   hoText = text; hoTitle = title; $('hoText').value = text; hoUndo = null; $('hoNotes').style.display = 'none'; $('hoNotes').innerHTML = ''; hoView(1); $('handoff').classList.add('show');
 }
@@ -1945,8 +1962,9 @@ $('hoNext2').onclick = () => {
   if (!hoDest) return alert('받는 대화창을 골라 주세요.');
   store.setL('eco_dest_last', hoDest.id);
   $('hoConfirm').innerHTML = `<div class="hoq">이 내용을 아래 대화창으로 <b>넘기겠습니까?</b></div>
-    <div class="hocard"><small>받는 곳</small><b>${hoDest.kind === 'issue' ? '🐙' : '💬'} ${esc(hoDest.name)}</b><div class="url">${esc(hoDest.kind === 'issue' ? store.getL('eco_repo') + ' 저장소 이슈' : hoDest.url)}</div>
+    <div class="hocard"><small>받는 곳</small><b>${hoDest.kind === 'issue' ? '🐙' : '💬'} ${esc(hoDest.name)}</b><div class="url">${esc(hoDest.kind === 'issue' ? hoRepo() + ' 저장소 이슈' : hoDest.url)}</div>
     ${hoDest.kind === 'link' ? `<a href="${esc(hoDest.url)}" target="_blank" rel="noopener">↗ 이 대화창이 맞는지 먼저 열어 보기</a>` : ''}</div>
+    ${hoProj ? `<div class="hocard"><small>게임 프로젝트</small><b>🎮 ${esc(hoProj.name || hoProj.short)}</b></div>` : ''}
     <div class="hocard"><small>보낼 내용 · ${hoText.length.toLocaleString()}자</small><div class="prev">${mdToHtml(hoText.slice(0, 700))}${hoText.length > 700 ? '<p>…</p>' : ''}</div></div>
     <div class="note">${hoDest.kind === 'link' ? '[네, 넘길게요]를 누르면 내용이 <b>복사</b>되고 그 대화창이 <b>새 탭</b>으로 열려요. 거기서 <b>붙여넣기(Ctrl+V)</b> 후 보내기를 누르세요.' : '[네, 넘길게요]를 누르면 저장소에 이슈가 만들어지고, Claude Code에 붙여 넣을 한 줄이 복사돼요.'}</div>`;
   hoView(3);
@@ -1979,7 +1997,7 @@ $('hoGo').onclick = async () => {
   }
 };
 async function createIssue(title, body) {
-  const repo = store.getL('eco_repo'), tok = store.getL('eco_ghtoken');
+  const repo = hoRepo(), tok = store.getL('eco_ghtoken');
   const res = await fetch(`https://api.github.com/repos/${repo}/issues`, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '[AI 오피스] ' + title.slice(0, 70), body: body + '\n\n---\n_AI 오피스 바이브코딩팀에서 다듬어 넘긴 작업 지시입니다._' }) });
   const j = await res.json(); if (!res.ok) throw new Error(res.status === 403 || res.status === 404 ? '토큰에 이 저장소의 Issues 쓰기 권한이 없어요' : (j.message || res.status));
   return j;
@@ -1996,7 +2014,7 @@ function renderHoHist() {
 renderHoHist();
 function startHandoff(r) {
   const text = r.cc ? splitNotes(r.final)[0] : extractInstruction(r.final);
-  hoOpen(text, (r.title || r.topic).replace(/^(아이디어 회의|Claude Code 지시):\s*/, ''));
+  hoProj = r.project || null; hoOpen(text, (r.project ? `[${r.project.short}] ` : '') + (r.title || r.topic).replace(/^(아이디어 회의|Claude Code 지시):\s*/, ''));
 }
 
 // =====================================================================
@@ -2068,7 +2086,7 @@ function startRecheck() {
   if (jobs.vibe) return alert('바이브코딩팀이 다른 작업 중이에요. 끝난 뒤에 다시 교정해 주세요.');
   const [body] = splitNotes(r.final);
   const topic = r.topic.startsWith('(교정) ') ? r.topic : '(교정) ' + r.topic;
-  execute({ id: Date.now(), kind: 'recheck', team: 'vibe', topic, title: r.title || r.topic, base: body, sent: '', mock: !getKey(), useMask: false, outputs: {}, done: 0, total: 1, si: 0, masker: NO_MASK });
+  execute({ id: Date.now(), kind: 'recheck', team: 'vibe', project: r.project, topic, title: r.title || r.topic, base: body, sent: '', mock: !getKey(), useMask: false, outputs: {}, done: 0, total: 1, si: 0, masker: NO_MASK });
 }
 
 // 넘기기 1단계에서 [AI로 다시 교정] (직접 고친 글도 교정)
@@ -2089,6 +2107,79 @@ $('hoRecheck').onclick = async () => {
 };
 
 // =====================================================================
+// 25. 게임 프로젝트 (거제도 · 대한민국 · 새 작품)
+// =====================================================================
+const KOREA_CTX = `# 생태몬스터: 대한민국 — 게임 맥락 (후속작, 기획 중)
+- 단계: 기획 중. 전작 「생태몬스터: 거제도」의 후속작
+- 배경: 대한민국 전국의 실제 생태와 지역 (권역별 배지·체육관 구성 예정)
+- 지향점: 포켓몬스터 FRLG·HGSS와 비슷한 인트로·조작·UI (전작과 같은 조작감)
+- 기술: 웹(HTML5/JavaScript), GitHub Pages, 스마트폰·태블릿·PC 반응형 + 터치
+- 전작 연계: (세이브·몬스터 이어받기 여부 — 정해지면 적기)
+- 규모: 거제도보다 훨씬 큼 → 데이터 분리, 지역별로 나눠 불러오기 고려
+- 실제 개발은 Claude Code가 담당 (이 팀은 아이디어·검토용)`;
+const NEW_CTX = (name) => `# ${name} — 게임 맥락\n- 단계: 기획 중\n- 배경: (지역·세계관)\n- 지향점: 포켓몬스터 FRLG·HGSS와 비슷한 인트로·조작·UI\n- 기술: 웹(HTML5/JavaScript), GitHub Pages, 반응형 + 터치\n- 실제 개발은 Claude Code가 담당 (이 팀은 아이디어·검토용)`;
+function loadProjects() {
+  let p; try { p = JSON.parse(store.getL('eco_projects') || 'null'); } catch {}
+  if (!Array.isArray(p) || !p.length) {
+    p = [{ id: 'geoje', name: '생태몬스터: 거제도', short: '거제도', status: '0.5 클로즈베타 제작 중', ctx: store.getL('eco_ctx_vibe') || '', repo: store.getL('eco_repo') || '' },
+      { id: 'korea', name: '생태몬스터: 대한민국', short: '대한민국', status: '기획 중 · 후속작', ctx: '', repo: '' }];
+    store.setL('eco_projects', JSON.stringify(p)); store.setL('eco_project', 'geoje');
+  }
+  return p;
+}
+const projects = loadProjects();
+const saveProjects = () => store.setL('eco_projects', JSON.stringify(projects));
+const curProj = () => projects.find((p) => p.id === store.getL('eco_project')) || projects[0];
+const otherProj = () => projects.find((p) => p.id !== curProj().id);
+const projRef = () => { const p = curProj(); return { id: p.id, name: p.name, short: p.short }; };
+const projDefaultCtx = (p) => (p.id === 'geoje' ? DEFAULT_CTX.vibe : p.id === 'korea' ? KOREA_CTX : NEW_CTX(p.name));
+const projCtx = (p) => p.ctx || projDefaultCtx(p);
+function projSaveRepo() { curProj().repo = store.getL('eco_repo') || ''; saveProjects(); if (currentTeam === 'vibe') setTeam('vibe'); }
+const PH = {
+  geoje: { idea: '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)', place: '학동 몽돌해변, 동백섬', area: '두 번째 마을과 1번 도로', want: '갯벌 지름길, 낚시 포인트', tone: '따뜻하고 거제 사투리 살짝', now: '1관 Lv12, 2관 Lv18, 3관 Lv25, 4관 Lv30',
+    scope: '거제도 전역 (S1~S8)', must: '학동 몽돌해변, 동백섬, 노자산, 갯벌', goal: '0.5 클로즈베타 → 1.0 출시' },
+  korea: { idea: '예: 대한민국 8권역 배지·체육관 구성안 (DMZ, 순천만, 한라산)', place: '제주 곶자왈, 순천만 갯벌, 설악산', area: '호남권 첫 마을과 1번 도로', want: '갈대밭 숨은 길, 철새 관찰대', tone: '따뜻하고 지역마다 사투리 살짝', now: '(아직 없음 — 거제도 곡선을 기준으로 제안)',
+    scope: '전국 8권역 (수도권·강원·충청·호남·영남·제주 등)', must: 'DMZ, 순천만, 한라산, 우포늪, 독도', goal: '거제도 1.0 이후 체험판(한 권역) 공개' },
+};
+const projPH = (k) => (PH[curProj().id] || {})[k] || (k === 'idea' ? `예: 「${curProj().name}」 첫 지역 몬스터 아이디어 10개` : PH.korea[k]);
+function renderProj() {
+  const p = curProj(), busy = !!jobs.vibe;
+  $('projSel').innerHTML = projects.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  $('projSel').value = p.id; $('projSel').disabled = busy; $('projAdd').disabled = $('projEdit').disabled = busy;
+  $('projTag').textContent = p.short;
+  $('projNote').innerHTML = busy ? '⏳ 일하는 중에는 게임을 바꿀 수 없어요.' : `<b>${esc(p.status || '단계 미정')}</b> · 맥락${p.repo ? '·저장소' : ''}는 게임마다 따로 저장돼요. 🏞🔗🧭♻️ 버튼은 후속작 준비용.`;
+}
+function switchProject(id, quiet) {
+  if (jobs.vibe && !quiet) { alert('바이브코딩팀이 일하는 중이에요. 끝난 뒤에 바꿔 주세요.'); return renderProj(); }
+  const cur = curProj(); cur.repo = store.getL('eco_repo') || '';
+  store.setL('eco_project', id); const p = curProj();
+  p.repo ? store.setL('eco_repo', p.repo) : store.del('eco_repo'); saveProjects();
+  $('repoIn').value = p.repo || ''; dashData = null;
+  $('dash').innerHTML = p.repo ? '' : `<span class="note">「${esc(p.name)}」 저장소를 적으면 개발 현황을 보여 줘요.</span>`;
+  if (p.repo) loadDash(); else if (!jobs.edu && !jobs.vibe) { $('pctLbl').textContent = '전체 공정률'; $('topicLbl').textContent = '🎮 ' + p.name; }
+  if (ctxTeam === 'vibe') showCtx('vibe');
+  if (currentTeam === 'vibe') setTeam('vibe'); else renderProj();
+  if (!quiet) { logLine('시스템', null, `🎮 바이브코딩팀이 「${p.name}」 작업으로 바꿨어요.`); toast(`🎮 「${p.name}」로 바꿨어요`); }
+}
+$('projSel').onchange = () => switchProject($('projSel').value);
+$('projAdd').onclick = () => {
+  const name = (prompt('새 게임 이름 (예: 생태몬스터: 독도)', '생태몬스터: ') || '').trim(); if (!name || name === '생태몬스터:') return;
+  const short = name.replace(/^.*[:：]\s*/, '').slice(0, 8) || name.slice(0, 8);
+  projects.push({ id: 'p' + Date.now(), name, short, status: '기획 중', ctx: '', repo: '' }); saveProjects();
+  switchProject(projects[projects.length - 1].id);
+};
+$('projEdit').onclick = () => {
+  const p = curProj(); const name = prompt('게임 이름', p.name); if (name === null) return;
+  if (!name.trim()) {
+    if (['geoje', 'korea'].includes(p.id) || projects.length < 2) return alert('기본 게임은 지울 수 없어요.');
+    if (!confirm(`「${p.name}」 프로젝트를 지울까요? (완료함 기록은 남아요)`)) return;
+    projects.splice(projects.indexOf(p), 1); saveProjects(); return switchProject(projects[0].id);
+  }
+  const status = prompt('지금 단계 (예: 기획 중, 0.5 클로즈베타)', p.status || ''); if (status === null) return;
+  p.name = name.trim(); p.short = p.name.replace(/^.*[:：]\s*/, '').slice(0, 8) || p.short; p.status = status.trim(); saveProjects(); renderProj(); if (currentTeam === 'vibe') setTeam('vibe');
+};
+
+// =====================================================================
 // 13. UI 연결
 // =====================================================================
 const TAB_TITLE = { work: '✏️ 업무 맡기기', hist: '📂 완료함', todo: '📋 오늘', set: '⚙️ 설정' };
@@ -2106,9 +2197,10 @@ function setTeam(team) {
   currentTeam = team;
   document.querySelectorAll('[data-team]').forEach((b) => b.classList.toggle('on', b.dataset.team === team));
   $('eduOpts').style.display = team === 'edu' ? '' : 'none'; $('vibeOpts').style.display = team === 'vibe' ? '' : 'none';
-  $('topic').placeholder = team === 'edu' ? '예: 다음 주 금요일 현장체험학습(거제 해양생태관) 학부모 안내 문자 써 줘' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)';
+  $('topic').placeholder = team === 'edu' ? '예: 다음 주 금요일 현장체험학습(거제 해양생태관) 학부모 안내 문자 써 줘' : projPH('idea');
   const n = getRoster().length;
-  $('teamNote').innerHTML = team === 'edu' ? (personalOn() && n ? `🔒 학생 명단 ${n}명을 가려서 보내요.` : '🔒 학생 이름·개인정보는 넣지 마세요. (생기부·상담 기록 업무는 꺼져 있어요)') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
+  $('projRow').style.display = team === 'vibe' ? '' : 'none'; renderProj();
+  $('teamNote').innerHTML = team === 'edu' ? (personalOn() && n ? `🔒 학생 명단 ${n}명을 가려서 보내요.` : '🔒 학생 이름·개인정보는 넣지 마세요. (생기부·상담 기록 업무는 꺼져 있어요)') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : `🎮 지금 게임: <b>${esc(curProj().name)}</b>${curProj().repo ? ' · ' + esc(curProj().repo) : ''}<br>` + '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
   $('vibeMode').style.display = team === 'vibe' ? 'flex' : 'none'; if (team === 'vibe') setVibeMode(vibeMode);
   syncButtons(); refreshGate(); optSummary();
   renderTemplates();
@@ -2146,16 +2238,17 @@ function showCtx(team) {
   $('ctxBox').style.display = roster ? 'none' : ''; $('rosterArea').style.display = roster ? '' : 'none'; $('resetCtx').style.display = roster ? 'none' : '';
   if (roster) { $('rosterBox').value = store.getL('eco_roster') || ''; $('rosterGiven').checked = store.getL('eco_roster_given') !== '0'; $('ctxHelp').textContent = '우리 반 학생 이름 (실명은 Google로 보내지 않아요)'; }
   else if (team === 'style') { $('ctxBox').value = store.getL('eco_style') || ''; $('ctxBox').placeholder = '예전에 쓴 알림장·가정통신문 2~3개를 붙여 넣으세요 (학생 이름은 지우고)'; $('ctxHelp').textContent = '교무팀이 이 글의 말투·문장 길이·형식을 따라 써요. 내용은 따라 하지 않아요.'; }
-  else { $('ctxBox').value = getCtx(team); $('ctxHelp').textContent = team === 'edu' ? '교무팀 5명이 이 내용을 읽고 일해요. 학년·과목·문체를 채워 주세요 (학생 실명은 넣지 마세요).' : '바이브코딩팀 4명이 이 내용을 읽고 일해요.'; }
+  else { $('ctxBox').value = getCtx(team); $('ctxHelp').textContent = team === 'edu' ? '교무팀 5명이 이 내용을 읽고 일해요. 학년·과목·문체를 채워 주세요 (학생 실명은 넣지 마세요).' : `🎮 「${curProj().name}」 맥락 — 바이브코딩팀 4명이 이 내용을 읽고 일해요. 게임 프로젝트를 바꾸면 맥락도 따로 저장돼요.`; }
   $('ctxStatus').textContent = '';
 }
 document.querySelectorAll('[data-ctx]').forEach((b) => (b.onclick = () => showCtx(b.dataset.ctx)));
 $('saveCtx').onclick = () => {
   if (ctxTeam === 'roster') { store.setL('eco_roster', $('rosterBox').value); store.setL('eco_roster_given', $('rosterGiven').checked ? '1' : '0'); $('ctxStatus').innerHTML = `<span class="ok">명단 ${getRoster().length}명 저장했어요 (이 브라우저에만).</span>`; setTeam(currentTeam); }
   else if (ctxTeam === 'style') { store.setL('eco_style', $('ctxBox').value.trim()); $('ctxStatus').innerHTML = '<span class="ok">내 말투 예시를 저장했어요. 교무팀이 이 말투로 써요.</span>'; }
+  else if (ctxTeam === 'vibe') { const p = curProj(); p.ctx = $('ctxBox').value; saveProjects(); $('ctxStatus').innerHTML = `<span class="ok">「${esc(p.name)}」 맥락을 저장했어요. 다음 작업부터 반영돼요.</span>`; }
   else { store.setL('eco_ctx_' + ctxTeam, $('ctxBox').value); $('ctxStatus').innerHTML = '<span class="ok">저장됐어요. 다음 작업부터 반영돼요.</span>'; }
 };
-$('resetCtx').onclick = () => { $('ctxBox').value = ctxTeam === 'style' ? '' : DEFAULT_CTX[ctxTeam]; };
+$('resetCtx').onclick = () => { $('ctxBox').value = ctxTeam === 'style' ? '' : ctxTeam === 'vibe' ? projDefaultCtx(curProj()) : DEFAULT_CTX[ctxTeam]; };
 function applyPersonal() {
   const on = personalOn(); $('personalOn').checked = on; $('rosterTabBtn').style.display = on ? '' : 'none';
   AGENT_DEF.sua.title = agents.sua.title = on ? '학부모 소통·기록' : '학부모 소통';
@@ -2170,7 +2263,7 @@ $('personalOn').onchange = () => {
 $('repoIn').value = store.getL('eco_repo') || ''; $('ghToken').value = store.getL('eco_ghtoken') || '';
 $('loadRepo').onclick = loadDash;
 $('ghToken').onchange = () => { const v = $('ghToken').value.trim(); v ? store.setL('eco_ghtoken', v) : store.del('eco_ghtoken'); };
-$('repoIn').onchange = () => store.setL('eco_repo', $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, ''));
+$('repoIn').onchange = () => { const v = $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, ''); v ? store.setL('eco_repo', v) : store.del('eco_repo'); projSaveRepo(); };
 $('copyCC').onclick = () => navigator.clipboard?.writeText(CC_GUIDE).then(() => ($('copyCC').textContent = '✅ 복사됐어요! Claude Code에 붙여 넣으세요'));
 
 // 작업
