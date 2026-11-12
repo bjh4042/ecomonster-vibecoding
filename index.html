@@ -141,6 +141,15 @@
   #ctrl .chip:hover { border-color: #c8ff2e; }
   .tplForm { background: #10162c; border: 1px solid #3c4677; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
   #issueStatus code { display: block; margin-top: 4px; background: #0a0e1a; padding: 6px; border-radius: 6px; white-space: pre-wrap; }
+  #handoff { position: fixed; inset: 0; background: rgba(8,10,20,.72); display: none; align-items: center; justify-content: center; z-index: 22; padding: 16px; }
+  #handoff.show { display: flex; } #handoff .vbody { font-size: 15px; }
+  #handoff .note, #wizard .note { color: #444; font-size: 13px; } #handoff .note b { color: #111; }
+  .vfootIn { display: flex; gap: 8px; margin-top: 14px; } .vfootIn button, .hoAdd button { padding: 10px 16px; border: 0; border-radius: 10px; background: #c8ff2e; color: #111; font-weight: 800; cursor: pointer; font-family: inherit; font-size: 14px; } .vfootIn .ghost { background: #e8e9f0; color: #222; }
+  .dest { display: flex; gap: 10px; align-items: center; border: 2px solid #e2e3ea; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; } .dest:has(input:checked) { border-color: #8a5cf6; background: #f6f1ff; }
+  .dest small { display: block; color: #777; font-size: 12px; word-break: break-all; } .dest.off { opacity: .5; cursor: default; } .dest .ddel { margin-left: auto; cursor: pointer; opacity: .6; } .dest input { width: 18px; height: 18px; }
+  .hoAdd { margin-top: 8px; border: 1px dashed #bbb; border-radius: 12px; padding: 4px 12px 12px; } .hoAdd summary { cursor: pointer; font-weight: 800; padding: 8px 0; }
+  .hoq { font-size: 18px; margin-bottom: 12px; } .hocard { border: 1px solid #e2e3ea; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; } .hocard small { color: #777; display: block; } .hocard b { font-size: 16px; }
+  .hocard .url { font-size: 12px; color: #555; word-break: break-all; margin: 2px 0 6px; } .hocard a { font-size: 13px; color: #6d3fe0; font-weight: 700; } .hocard .prev { max-height: 26vh; overflow: auto; font-size: 13px; }
   #wizard { position: fixed; inset: 0; background: rgba(8,10,20,.72); display: none; align-items: center; justify-content: center; z-index: 21; padding: 16px; }
   #wizard.show { display: flex; } #wizard label { display: block; font-size: 13px; color: #555; margin: 12px 0 4px; font-weight: 700; }
   .liveText { background: #0f1424; border: 1px dashed #c8ff2e; border-radius: 8px; padding: 8px 10px; max-height: 26vh; overflow: auto; font-size: 12px; line-height: 1.5; color: #dde; }
@@ -229,6 +238,22 @@
   <div id="wzBody" class="vbody"></div>
   <div class="vfoot"><button id="wzBack" class="ghost">이전</button><span style="flex:1"></span><button id="wzSkip" class="ghost">건너뛰기</button><button id="wzNext">다음</button></div>
 </div></div>
+<div id="handoff"><div class="vbox">
+  <div class="vhead"><span style="font-size:26px">🤖</span><div style="flex:1;min-width:0"><div style="font-weight:900;font-size:17px">Claude Code로 넘기기</div><small id="hoStepLbl"></small></div><span class="x" id="hoX">✕</span></div>
+  <div class="vbody">
+    <div id="hoV1"><p><b>보낼 내용</b>을 확인하고, 필요하면 직접 고쳐 주세요.</p><textarea id="hoText" rows="14" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px;line-height:1.5"></textarea>
+      <div class="vfootIn"><span style="flex:1"></span><button id="hoNext1">다음: 받는 대화창 고르기 →</button></div></div>
+    <div id="hoV2"><p><b>어느 Claude Code 대화창</b>으로 넘길까요?</p><div id="hoDests"></div>
+      <details class="hoAdd"><summary>＋ 대화창 추가하기</summary>
+        <p class="note" style="color:#555">Claude Code(웹·데스크톱) 대화창의 주소를 복사해 붙여 넣으세요. 예: <code>https://claude.ai/code/session_…</code></p>
+        <input id="hoName" placeholder="이름 (예: 생태몬스터 작업방)" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px;margin-bottom:6px">
+        <input id="hoUrl" placeholder="https://claude.ai/code/..." style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px">
+        <button id="hoAdd" style="margin-top:6px">저장</button></details>
+      <div class="vfootIn"><button id="hoBack2" class="ghost">← 이전</button><span style="flex:1"></span><button id="hoNext2">다음: 마지막 확인 →</button></div></div>
+    <div id="hoV3"><div id="hoConfirm"></div>
+      <div class="vfootIn"><button id="hoBack3" class="ghost">← 돌아가기</button><span style="flex:1"></span><button id="hoGo" style="background:#c8a2ff">네, 넘길게요</button></div></div>
+  </div>
+</div></div>
 <div id="toast"><span id="toastTxt"></span><button id="toastBtn">보기</button></div>
 
 <div id="ctrl" class="hide">
@@ -240,6 +265,7 @@
   </div>
   <div class="view on" id="v-work">
     <div class="seg big"><button data-team="edu" class="on">🏫 교무팀</button><button data-team="vibe">💻 바이브코딩팀</button></div>
+    <div class="seg" id="vibeMode" style="display:none"><button data-vm="cc">🤖 Claude Code 지시문</button><button data-vm="idea">💡 아이디어 회의</button></div>
     <div class="secTitle"><span class="num">1</span> 무엇을 맡길까요? <small>버튼을 누르면 빈칸만 채우면 돼요</small></div>
     <div id="tplBar" class="tplGrid"></div>
     <div id="tplForm" class="tplForm" style="display:none"></div>
@@ -279,7 +305,7 @@
         <div class="tplBar" id="refineChips" style="margin:4px 0"></div>
         <div class="row"><input id="reviseNote" placeholder="직접 적기: 예) 준비물에 우산 추가" /><button id="reviseGo" class="fit">고치기</button></div>
       </div>
-      <div id="issueBox" style="display:none"><button id="issueGo" class="wide" style="background:#4fc3f7">🐙 Claude Code에 GitHub 이슈로 보내기</button><div id="issueStatus" class="note"></div></div>
+      <div id="issueBox" style="display:none"><button id="hoStart" class="wide bigBtn" style="background:#c8a2ff">🤖 Claude Code로 넘기기</button><div id="issueStatus" class="note">넘기기 전에 내용 → 받는 대화창 → 마지막 확인 순서로 물어봐요.</div></div>
     </div>
   </div>
   <div class="view" id="v-todo">
@@ -348,7 +374,9 @@
       <div class="note">완료 알림음은 오른쪽 아래에서 켜고 끌 수 있어요.</div>
     </details>
   </div>
-<div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 50개)</small>
+<div class="view" id="v-hist">
+    <div class="secTitle" style="margin-top:4px">🤖 Claude Code로 넘긴 기록</div><div id="hoHist"></div>
+    <div class="secTitle">📂 완료한 작업 <small>최근 50개</small></div>
     <div class="row" style="margin:8px 0"><button class="ghost mini" id="expHist">⬇ 백업 파일 받기</button><button class="ghost mini" id="impHist">⬆ 백업 불러오기</button><input type="file" id="impFile" accept=".json" style="display:none"></div>
     <div class="note" style="margin-top:0">학교 PC ↔ 집 PC로 옮길 때: 한쪽에서 백업 파일을 받고, 다른 쪽에서 불러오세요. API 키·명단은 백업에 들어가지 않아요.</div>
     <div id="histList"></div></div>
@@ -1095,7 +1123,7 @@ let callsToday = Number(store.getL('eco_calls_' + new Date().toDateString()) || 
 async function callGemini(agentKey, prompt, mock, onChunk, files) {
   const key = getKey(), a = AGENT_DEF[agentKey];
   if (mock || !key) { // 시연: 글자가 써지는 것처럼
-    const t = MOCK[agentKey]; await sleep(rnd(500, 900));
+    const t = MOCK[typeof mock === 'string' ? mock : agentKey]; await sleep(rnd(500, 900));
     for (let k = 8; k < t.length; k += 8) { onChunk?.(t.slice(0, k)); await sleep(60); }
     onChunk?.(t); return t;
   }
@@ -1147,6 +1175,7 @@ function persistJobs() {
 function stepsOf(job) {
   const N = (k) => agents[k].name;
   if (job.kind === 'revise') return [[N(job.lead), '고치기']];
+  if (job.team === 'vibe' && job.vmode === 'cc') return [[N('coder'), 'Claude Code 지시문 다듬기']];
   if (job.team === 'vibe') { const st = [[N('planner'), '아이디어 초안'], [N('coder'), '구현 난이도'], [N('qa'), '원작·밸런스 점검'], [N('reviewer'), '우선순위']]; if (job.gate) st.push(['담임(나)', '선생님 확인', 'gate']); st.push([N('planner'), '최종 정리 + 작업 지시문']); return st; }
   const type = EDU_TYPES.find((t) => t.id === job.typeId), rv = job.mode === 'quick' ? [] : type.reviewers, st = [[N(type.lead), '초안 작성']];
   if (rv.length) { if (job.combine && rv.length > 1) st.push([rv.map(N).join('·'), '함께 검토']); else rv.forEach((k) => st.push([N(k), '검토'])); }
@@ -1185,7 +1214,7 @@ async function step(job, agentKey, prompt, to, sayFn, opt = {}) {
   let raw; const att = opt.attach ? job.attach : null;
   if (att?.text) prompt += `\n\n[첨부 자료 — 이 내용을 근거로 작성하세요]\n${att.text}`;
   const live = (t) => { a.liveLen = t.length; liveShow(job, a, t); };
-  try { raw = await callGemini(agentKey, prompt, job.mock, live, att?.pdfs); } finally { a.state = 'idle'; a.activity = null; a.liveLen = 0; clearTimeout(a.after); counts(); liveShow(job, null); }
+  try { raw = await callGemini(agentKey, prompt, job.mock ? (opt.mockKey || true) : false, live, att?.pdfs); } finally { a.state = 'idle'; a.activity = null; a.liveLen = 0; clearTimeout(a.after); counts(); liveShow(job, null); }
   job.outputs[id] = raw; job.done++; persistJobs();
   const shown = job.masker.unmask(raw); a.lastOut = shown; a.doneCount = (a.doneCount || 0) + 1;
   const text = sayFn(raw); say(a, text); logLine(a.name, to && agents[to].name, text, '', shown);
@@ -1275,7 +1304,7 @@ async function runEdu(job) {
   return { final, lead, title: job.topic, md: `# [교무팀·${type.label}] ${topic}\n\n## 최종본\n${final}\n\n---\n## 초안\n${draft}${reviews.length ? '\n\n## 검토\n' + reviews.join('\n\n') : ''}${note ? '\n\n## 선생님 지시\n' + note : ''}\n` };
 }
 function estimateCalls(team) {
-  if (team === 'vibe') return 5;
+  if (team === 'vibe') return vibeMode === 'cc' ? 1 : 5;
   const t = $('eduType').value === 'auto' ? classify($('topic').value) : EDU_TYPES.find((x) => x.id === $('eduType').value);
   let r = $('eduMode').value === 'quick' ? 0 : t.reviewers.length; const rc = $('combineRev').checked && r > 1 ? 1 : r;
   return 1 + rc + (r ? 1 : 0) + ($('gate').checked && !r ? 1 : 0);
@@ -1297,6 +1326,7 @@ async function runJob(demo) {
   const job = { id: Date.now(), team, topic, sent: masker.mask(topic), mock: !!demo, useMask, gate: $('gate').checked, combine: $('combineRev').checked, outputs: {}, done: 0, total: estimateCalls(team), si: 0, masker };
   job.attach = takeAttach(masker); if (job.attach) logLine('시스템', null, `자료 ${job.attach.names.length}개를 함께 보냈어요: ${job.attach.names.join(', ')}`);
   if (team === 'edu') { const sel = $('eduType').value; job.typeId = sel === 'auto' ? classify(topic).id : sel; job.mode = $('eduMode').value; }
+  if (team === 'vibe') { job.vmode = vibeMode; job.total = vibeMode === 'cc' ? 1 : 5; }
   if (masker.count && job.sent !== topic) logLine('시스템', null, `학생 이름을 가려서 보냈어요: "${job.sent.slice(0, 40)}"`);
   $('topic').value = '';
   execute(job);
@@ -1305,7 +1335,7 @@ async function execute(job) {
   const team = job.team; jobs[team] = job; job.si = 0; persistJobs(); syncButtons(); updateProgress();
   if (team === currentTeam) setTimeout(() => $('stepper').scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 100);
   try {
-    const res = job.kind === 'revise' ? await runRevise(job) : team === 'vibe' ? await runVibe(job) : await runEdu(job);
+    const res = job.kind === 'revise' ? await runRevise(job) : team === 'vibe' ? (job.vmode === 'cc' ? await runCC(job) : await runVibe(job)) : await runEdu(job);
     res.final = job.masker.unmask(res.final); res.md = job.masker.unmask(res.md);
     const r = lastResult[team] = { team, topic: job.topic, ...res, demo: job.mock, at: new Date().toLocaleString('ko-KR') };
     store.setL('eco_last', JSON.stringify(lastResult));
@@ -1370,7 +1400,7 @@ function mdToHtml(md) {
   close(); return out.join('');
 }
 let shownResult = null;
-function resExtras(r) { $('resCard').style.display = r ? 'block' : 'none'; $('reviseBox').style.display = r ? 'block' : 'none'; $('issueBox').style.display = r && r.team === 'vibe' && !r.demo ? 'block' : 'none'; $('issueStatus').textContent = ''; }
+function resExtras(r) { $('resCard').style.display = r ? 'block' : 'none'; $('reviseBox').style.display = r ? 'block' : 'none'; $('issueBox').style.display = r && r.team === 'vibe' ? 'block' : 'none'; }
 function showResult(r) {
   shownResult = r;
   $('result').innerHTML = mdToHtml(r.final || r.md); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; resExtras(r);
@@ -1858,6 +1888,131 @@ $('installPill').onclick = async () => { if (!installEvt) return; installEvt.pro
 })();
 
 // =====================================================================
+// 23. Claude Code 지시문 모드 + 넘기기 (확인 2단계)
+// =====================================================================
+let vibeMode = store.getL('eco_vmode') || 'cc';
+function setVibeMode(m) {
+  vibeMode = m; store.setL('eco_vmode', m);
+  document.querySelectorAll('#vibeMode button').forEach((b) => b.classList.toggle('on', b.dataset.vm === m));
+  $('vibeOpts').innerHTML = m === 'cc'
+    ? '<div class="note" style="margin-top:0">🤖 <b>Claude Code 지시문</b>: 대충 적은 요청을 개발자가 Claude Code용 지시문(목표·할 일·완료 조건·확인 방법)으로 다듬어요. Gemini 1회. 다듬은 뒤 <b>넘기기 전에 두 번 확인</b>해요.</div>'
+    : '<div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + 작업 지시문</div>';
+  if (currentTeam === 'vibe') { $('topic').placeholder = m === 'cc' ? '예: 배틀 화면에서 HP바가 줄어드는 애니메이션 넣어줘. 원작처럼 초록→노랑→빨강으로. 모바일에서도 잘 보이게.' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)'; }
+  syncButtons();
+}
+document.querySelectorAll('#vibeMode button').forEach((b) => (b.onclick = () => setVibeMode(b.dataset.vm)));
+MOCK.cc = '## 목표\n배틀 화면 HP바가 원작처럼 부드럽게 줄어들게 한다.\n\n## 해야 할 일\n1. HP바 그리기 코드를 찾아 감소 애니메이션 추가\n2. 남은 HP 비율에 따라 초록→노랑→빨강\n\n## 완료 조건\n- [ ] 공격받으면 0.5초 동안 줄어듦\n- [ ] 휴대폰 세로 화면에서도 잘림 없음\n\n## 확인 방법\n- 1번 도로 야생 배틀에서 확인\n\n## 주의\n- 기존 배틀 흐름은 바꾸지 말 것\n\n작업이 끝나면 status.json을 갱신하고 바꾼 내용을 요약해 줘.';
+async function runCC(job) {
+  job.total = 1;
+  teacherAsk('coder', 'Claude Code한테 줄 지시문 부탁해요!');
+  const out = await step(job, 'coder', `아래 선생님 요청을 코딩 에이전트(Claude Code)에게 줄 작업 지시문으로 다듬으세요. Claude Code는 게임 저장소의 코드를 직접 읽고 고칩니다. 선생님 요청에 없는 기능을 지어내지 말고, 모호한 부분은 "확인 필요"로 표시하세요.
+형식(마크다운, 이 순서 그대로):
+## 목표 (한두 문장)
+## 배경 (게임 맥락 중 이 작업과 관련된 것만)
+## 해야 할 일 (번호 목록, 구체적으로)
+## 건드릴 곳 (예상 파일·폴더. 모르면 "저장소에서 찾아 확인")
+## 완료 조건 (- [ ] 체크리스트)
+## 확인 방법 (브라우저·휴대폰에서 어떻게 테스트하는지)
+## 주의 (하지 말 것, 기존 기능 유지, 반응형·터치)
+마지막 줄: 작업이 끝나면 status.json을 갱신하고 바꾼 내용을 요약해 줘.
+
+[선생님 요청]
+${job.sent}`, null, () => 'Claude Code 지시문 다듬었어요! 확인하고 넘겨 주세요 🤖', { attach: true, mockKey: 'cc' });
+  return { final: out, cc: true, lead: 'coder', title: 'Claude Code 지시: ' + job.topic, md: `# [Claude Code 지시문] ${job.topic}\n\n${out}\n` };
+}
+
+// ── 받는 곳 (대화창 링크 / GitHub 이슈) ──
+const loadDests = () => { try { return JSON.parse(store.getL('eco_dests') || '[]'); } catch { return []; } };
+const saveDests = (d) => store.setL('eco_dests', JSON.stringify(d));
+let hoText = '', hoTitle = '', hoDest = null;
+function hoOpen(text, title) {
+  hoText = text; hoTitle = title; $('hoText').value = text; hoView(1); $('handoff').classList.add('show');
+}
+function hoView(n) {
+  ['hoV1', 'hoV2', 'hoV3'].forEach((id, i) => ($(id).style.display = i + 1 === n ? 'block' : 'none'));
+  $('hoStepLbl').textContent = ['1/3 보낼 내용 확인', '2/3 받는 대화창 고르기', '3/3 마지막 확인'][n - 1];
+  if (n === 2) renderDests();
+}
+function renderDests() {
+  const ds = loadDests(), repo = store.getL('eco_repo'), tok = store.getL('eco_ghtoken'), last = store.getL('eco_dest_last');
+  const items = ds.map((d) => ({ ...d, kind: 'link' }));
+  items.push({ id: 'issue', kind: 'issue', name: 'GitHub 이슈로 올리기', url: repo ? `https://github.com/${repo}/issues` : '', disabled: !(repo && tok) });
+  $('hoDests').innerHTML = items.map((d) => `<label class="dest${d.disabled ? ' off' : ''}"><input type="radio" name="dest" value="${esc(d.id)}" ${d.disabled ? 'disabled' : ''} ${d.id === last && !d.disabled ? 'checked' : ''}>
+    <div><b>${d.kind === 'issue' ? '🐙' : '💬'} ${esc(d.name)}</b><small>${d.kind === 'issue' ? (d.disabled ? '[설정 → 게임 저장소]에 저장소와 토큰을 넣으면 쓸 수 있어요' : esc(repo) + ' 저장소에 이슈 생성') : esc(d.url)}</small></div>
+    ${d.kind === 'link' ? `<span class="ddel" data-id="${esc(d.id)}" title="지우기">🗑</span>` : ''}</label>`).join('') || '';
+  if (!ds.length) $('hoDests').insertAdjacentHTML('afterbegin', '<div class="note" style="margin:0 0 8px">아직 저장한 대화창이 없어요. 아래에서 추가해 주세요.</div>');
+  $('hoDests').querySelectorAll('.ddel').forEach((x) => (x.onclick = (e) => { e.preventDefault(); if (!confirm('이 대화창을 목록에서 지울까요?')) return; saveDests(loadDests().filter((d) => d.id !== x.dataset.id)); renderDests(); }));
+  hoDest = null; $('hoDests').querySelectorAll('input').forEach((r) => (r.onchange = () => (hoDest = items.find((d) => d.id === r.value))));
+  const chk = $('hoDests').querySelector('input:checked'); if (chk) hoDest = items.find((d) => d.id === chk.value);
+}
+$('hoAdd').onclick = () => {
+  const name = $('hoName').value.trim(), url = $('hoUrl').value.trim();
+  if (!/^https:\/\/[^\s]+$/.test(url)) return alert('대화창 주소(https://로 시작)를 붙여 넣어 주세요.\nClaude Code 대화창에서 주소창의 링크를 복사하면 돼요.');
+  if (!/claude\.ai|anthropic\.com/.test(url) && !confirm('Claude 주소가 아닌 것 같아요. 그래도 저장할까요?')) return;
+  const d = loadDests(); d.push({ id: 'd' + Date.now(), name: name || 'Claude Code 대화창', url }); saveDests(d);
+  $('hoName').value = ''; $('hoUrl').value = ''; store.setL('eco_dest_last', d[d.length - 1].id); renderDests();
+};
+$('hoNext1').onclick = () => { hoText = $('hoText').value.trim(); if (!hoText) return $('hoText').focus(); hoView(2); };
+$('hoBack2').onclick = () => hoView(1);
+$('hoNext2').onclick = () => {
+  if (!hoDest) return alert('받는 대화창을 골라 주세요.');
+  store.setL('eco_dest_last', hoDest.id);
+  $('hoConfirm').innerHTML = `<div class="hoq">이 내용을 아래 대화창으로 <b>넘기겠습니까?</b></div>
+    <div class="hocard"><small>받는 곳</small><b>${hoDest.kind === 'issue' ? '🐙' : '💬'} ${esc(hoDest.name)}</b><div class="url">${esc(hoDest.kind === 'issue' ? store.getL('eco_repo') + ' 저장소 이슈' : hoDest.url)}</div>
+    ${hoDest.kind === 'link' ? `<a href="${esc(hoDest.url)}" target="_blank" rel="noopener">↗ 이 대화창이 맞는지 먼저 열어 보기</a>` : ''}</div>
+    <div class="hocard"><small>보낼 내용 · ${hoText.length.toLocaleString()}자</small><div class="prev">${mdToHtml(hoText.slice(0, 700))}${hoText.length > 700 ? '<p>…</p>' : ''}</div></div>
+    <div class="note">${hoDest.kind === 'link' ? '[네, 넘길게요]를 누르면 내용이 <b>복사</b>되고 그 대화창이 <b>새 탭</b>으로 열려요. 거기서 <b>붙여넣기(Ctrl+V)</b> 후 보내기를 누르세요.' : '[네, 넘길게요]를 누르면 저장소에 이슈가 만들어지고, Claude Code에 붙여 넣을 한 줄이 복사돼요.'}</div>`;
+  hoView(3);
+};
+$('hoBack3').onclick = () => hoView(2);
+$('hoX').onclick = () => $('handoff').classList.remove('show');
+$('handoff').onclick = (e) => { if (e.target.id === 'handoff') $('handoff').classList.remove('show'); };
+const loadHo = () => { try { return JSON.parse(store.getL('eco_handoffs') || '[]'); } catch { return []; } };
+function saveHo(rec) { const h = loadHo(); h.unshift(rec); store.setL('eco_handoffs', JSON.stringify(h.slice(0, 20))); renderHoHist(); }
+$('hoGo').onclick = async () => {
+  const d = hoDest, text = hoText, at = new Date().toLocaleString('ko-KR');
+  if (d.kind === 'link') {
+    try { await navigator.clipboard.writeText(text); } catch { $('hoText').value = text; alert('자동 복사가 막혔어요. 1단계 내용 칸에서 직접 복사(Ctrl+A, Ctrl+C)해 주세요.'); }
+    const w = window.open(d.url, '_blank', 'noopener');
+    $('handoff').classList.remove('show');
+    saveHo({ at, dest: d.name, url: d.url, title: hoTitle, text });
+    logLine(agents.coder.name, 'Claude Code', `"${d.name}" 대화창으로 넘길 지시문을 복사했어요. 붙여넣기 후 보내 주세요!`);
+    say(agents.coder, '복사 완료! 붙여넣기만 하세요 📋', 6000);
+    toast(w ? '📋 복사했어요 → 열린 Claude Code 창에서 Ctrl+V 후 보내기' : '📋 복사했어요. 새 탭이 막혔으면 [넘긴 기록]에서 열기를 누르세요', null);
+  } else {
+    try {
+      const j = await createIssue(hoTitle, text);
+      const cmd = `GitHub 이슈 #${j.number} (${j.html_url}) 읽고 처리해 줘. 끝나면 status.json 갱신하고 이슈에 결과 댓글 달아 줘.`;
+      try { await navigator.clipboard.writeText(cmd); } catch {}
+      $('handoff').classList.remove('show');
+      saveHo({ at, dest: '이슈 #' + j.number, url: j.html_url, title: hoTitle, text: cmd });
+      logLine(agents.coder.name, 'Claude Code', `GitHub 이슈 #${j.number}로 올렸어요. Claude Code에 붙여 넣을 한 줄도 복사했어요.`);
+      toast(`🐙 이슈 #${j.number} 생성 · Claude Code에 붙여 넣을 한 줄을 복사했어요`, () => window.open(j.html_url, '_blank', 'noopener'));
+    } catch (e) { alert('이슈를 만들지 못했어요: ' + e.message); }
+  }
+};
+async function createIssue(title, body) {
+  const repo = store.getL('eco_repo'), tok = store.getL('eco_ghtoken');
+  const res = await fetch(`https://api.github.com/repos/${repo}/issues`, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '[AI 오피스] ' + title.slice(0, 70), body: body + '\n\n---\n_AI 오피스 바이브코딩팀에서 다듬어 넘긴 작업 지시입니다._' }) });
+  const j = await res.json(); if (!res.ok) throw new Error(res.status === 403 || res.status === 404 ? '토큰에 이 저장소의 Issues 쓰기 권한이 없어요' : (j.message || res.status));
+  return j;
+}
+function renderHoHist() {
+  const h = loadHo(), el = $('hoHist'); if (!el) return;
+  el.innerHTML = h.length ? h.map((r, i) => `<div class="hist"><div><span class="tag" style="background:#c8a2ff">🤖 넘김</span><b></b></div><small>${esc(r.at)} → ${esc(r.dest)}</small><div><button class="mini" data-a="copy" data-i="${i}">다시 복사</button><button class="ghost mini" data-a="open" data-i="${i}">열기</button><button class="ghost mini" data-a="view" data-i="${i}">보기</button></div></div>`).join('') : '<div class="note">아직 넘긴 지시문이 없어요.</div>';
+  el.querySelectorAll('.hist b').forEach((b, i) => (b.textContent = h[i].title));
+  el.querySelectorAll('button').forEach((b) => (b.onclick = () => { const r = h[b.dataset.i];
+    if (b.dataset.a === 'copy') navigator.clipboard?.writeText(r.text).then(() => (b.textContent = '복사됨 ✓'));
+    if (b.dataset.a === 'open') window.open(r.url, '_blank', 'noopener');
+    if (b.dataset.a === 'view') openViewer({ who: agents.coder.name, to: r.dest, sub: r.at, md: r.text }); }));
+}
+renderHoHist();
+function startHandoff(r) {
+  const text = r.cc ? r.final : extractInstruction(r.final);
+  hoOpen(text, (r.title || r.topic).replace(/^(아이디어 회의|Claude Code 지시):\s*/, ''));
+}
+
+// =====================================================================
 // 13. UI 연결
 // =====================================================================
 const TAB_TITLE = { work: '✏️ 업무 맡기기', hist: '📂 완료함', todo: '📋 오늘', set: '⚙️ 설정' };
@@ -1878,6 +2033,7 @@ function setTeam(team) {
   $('topic').placeholder = team === 'edu' ? '예: 다음 주 금요일 현장체험학습(거제 해양생태관) 학부모 안내 문자 써 줘' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)';
   const n = getRoster().length;
   $('teamNote').innerHTML = team === 'edu' ? (personalOn() && n ? `🔒 학생 명단 ${n}명을 가려서 보내요.` : '🔒 학생 이름·개인정보는 넣지 마세요. (생기부·상담 기록 업무는 꺼져 있어요)') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
+  $('vibeMode').style.display = team === 'vibe' ? 'flex' : 'none'; if (team === 'vibe') setVibeMode(vibeMode);
   syncButtons(); refreshGate(); optSummary();
   renderTemplates();
   const r = lastResult[team]; if (r) { shownResult = r; $('result').innerHTML = mdToHtml(r.final); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; resExtras(r); $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 최근 결과${r.demo ? ' (시연)' : ''} · ${r.topic.slice(0, 30)} · ${r.at || ''}`; }
@@ -1978,7 +2134,7 @@ $('gateBig').onclick = $('gateBody').ondblclick = () => { const j = jobs[current
 $('gateOk').onclick = () => answerGate('ok'); $('gateEdit').onclick = () => answerGate('edit'); $('gateStop').onclick = () => confirm('이 작업을 중단할까요?') && answerGate('stop');
 $('gatePill').onclick = () => { const t = jobs.edu?.waiting ? 'edu' : 'vibe'; setTeam(t); openPanel(); showTab('work'); };
 $('donePill').onclick = () => { openPanel(); showTab('hist'); };
-$('reviseGo').onclick = startRevise; $('reviseNote').onkeydown = (e) => { if (e.key === 'Enter') startRevise(); }; $('issueGo').onclick = sendIssue;
+$('reviseGo').onclick = startRevise; $('reviseNote').onkeydown = (e) => { if (e.key === 'Enter') startRevise(); }; $('hoStart').onclick = () => shownResult && startHandoff(shownResult);
 $('retry').onclick = () => { const j = failedJob[currentTeam]; if (!j) return; failedJob[currentTeam] = null; logLine('시스템', null, '끝난 단계는 건너뛰고 이어서 다시 시도해요.'); execute(j); };
 ['eduType', 'eduMode', 'gate', 'combineRev'].forEach((id) => ($(id).onchange = syncButtons));
 $('combineRev').checked = store.getL('eco_combine') !== '0'; $('combineRev').addEventListener('change', () => store.setL('eco_combine', $('combineRev').checked ? '1' : '0')); $('topic').addEventListener('input', () => { clearTimeout(window._est); window._est = setTimeout(syncButtons, 300); });
