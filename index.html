@@ -103,6 +103,11 @@
   @keyframes blink { 50% { opacity: .55; } }
   .gateBody { background: #0f1424; border: 1px solid #4fc3f7; border-radius: 8px; padding: 10px; margin: 6px 0; max-height: 34vh; overflow: auto; font-size: 13px; line-height: 1.5; }
   .gateBody table { border-collapse: collapse; } .gateBody td, .gateBody th { border: 1px solid #3b4466; padding: 3px 5px; }
+  .tplBar { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+  #ctrl .chip { padding: 6px 9px; font-size: 12px; background: #1d2440; color: #e8ecff; border: 1px solid #3b4466; border-radius: 16px; }
+  #ctrl .chip:hover { border-color: #c8ff2e; }
+  .tplForm { background: #10162c; border: 1px solid #3c4677; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
+  #issueStatus code { display: block; margin-top: 4px; background: #0a0e1a; padding: 6px; border-radius: 6px; white-space: pre-wrap; }
   #toast { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: none; align-items: center; gap: 12px; background: #1a1f3a; border: 1px solid #c8ff2e; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 800; box-shadow: 0 8px 24px rgba(0,0,0,.45); z-index: 6; }
   #toast button { border: 0; border-radius: 8px; background: #c8ff2e; padding: 6px 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
   @media (max-width: 820px) {
@@ -165,6 +170,8 @@
       <select id="eduType"></select>
       <select id="eduMode"><option value="std">꼼꼼하게 (초안→검토→수정)</option><option value="quick">빠르게 (담당자만)</option></select>
     </div></div>
+    <div id="tplBar" class="tplBar"></div>
+    <div id="tplForm" class="tplForm" style="display:none"></div>
     <div id="vibeOpts" style="display:none"><div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + Claude Code에 넘길 작업 지시문</div></div>
     <label>요청 내용</label>
     <textarea id="topic" rows="4"></textarea>
@@ -183,6 +190,11 @@
     <div class="resTitle" id="resTitle" style="display:none"></div>
     <div id="result"></div>
     <div class="row" id="resultBtns" style="display:none"><button class="mini" id="hwpRes">📄 한글(HWPX)</button><button class="ghost mini" id="copyRes">서식 복사</button><button class="ghost mini" id="copyTxt">글자만 복사</button><button class="ghost mini" id="dlRes">.md</button></div>
+    <div id="reviseBox" style="display:none">
+      <div class="row" style="margin-top:8px"><input id="reviseNote" placeholder="✏️ 이어서 고치기: 예) 더 짧게, 준비물에 우산 추가" /><button id="reviseGo" class="fit">고치기</button></div>
+      <div class="note" style="margin-top:4px">담당자 한 명이 한 번만 고쳐요 (Gemini 1회). 고친 결과는 완료함에 따로 남아요.</div>
+    </div>
+    <div id="issueBox" style="display:none"><button id="issueGo" class="wide" style="background:#4fc3f7">🐙 Claude Code에 GitHub 이슈로 보내기</button><div id="issueStatus" class="note"></div></div>
   </div>
   <div class="view" id="v-todo">
     <small>교무기획실 화이트보드에 보이는 오늘 할 일 (한 줄에 하나, 끝낸 일은 앞에 ✓)</small>
@@ -194,12 +206,12 @@
     <small>게임 저장소의 Claude Code 작업 현황을 사무실에 띄워요 (공개 저장소)</small>
     <label>게임 저장소 (아이디/저장소이름)</label>
     <div class="row"><input id="repoIn" placeholder="bjh4042/게임저장소" /><button id="loadRepo" class="fit">불러오기</button></div>
-    <label>비공개 저장소라면: GitHub 읽기 전용 토큰 (선택)</label>
+    <label>GitHub 토큰 (비공개 저장소 읽기·이슈 보내기용, 선택)</label>
     <input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..." />
     <label>자동 새로고침</label><select id="dashEvery"><option value="1">1분마다</option><option value="3">3분마다</option><option value="10">10분마다</option><option value="0">끄기</option></select>
     <div id="dash" class="note"></div>
     <button id="copyCC" class="ghost wide">📋 Claude Code에 붙여넣을 안내문 복사</button>
-    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.<br>토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 <b>그 저장소 하나, Contents: Read-only</b>로만 만드세요. 이 브라우저에만 저장돼요.</div>
+    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.<br>토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 <b>그 저장소 하나만</b> 고르고 <b>Contents: Read-only</b>, (이슈로 보내기를 쓰려면) <b>Issues: Read and write</b>만 주세요. 이 브라우저에만 저장돼요.</div>
   </div>
   <div class="view" id="v-key">
     <label>Gemini API 키</label>
@@ -1048,7 +1060,7 @@ async function runVibe(job) {
   let note = '';
   if (job.gate) note = (await teacherGate(job, 'planner', `## 기획 초안\n${draft}\n\n## 리뷰 (우선순위)\n${rv}`)).note;
   const final = await step(job, 'planner', `아래 회의 내용을 최종 정리하세요.\n## 1. 채택안 (우선순위 순)\n## 2. 보류안\n## 3. Claude Code에 넘길 작업 지시문 — 그대로 복사해 붙여 넣을 수 있게, 파일·기능·완료 조건 포함\n${note ? `\n[선생님 지시 — 반드시 반영]\n${note}\n` : ''}\n초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n리뷰:\n${rv}`, null, () => '회의록 완성! Claude Code용 지시문도 넣었어요 🎉');
-  return { final, title: '아이디어 회의: ' + job.topic, md: `# [바이브코딩팀] ${topic}\n\n## 최종 정리\n${final}\n\n---\n## 기획 초안\n${draft}\n\n## 개발 의견\n${dev}\n\n## QA\n${qa}\n\n## 리뷰\n${rv}\n` };
+  return { final, lead: 'planner', title: '아이디어 회의: ' + job.topic, md: `# [바이브코딩팀] ${topic}\n\n## 최종 정리\n${final}\n\n---\n## 기획 초안\n${draft}\n\n## 개발 의견\n${dev}\n\n## QA\n${qa}\n\n## 리뷰\n${rv}\n` };
 }
 async function runEdu(job) {
   const type = EDU_TYPES.find((t) => t.id === job.typeId), topic = job.sent, lead = type.lead, reviewers = job.mode === 'quick' ? [] : type.reviewers;
@@ -1069,9 +1081,9 @@ async function runEdu(job) {
   }
   let note = '';
   if (job.gate) { if (!reviewers.length) job.total++; note = (await teacherGate(job, lead, `## 초안\n${draft}${reviews.length ? '\n\n---\n## 동료 검토\n' + reviews.join('\n\n') : ''}`)).note; }
-  if (!reviewers.length && !note) return { final: draft, title: job.topic, md: `# [교무팀·${type.label}] ${topic}\n\n${draft}\n` };
+  if (!reviewers.length && !note) return { final: draft, lead, title: job.topic, md: `# [교무팀·${type.label}] ${topic}\n\n${draft}\n` };
   const final = await step(job, lead, `${reviews.length ? '검토 의견' : '선생님 지시'}을 반영해 최종본을 작성하세요. 최종본만 깔끔하게 쓰고, 맨 끝에 "반영한 점" 3줄 이내.\n${note ? `\n[선생님 지시 — 가장 우선해서 반영]\n${note}\n` : ''}\n요청: ${topic}\n\n초안:\n${draft}${reviews.length ? '\n\n검토:\n' + reviews.join('\n\n') : ''}`, null, () => '최종본 완성했어요! 🎉');
-  return { final, title: job.topic, md: `# [교무팀·${type.label}] ${topic}\n\n## 최종본\n${final}\n\n---\n## 초안\n${draft}${reviews.length ? '\n\n## 검토\n' + reviews.join('\n\n') : ''}${note ? '\n\n## 선생님 지시\n' + note : ''}\n` };
+  return { final, lead, title: job.topic, md: `# [교무팀·${type.label}] ${topic}\n\n## 최종본\n${final}\n\n---\n## 초안\n${draft}${reviews.length ? '\n\n## 검토\n' + reviews.join('\n\n') : ''}${note ? '\n\n## 선생님 지시\n' + note : ''}\n` };
 }
 function estimateCalls(team) {
   if (team === 'vibe') return 5;
@@ -1097,7 +1109,7 @@ async function runJob(demo) {
 async function execute(job) {
   const team = job.team; jobs[team] = job; job.si = 0; persistJobs(); syncButtons(); updateProgress();
   try {
-    const res = team === 'vibe' ? await runVibe(job) : await runEdu(job);
+    const res = job.kind === 'revise' ? await runRevise(job) : team === 'vibe' ? await runVibe(job) : await runEdu(job);
     res.final = job.masker.unmask(res.final); res.md = job.masker.unmask(res.md);
     const r = lastResult[team] = { team, topic: job.topic, ...res, demo: job.mock, at: new Date().toLocaleString('ko-KR') };
     store.setL('eco_last', JSON.stringify(lastResult));
@@ -1156,9 +1168,10 @@ function mdToHtml(md) {
   close(); return out.join('');
 }
 let shownResult = null;
+function resExtras(r) { $('reviseBox').style.display = r ? 'block' : 'none'; $('issueBox').style.display = r && r.team === 'vibe' && !r.demo ? 'block' : 'none'; $('issueStatus').textContent = ''; }
 function showResult(r) {
   shownResult = r;
-  $('result').innerHTML = mdToHtml(r.final || r.md); $('result').classList.add('show'); $('resultBtns').style.display = 'flex';
+  $('result').innerHTML = mdToHtml(r.final || r.md); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; resExtras(r);
   $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${r.team === 'edu' ? '교무팀' : '바이브코딩팀'} 결과${r.demo ? ' (시연)' : ''} · ${r.topic.slice(0, 30)} · ${r.at || ''}`;
   $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work');
 }
@@ -1285,7 +1298,7 @@ function refreshMode() { $('mode').innerHTML = getKey() ? '' : '<span class="bad
 function loadHist() { try { return JSON.parse(store.getL('eco_hist3') || store.getL('eco_hist2') || '[]'); } catch { return []; } }
 function saveHist(h) { store.setL('eco_hist3', JSON.stringify(h.slice(0, 50))); renderHist(); }
 const updDonePill = () => { $('donePill').textContent = `📂 완료함 ${loadHist().length}`; };
-function saveHistory(r) { const h = loadHist(); h.unshift({ team: r.team, topic: r.topic, title: r.title, final: r.final, md: r.md, at: r.at, demo: !!r.demo }); saveHist(h); }
+function saveHistory(r) { const h = loadHist(); h.unshift({ team: r.team, topic: r.topic, title: r.title, final: r.final, md: r.md, at: r.at, demo: !!r.demo, lead: r.lead }); saveHist(h); }
 function renderHist() {
   const list = $('histList'), h = loadHist(); updDonePill(); list.innerHTML = h.length ? '' : '<div class="note">아직 완료된 작업이 없어요. 작업이 끝나면 여기에 쌓여요.</div>';
   h.forEach((it, i) => {
@@ -1324,6 +1337,105 @@ function showAgentCard(a, mx, my) {
 $('cardX').onclick = () => ($('card').style.display = 'none');
 
 // =====================================================================
+// 14. 자주 쓰는 업무 버튼
+// =====================================================================
+const TEMPLATES = {
+  edu: [
+    { icon: '📒', label: '알림장', type: 'parent', fields: [['date', '날짜', '내일 (11월 13일 목)'], ['items', '전달할 내용', '수학 익힘책 42쪽, 체육복 등교', 1], ['extra', '덧붙일 말 (선택)', '감기 조심']],
+      make: (v) => `${v.date} 알림장을 써 줘. 전달할 내용: ${v.items}.${v.extra ? ' 덧붙일 말: ' + v.extra + '.' : ''} 학생이 그대로 옮겨 적을 수 있게 짧은 번호 목록으로, 학부모용 한 줄 안내도 붙여 줘.` },
+    { icon: '📨', label: '가정통신문', type: 'parent', fields: [['title', '제목', '현장체험학습 안내'], ['when', '일시', '11월 20일(목) 09:00~14:00'], ['where', '장소', '거제 해양생태관'], ['items', '준비물·주의사항', '도시락, 물, 편한 운동화', 1], ['reply', '회신 필요?', '참가 동의서 11월 17일까지']],
+      make: (v) => `가정통신문 "${v.title}"을 써 줘. 일시: ${v.when}. 장소: ${v.where}. 준비물·주의사항: ${v.items}.${v.reply ? ' 회신: ' + v.reply + ' (회신서 양식도 아래에 붙여 줘).' : ''} 인사말-안내-세부 일정 표-준비물-문의 순서로.` },
+    { icon: '🗓', label: '주간학습안내', type: 'admin', fields: [['week', '기간', '11월 17일~21일'], ['grade', '학년', '5학년'], ['plan', '요일별 주요 활동 (아는 만큼)', '월: 국어 토론 / 수: 과학 실험 / 금: 현장체험학습', 1], ['notice', '알림 사항', '수요일 방과후 휴강']],
+      make: (v) => `${v.grade} 주간학습안내(${v.week})를 써 줘. 요일별 활동: ${v.plan}. 알림: ${v.notice}. 요일×교시 표와 주간 알림, 가정 협조 사항으로 구성하고 모르는 칸은 [ ]로 비워 줘.` },
+    { icon: '📝', label: '생기부 문장', type: 'record', fields: [['area', '영역', '행동특성 및 종합의견'], ['who', '학생 (명단 이름 그대로)', '김민준'], ['facts', '관찰한 사실', '모둠 활동에서 친구들 의견 정리, 학급 텃밭 물 주기 꾸준히', 1], ['len', '분량', '300자 내외']],
+      make: (v) => `${v.who} 학생의 생활기록부 "${v.area}" 문장을 써 줘. 관찰 사실: ${v.facts}. 분량 ${v.len}. 관찰 근거가 드러나게, 과장 없이, 기재 요령에 맞는 문체(~함, ~임)로 2가지 버전.` },
+    { icon: '🗣', label: '상담 기록', type: 'record', fields: [['who', '대상', '김민준 학부모'], ['when', '일시·방법', '11월 12일 전화 상담'], ['talk', '나눈 이야기 (메모 그대로)', '교우관계 걱정, 집에서는 밝음, 다음 주 다시 연락', 1]],
+      make: (v) => `상담 기록을 정리해 줘. 대상: ${v.who}. 일시·방법: ${v.when}. 메모: ${v.talk}. 상담 내용-교사 의견-후속 조치 표로, 객관적 사실 중심.` },
+    { icon: '📚', label: '수업 지도안', type: 'lesson', fields: [['subject', '학년·과목', '5학년 과학'], ['unit', '단원·차시', '생물과 환경 3/10차시'], ['goal', '학습 목표', '갯벌 생물이 사는 환경을 설명할 수 있다'], ['idea', '하고 싶은 활동 (선택)', '거제 갯벌 사진 탐구', 1]],
+      make: (v) => `${v.subject} ${v.unit} 40분 수업 지도안을 써 줘. 학습 목표: ${v.goal}.${v.idea ? ' 활동 아이디어: ' + v.idea + '.' : ''} 도입-전개-정리 표(시간, 교사 발문, 학생 활동, 자료·유의점)와 평가 계획 포함.` },
+    { icon: '📄', label: '계획서·공문', type: 'admin', fields: [['title', '제목', '2026학년도 2학기 현장체험학습 운영 계획'], ['purpose', '목적', '지역 생태 이해와 공동체 의식 함양'], ['detail', '알고 있는 세부 내용', '11월 20일, 5학년 3개 반 75명, 버스 2대', 1]],
+      make: (v) => `"${v.title}"을 학교 공문서 개조식으로 써 줘. 목적: ${v.purpose}. 세부: ${v.detail}. 목적-근거-운영 개요(표)-세부 계획-안전 대책-예산-기대 효과 순서, 모르는 수치는 ○○로.` },
+  ],
+  vibe: [
+    { icon: '👾', label: '몬스터 아이디어', fields: [['place', '지역·서식지', '학동 몽돌해변, 동백섬'], ['count', '개수', '6'], ['type', '타입·역할', '물·풀 타입 초반 몬스터']],
+      make: (v) => `${v.place}에 사는 ${v.type} ${v.count}종 아이디어. 실제 거제 생물을 모티브로, 이름·타입·특징·진화 여부·원작에서 비슷한 포지션.` },
+    { icon: '🗺', label: '맵·지역 구성', fields: [['area', '지역', '두 번째 마을과 1번 도로'], ['badge', '구간', '배지 1~2개 사이'], ['want', '넣고 싶은 것', '갯벌 지름길, 낚시 포인트', 1]],
+      make: (v) => `${v.area} 맵 구성 아이디어 (${v.badge}). 넣고 싶은 것: ${v.want}. 원작 FRLG 초반 도로·마을 구성 관례(트레이너 배치, 풀숲, 숨은 아이템)를 참고해서.` },
+    { icon: '💬', label: '대사·스토리', fields: [['scene', '장면', '박사 연구소 첫 몬스터 고르기'], ['tone', '분위기', '따뜻하고 거제 사투리 살짝']],
+      make: (v) => `"${v.scene}" 장면 대사를 써 줘. 분위기: ${v.tone}. 원작 인트로처럼 짧은 대사 여러 줄, 선택지 포함.` },
+    { icon: '⚖️', label: '밸런스 점검', fields: [['target', '점검 대상', '배지 4개까지 체육관 관장 레벨'], ['now', '지금 상태 (아는 만큼)', '1관 Lv12, 2관 Lv18, 3관 Lv25, 4관 Lv30', 1]],
+      make: (v) => `${v.target} 밸런스 점검. 현재: ${v.now}. 원작 FRLG 곡선과 비교해 너무 어렵거나 쉬운 구간과 조정안.` },
+  ],
+};
+function renderTemplates() {
+  const list = TEMPLATES[currentTeam];
+  $('tplBar').innerHTML = list.map((t, i) => `<button class="chip" data-i="${i}">${t.icon} ${t.label}</button>`).join('');
+  $('tplBar').querySelectorAll('button').forEach((b) => (b.onclick = () => openTemplate(list[b.dataset.i])));
+  $('tplForm').style.display = 'none';
+}
+function openTemplate(t) {
+  const f = $('tplForm'); f.style.display = 'block';
+  f.innerHTML = `<div class="resTitle" style="margin-top:0;color:#fff;font-weight:800">${t.icon} ${t.label} — 아는 칸만 채우세요</div>` +
+    t.fields.map(([k, label, ph, multi]) => `<label>${label}</label>${multi ? `<textarea data-k="${k}" rows="2" placeholder="${esc(ph)}"></textarea>` : `<input data-k="${k}" placeholder="${esc(ph)}">`}`).join('') +
+    `<div class="row" style="margin-top:8px"><button id="tplGo">바로 시작</button><button id="tplFill" class="ghost">요청문만 만들기</button><button id="tplX" class="ghost fit">닫기</button></div>`;
+  const build = () => { const v = {}; f.querySelectorAll('[data-k]').forEach((el) => (v[el.dataset.k] = el.value.trim() || el.placeholder)); return t.make(v); };
+  const fill = () => { $('topic').value = build(); if (t.type) $('eduType').value = t.type; syncButtons(); f.style.display = 'none'; };
+  $('tplFill').onclick = () => { fill(); $('topic').focus(); };
+  $('tplGo').onclick = () => { fill(); runJob(false); };
+  $('tplX').onclick = () => (f.style.display = 'none');
+  f.querySelector('[data-k]').focus();
+}
+
+// =====================================================================
+// 15. 결과 이어서 고치기 (담당자 1번만 호출)
+// =====================================================================
+async function runRevise(job) {
+  job.total = 1;
+  const lead = job.lead; teacherAsk(lead, '이 부분만 고쳐 주세요!');
+  const out = await step(job, lead, `아래 완성본을 선생님 지시대로 고쳐 주세요. 지시한 부분만 바꾸고 나머지 형식과 내용은 유지하세요. 고친 완성본만 출력하세요.\n\n[선생님 지시]\n${job.note}\n\n[완성본]\n${job.base}`, null, () => '고쳤어요! 확인해 주세요 ✏️');
+  return { final: out, title: job.title, lead, md: `# [수정] ${job.topic}\n\n${out}\n\n---\n수정 지시: ${job.note}\n` };
+}
+function startRevise() {
+  const r = shownResult, note = $('reviseNote').value.trim();
+  if (!r) return; if (!note) return $('reviseNote').focus();
+  if (jobs[r.team]) return alert('이 팀이 다른 작업 중이에요. 끝난 뒤에 고쳐 주세요.');
+  const useMask = $('mask').checked, masker = useMask ? makeMasker() : NO_MASK;
+  const lead = r.lead || (r.team === 'vibe' ? 'planner' : classify(r.topic).lead);
+  const topic = r.topic.startsWith('(수정) ') ? r.topic : '(수정) ' + r.topic;
+  const job = { id: Date.now(), kind: 'revise', team: r.team, topic, title: r.title || r.topic, lead, note: masker.mask(note), base: masker.mask(r.final), sent: '', mock: !getKey(), useMask, outputs: {}, done: 0, total: 1, si: 0, masker };
+  $('reviseNote').value = ''; setTeam(r.team); execute(job);
+}
+
+// =====================================================================
+// 16. Claude Code에 GitHub 이슈로 보내기
+// =====================================================================
+function extractInstruction(md) {
+  const L = md.split('\n'); let s = -1, lvl = 0;
+  L.forEach((l, i) => { const m = l.match(/^(#{1,4})\s+.*(작업 지시문|Claude Code)/); if (m && s < 0) { s = i; lvl = m[1].length; } });
+  if (s < 0) return md;
+  let e = L.length; for (let i = s + 1; i < L.length; i++) { const m = L[i].match(/^(#{1,4})\s/); if (m && m[1].length <= lvl) { e = i; break; } }
+  return L.slice(s + 1, e).join('\n').trim() || md;
+}
+async function sendIssue() {
+  const r = shownResult; if (!r) return;
+  const repo = store.getL('eco_repo'), tok = store.getL('eco_ghtoken');
+  if (!repo || !tok) { $('issueStatus').innerHTML = '<span class="warn">[현황] 탭에 게임 저장소 이름과 토큰(Issues: 읽기/쓰기)을 먼저 넣어 주세요.</span>'; showTab('dash'); return; }
+  const title = '[AI 오피스] ' + (r.title || r.topic).replace(/^아이디어 회의:\s*/, '').slice(0, 70);
+  const body = `${extractInstruction(r.final)}\n\n---\n<details><summary>아이디어 회의 전체 기록</summary>\n\n${r.md.slice(0, 50000)}\n</details>\n\n_AI 오피스 바이브코딩팀 아이디어 회의(${r.at || ''})에서 만든 작업 지시입니다. 끝나면 status.json도 갱신해 주세요._`;
+  if (!confirm(`${repo} 저장소에 이슈를 올릴까요?\n\n제목: ${title}`)) return;
+  $('issueStatus').textContent = '올리는 중…';
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/issues`, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body }) });
+    const j = await res.json();
+    if (!res.ok) throw new Error(res.status === 403 || res.status === 404 ? '토큰에 이 저장소의 Issues 쓰기 권한이 없어요' : (j.message || res.status));
+    const cmd = `GitHub 이슈 #${j.number} (${j.html_url}) 읽고 처리해 줘. 끝나면 status.json 갱신하고 이슈에 결과 댓글 달아 줘.`;
+    $('issueStatus').innerHTML = `<span class="ok">✅ 이슈 #${j.number}를 올렸어요.</span> <a href="${esc(j.html_url)}" target="_blank" style="color:#4fc3f7">열기</a><br>Claude Code에 이렇게 말하세요: <code>${esc(cmd)}</code> <button class="ghost mini" id="copyCmd">복사</button>`;
+    $('copyCmd').onclick = () => navigator.clipboard?.writeText(cmd).then(() => ($('copyCmd').textContent = '복사됨'));
+    logLine(agents.planner.name, null, `GitHub 이슈 #${j.number}로 Claude Code에 넘겼어요!`); say(agents.planner, `이슈 #${j.number} 보냈어요!`, 5000);
+  } catch (e) { $('issueStatus').innerHTML = `<span class="err">❌ ${esc(e.message)}</span>`; }
+}
+
+// =====================================================================
 // 13. UI 연결
 // =====================================================================
 function showTab(v) { document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === v)); document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v)); }
@@ -1336,8 +1448,9 @@ function setTeam(team) {
   const n = getRoster().length;
   $('teamNote').innerHTML = team === 'edu' ? (n ? `🔒 학생 명단 ${n}명을 가려서 보내요. 결과는 실명으로 돌려 보여 줘요.` : '🔒 [맥락 → 학생 명단]에 우리 반 이름을 넣어 두면, 보내기 전에 자동으로 학생A·학생B로 가려요.') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
   syncButtons(); refreshGate();
-  const r = lastResult[team]; if (r) { shownResult = r; $('result').innerHTML = mdToHtml(r.final); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 최근 결과${r.demo ? ' (시연)' : ''} · ${r.topic.slice(0, 30)} · ${r.at || ''}`; }
-  else { $('result').classList.remove('show'); $('resultBtns').style.display = 'none'; $('resTitle').style.display = 'none'; }
+  renderTemplates();
+  const r = lastResult[team]; if (r) { shownResult = r; $('result').innerHTML = mdToHtml(r.final); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; resExtras(r); $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 최근 결과${r.demo ? ' (시연)' : ''} · ${r.topic.slice(0, 30)} · ${r.at || ''}`; }
+  else { $('result').classList.remove('show'); $('resultBtns').style.display = 'none'; $('resTitle').style.display = 'none'; resExtras(null); }
 }
 document.querySelectorAll('[data-team]').forEach((b) => (b.onclick = () => setTeam(b.dataset.team)));
 $('eduType').innerHTML = '<option value="auto">업무 자동 분류 (비서가 배정)</option>' + EDU_TYPES.map((t) => `<option value="${t.id}">${t.label} — ${AGENT_DEF[t.lead].name}</option>`).join('');
@@ -1384,6 +1497,8 @@ $('resetCtx').onclick = () => { $('ctxBox').value = DEFAULT_CTX[ctxTeam]; };
 // 현황
 $('repoIn').value = store.getL('eco_repo') || ''; $('ghToken').value = store.getL('eco_ghtoken') || '';
 $('loadRepo').onclick = loadDash;
+$('ghToken').onchange = () => { const v = $('ghToken').value.trim(); v ? store.setL('eco_ghtoken', v) : store.del('eco_ghtoken'); };
+$('repoIn').onchange = () => store.setL('eco_repo', $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, ''));
 $('copyCC').onclick = () => navigator.clipboard?.writeText(CC_GUIDE).then(() => ($('copyCC').textContent = '✅ 복사됐어요! Claude Code에 붙여 넣으세요'));
 
 // 작업
@@ -1402,6 +1517,7 @@ $('dashEvery').value = store.getL('eco_dashEvery') || '3'; $('dashEvery').onchan
 $('gateOk').onclick = () => answerGate('ok'); $('gateEdit').onclick = () => answerGate('edit'); $('gateStop').onclick = () => confirm('이 작업을 중단할까요?') && answerGate('stop');
 $('gatePill').onclick = () => { const t = jobs.edu?.waiting ? 'edu' : 'vibe'; setTeam(t); $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work'); };
 $('donePill').onclick = () => { $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('hist'); };
+$('reviseGo').onclick = startRevise; $('reviseNote').onkeydown = (e) => { if (e.key === 'Enter') startRevise(); }; $('issueGo').onclick = sendIssue;
 $('retry').onclick = () => { const j = failedJob[currentTeam]; if (!j) return; failedJob[currentTeam] = null; logLine('시스템', null, '끝난 단계는 건너뛰고 이어서 다시 시도해요.'); execute(j); };
 ['eduType', 'eduMode', 'gate'].forEach((id) => ($(id).onchange = syncButtons)); $('topic').addEventListener('input', () => { clearTimeout(window._est); window._est = setTimeout(syncButtons, 300); });
 $('gate').checked = store.getL('eco_gate') === '1'; $('gate').addEventListener('change', () => store.setL('eco_gate', $('gate').checked ? '1' : '0'));
