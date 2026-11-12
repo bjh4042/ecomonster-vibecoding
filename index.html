@@ -227,13 +227,13 @@ function drawOffice(t) {
 // 2. 캐릭터
 // =====================================================================
 const AGENT_DEF = {
-  planner:  { team: 'vibe', name: '게임 기획', room: 'v_plan',   style: 'pixel', color: '#ffb020', hair: '#5a3b2a',
+  planner:  { team: 'vibe', name: '게임 기획', room: 'v_plan',   style: 'sprite', sprite: 'v-planner', color: '#ffb020',
               role: '당신은 게임 기획자입니다. 원작(포켓몬 FRLG·HGSS)의 조작감과 UI 관례를 기준으로 아이디어를 구체적으로 정리합니다.' },
-  coder:    { team: 'vibe', name: '개발자',   room: 'v_dev',    style: 'pixel', color: '#4fc3f7', hair: '#222',
+  coder:    { team: 'vibe', name: '개발자',   room: 'v_dev',    style: 'sprite', sprite: 'v-coder', color: '#4fc3f7',
               role: '당신은 HTML5/JavaScript 웹게임 개발자입니다. 반응형(스마트폰·태블릿·PC)과 GitHub Pages 정적 배포를 전제로 구현 난이도와 방법을 현실적으로 판단합니다.' },
-  qa:       { team: 'vibe', name: 'QA 테스터', room: 'v_qa',    style: 'pixel', color: '#c8ff2e', hair: '#8a4b2a',
+  qa:       { team: 'vibe', name: 'QA 테스터', room: 'v_qa',    style: 'sprite', sprite: 'v-qa', color: '#c8ff2e',
               role: '당신은 게임 QA 테스터입니다. 원작 유사성, 난이도·밸런스, 모바일 터치 조작 관점에서 문제를 찾습니다.' },
-  reviewer: { team: 'vibe', name: '코드 리뷰', room: 'v_review', style: 'pixel', color: '#ff6b6b', hair: '#333',
+  reviewer: { team: 'vibe', name: '코드 리뷰', room: 'v_review', style: 'sprite', sprite: 'v-reviewer', color: '#ff6b6b',
               role: '당신은 시니어 리뷰어입니다. 범위, 일정, 유지보수 관점에서 우선순위를 냉정하게 정합니다.' },
   yoonseul: { team: 'edu', name: '윤슬', title: '수업·활동지·평가', room: 'e_lesson', style: 'sprite', sprite: 'yoonseul', color: '#7bd389',
               role: '당신은 "윤슬", 초등 수업 설계 전문 교사 동료입니다. 40분 수업 흐름, 학생 활동, 교사 발문, 활동지, 평가문항과 채점 기준을 2022 개정 교육과정 취지에 맞게 구체적으로 작성합니다.' },
@@ -299,7 +299,8 @@ function drawAgent(a, t) {
   // 이름표 + 상태
   const label = a.title ? `${a.name}` : a.name;
   g.font = 'bold 11px sans-serif'; const tw = g.measureText(label).width;
-  g.fillStyle = a.key === 'teacher' ? '#c8ff2e' : '#1b1b2b'; g.fillRect(sx - tw / 2 - 4, top - 18, tw + 8, 16);
+  g.fillStyle = a.key === 'teacher' ? '#c8ff2e' : (a.team === 'vibe' ? '#163a66' : '#1d4a2c'); g.fillRect(sx - tw / 2 - 4, top - 18, tw + 8, 16);
+  if (a.key !== 'teacher') { g.strokeStyle = a.team === 'vibe' ? '#4fc3f7' : '#7bd389'; g.strokeRect(sx - tw / 2 - 4, top - 18, tw + 8, 16); }
   g.fillStyle = a.key === 'teacher' ? '#111' : '#fff'; g.fillText(label, sx - tw / 2, top - 6);
   if (a.key !== 'teacher') { g.fillStyle = a.state === 'working' ? '#c8ff2e' : '#ffb020'; g.fillRect(sx - 10, top - 1, 20, 3); }
   if (a.state === 'working') { g.fillStyle = '#fff'; g.font = 'bold 13px sans-serif'; g.fillText('…'.repeat(1 + Math.floor(t / 400) % 3), sx + 16, top + 14); }
