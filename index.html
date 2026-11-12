@@ -87,6 +87,19 @@
   .st { display: inline-block; width: 46px; font-size: 11px; font-weight: 700; }
   .st-doing { color: #c8ff2e; } .st-todo { color: #ffb020; } .st-done { color: #7aa; }
   .commit { font-size: 12px; padding: 4px 0; color: #ccd; } .commit small { color: #889; }
+  #result h1, #result h2, #result h3, #result h4 { margin: 10px 0 6px; color: #fff; } #result h1 { font-size: 17px; } #result h2 { font-size: 15px; } #result h3, #result h4 { font-size: 14px; }
+  #result p { margin: 5px 0; } #result ul, #result ol { margin: 4px 0; padding-left: 20px; }
+  #result table { border-collapse: collapse; margin: 6px 0; font-size: 12px; } #result td, #result th { border: 1px solid #3b4466; padding: 4px 6px; } #result th { background: #1d2440; }
+  #result code { background: #1d2440; padding: 1px 4px; border-radius: 4px; } #result pre { background: #0a0e1a; padding: 8px; border-radius: 6px; overflow: auto; white-space: pre-wrap; }
+  #result blockquote { border-left: 3px solid #c8ff2e; margin: 6px 0; padding-left: 8px; color: #bbc; }
+  #resultBtns { flex-wrap: wrap; } .resTitle { font-size: 12px; color: #9aa; margin-top: 12px; }
+  .msg .txt { cursor: pointer; } .msg .detail { display: none; margin-top: 6px; background: #0f1424; color: #dde; border-radius: 10px; padding: 8px 10px; font-size: 12px; font-weight: 400; white-space: pre-wrap; max-height: 220px; overflow: auto; }
+  .msg.open .detail { display: block; } .msg .more { font-size: 11px; color: #8a8fb0; margin-left: 4px; }
+  #card { position: absolute; display: none; width: 250px; background: rgba(22,26,48,.97); border: 1px solid #3c4677; border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 12px; z-index: 5; }
+  #card img { width: 44px; height: 44px; image-rendering: pixelated; float: left; margin-right: 10px; }
+  #card b { font-size: 15px; color: #fff; } #card .role { color: #9aa; } #card .last { clear: both; margin-top: 10px; background: #0f1424; border-radius: 8px; padding: 8px; max-height: 140px; overflow: auto; white-space: pre-wrap; color: #dde; }
+  #card .x { position: absolute; right: 10px; top: 6px; cursor: pointer; color: #889; font-size: 16px; }
+  .rosterBox { min-height: 90px; font-size: 13px; }
   @media (max-width: 820px) {
     #topl { width: auto; right: 14px; left: 14px; top: 10px; }
     .ttl b { font-size: 17px; } .ttl span:not(#mode) { display: none; }
@@ -129,7 +142,8 @@
     <span><span class="sqs">■</span> <span id="lastTime">--:--</span> &nbsp;<span id="lastText">아직 기록이 없어요</span></span>
   </div>
 </div>
-<div id="hint">끌어서 이동 · 휠로 확대 · 두 번 눌러 전체 보기</div>
+<div id="hint">캐릭터를 누르면 정보 · 끌어서 이동 · 휠로 확대 · 두 번 눌러 전체 보기 · <label style="cursor:pointer"><input type="checkbox" id="sound" checked style="vertical-align:middle"> 완료 알림음</label></div>
+<div id="card"><span class="x" id="cardX">✕</span><div id="cardBody"></div></div>
 
 <div id="ctrl" class="hide">
   <div class="tabs">
@@ -144,20 +158,23 @@
     <div id="vibeOpts" style="display:none"><div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + Claude Code에 넘길 작업 지시문</div></div>
     <label>요청 내용</label>
     <textarea id="topic" rows="4"></textarea>
-    <label class="chk"><input type="checkbox" id="mask" checked> 전화번호·주민번호 자동 가리기</label>
+    <label class="chk"><input type="checkbox" id="mask" checked> 학생 이름·전화번호·주민번호 가리고 보내기</label>
     <div class="row" style="margin-top:8px"><button id="go">작업 시작</button><button id="demo" class="ghost fit">시연 보기</button></div>
     <div class="note" id="teamNote"></div>
+    <div class="resTitle" id="resTitle" style="display:none"></div>
     <div id="result"></div>
-    <div class="row" id="resultBtns" style="display:none"><button class="ghost mini" id="copyRes">복사</button><button class="ghost mini" id="dlRes">.md 받기</button></div>
+    <div class="row" id="resultBtns" style="display:none"><button class="mini" id="hwpRes">📄 한글(HWPX)</button><button class="ghost mini" id="copyRes">서식 복사</button><button class="ghost mini" id="copyTxt">글자만 복사</button><button class="ghost mini" id="dlRes">.md</button></div>
   </div>
   <div class="view" id="v-dash">
     <small>게임 저장소의 Claude Code 작업 현황을 사무실에 띄워요 (공개 저장소)</small>
     <label>게임 저장소 (아이디/저장소이름)</label>
     <div class="row"><input id="repoIn" placeholder="bjh4042/게임저장소" /><button id="loadRepo" class="fit">불러오기</button></div>
+    <label>비공개 저장소라면: GitHub 읽기 전용 토큰 (선택)</label>
+    <input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..." />
     <label class="chk"><input type="checkbox" id="autoDash" checked> 3분마다 자동 새로고침</label>
     <div id="dash" class="note"></div>
     <button id="copyCC" class="ghost wide">📋 Claude Code에 붙여넣을 안내문 복사</button>
-    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.</div>
+    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.<br>토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 <b>그 저장소 하나, Contents: Read-only</b>로만 만드세요. 이 브라우저에만 저장돼요.</div>
   </div>
   <div class="view" id="v-key">
     <label>Gemini API 키</label>
@@ -171,15 +188,24 @@
     <div class="note">🔒 키는 <b>이 브라우저에만</b> 저장되고 Google 서버로만 직접 전송돼요. 사이트 코드나 GitHub에는 들어가지 않아요.<br>공용 PC에서는 "이 기기에 저장"을 끄고, 다 쓰면 [삭제]를 누르세요.</div>
   </div>
   <div class="view" id="v-ctx">
-    <div class="seg"><button data-ctx="edu" class="on">🏫 학교 맥락</button><button data-ctx="vibe">💻 게임 맥락</button></div>
+    <div class="seg"><button data-ctx="edu" class="on">🏫 학교 맥락</button><button data-ctx="vibe">💻 게임 맥락</button><button data-ctx="roster">🔒 학생 명단</button></div>
     <small id="ctxHelp"></small>
     <textarea id="ctxBox" class="ctxBox"></textarea>
+    <div id="rosterArea" style="display:none">
+      <textarea id="rosterBox" class="rosterBox" placeholder="한 줄에 한 명 (예: 김민준)"></textarea>
+      <label class="chk"><input type="checkbox" id="rosterGiven" checked> 성 뺀 이름(민준이, 민준아)도 가리기</label>
+      <div class="note">🔒 명단은 <b>이 브라우저에만</b> 저장되고 어디로도 보내지 않아요. 요청을 보낼 때 이름을 <b>학생A, 학생B…</b>로 바꿔 보내고, 결과를 받으면 다시 실명으로 되돌려 보여 줘요.</div>
+    </div>
     <div class="row" style="margin-top:8px"><button id="saveCtx">저장</button><button id="resetCtx" class="ghost">기본값으로</button></div>
     <div id="ctxStatus" class="note"></div>
   </div>
-  <div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 30개)</small><div id="histList"></div></div>
+  <div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 50개)</small>
+    <div class="row" style="margin:8px 0"><button class="ghost mini" id="expHist">⬇ 백업 파일 받기</button><button class="ghost mini" id="impHist">⬆ 백업 불러오기</button><input type="file" id="impFile" accept=".json" style="display:none"></div>
+    <div class="note" style="margin-top:0">학교 PC ↔ 집 PC로 옮길 때: 한쪽에서 백업 파일을 받고, 다른 쪽에서 불러오세요. API 키·명단은 백업에 들어가지 않아요.</div>
+    <div id="histList"></div></div>
 </div>
 
+<script src="lib/hwpx.js"></script>
 <script>
 // =====================================================================
 // 1. 픽셀 렌더링 기본 — 작은 버퍼에 그린 뒤 확대해서 픽셀 느낌을 냄
@@ -341,15 +367,16 @@ function drawNeon(t) {
 }
 
 // 칸막이·가구·바깥 장식은 깊이 순서대로 정렬해서 그림
-const PROPS = [];
-const P = (x, y, f) => PROPS.push({ d: x + y, f });
-function partX(xl, y0, y1, doors, rim) { for (let y = y0; y < y1; y++) if (!doors.includes(y)) P(xl, y + .5, () => { box(xl - .14, y, .28, 1, 9, '#f4ede1'); box(xl - .16, y, .32, 1, 2, rim, 9); }); }
-function partY(yl, x0, x1, doors, rim) { for (let x = x0; x < x1; x++) if (!doors.includes(x)) P(x + .5, yl, () => { box(x, yl - .14, 1, .28, 9, '#f4ede1'); box(x, yl - .16, 1, .32, 2, rim, 9); }); }
+const PROPS = [], OBST = [], WALLH = new Set(), WALLV = new Set();
+const P = (x, y, f) => PROPS.push({ d: x + y, x, y, f });
+const OB = (x, y, w, d) => OBST.push([x, y, w, d]);
+function partX(xl, y0, y1, doors, rim) { for (let y = y0; y < y1; y++) if (!doors.includes(y)) WALLV.add(xl + ':' + y), P(xl, y + .5, () => { box(xl - .14, y, .28, 1, 9, '#f4ede1'); box(xl - .16, y, .32, 1, 2, rim, 9); }); }
+function partY(yl, x0, x1, doors, rim) { for (let x = x0; x < x1; x++) if (!doors.includes(x)) WALLH.add(yl + ':' + x), P(x + .5, yl, () => { box(x, yl - .14, 1, .28, 9, '#f4ede1'); box(x, yl - .16, 1, .32, 2, rim, 9); }); }
 const pillar = (x, y, c) => P(x, y, () => box(x - .2, y - .2, .4, .4, 13, c));
-const desk = (x, y, chair = '#d9534f') => P(x + .7, y + .4, () => { box(x, y, 1.4, .7, 7, '#efe8da'); box(x + .45, y + .08, .55, .12, 7, '#2b2d42', 7); box(x + .52, y + .1, .4, .02, 5, '#3d4d7a', 8); box(x + .5, y + .95, .45, .45, 4, chair); box(x + .5, y + 1.32, .45, .12, 9, chair); });
-const shelf = (x, y, w = 1.6) => P(x + w / 2, y + .2, () => { box(x, y, w, .4, 20, '#9a6a44'); for (let i = 0; i < 3; i++) for (let j = 0; j < 5; j++) onBack(x + .1 + j * (w - .2) / 5, (w - .2) / 5 - .05, 3 + i * 6, 4.5, ['#ff6b6b', '#4fc3f7', '#ffd166', '#7bd389', '#b388ff'][(i + j) % 5], y + .4); });
-const plant = (x, y) => P(x, y, () => { box(x - .2, y - .2, .4, .4, 5, '#c96f3b'); const [sx, sy] = iso(x, y, 5); pixCircle(sx, sy - 4, 5, '#3f8f4a'); pixCircle(sx - 2, sy - 6, 3, '#5fb35c'); });
-const crate = (x, y, h = 6, z = 0) => P(x + .3, y + .3, () => { box(x, y, .6, .6, h, '#d9a066', z); box(x, y + .27, .6, .06, h, '#b98049', z); });
+const desk = (x, y, chair = '#d9534f') => OB(x, y, 1.4, .7) || P(x + .7, y + .4, () => { box(x, y, 1.4, .7, 7, '#efe8da'); box(x + .45, y + .08, .55, .12, 7, '#2b2d42', 7); box(x + .52, y + .1, .4, .02, 5, '#3d4d7a', 8); box(x + .5, y + .95, .45, .45, 4, chair); box(x + .5, y + 1.32, .45, .12, 9, chair); });
+const shelf = (x, y, w = 1.6) => OB(x, y, w, .4) || P(x + w / 2, y + .2, () => { box(x, y, w, .4, 20, '#9a6a44'); for (let i = 0; i < 3; i++) for (let j = 0; j < 5; j++) onBack(x + .1 + j * (w - .2) / 5, (w - .2) / 5 - .05, 3 + i * 6, 4.5, ['#ff6b6b', '#4fc3f7', '#ffd166', '#7bd389', '#b388ff'][(i + j) % 5], y + .4); });
+const plant = (x, y) => OB(x - .2, y - .2, .4, .4) || P(x, y, () => { box(x - .2, y - .2, .4, .4, 5, '#c96f3b'); const [sx, sy] = iso(x, y, 5); pixCircle(sx, sy - 4, 5, '#3f8f4a'); pixCircle(sx - 2, sy - 6, 3, '#5fb35c'); });
+const crate = (x, y, h = 6, z = 0) => OB(x, y, .6, .6) || P(x + .3, y + .3, () => { box(x, y, .6, .6, h, '#d9a066', z); box(x, y + .27, .6, .06, h, '#b98049', z); });
 function buildProps() {
   // 칸막이
   partY(6, 0, 24, [2, 8, 13, 18, 22], '#c8ff2e');
@@ -397,6 +424,53 @@ function buildProps() {
   for (const t of BUSHES) if (t.x > W || t.y > H) P(t.x, t.y, () => drawBush(t));
 }
 buildProps();
+[[3.6, 3.7, 1.4, 1], [4.2, 7, .7, 1.4], [4.7, 15.2, .6, .7], [9.1, 1.2, .4, .4], [19.1, .2, .7, .7], [20.8, 2.2, 2.4, 1.2], [8.8, 8.1, 2.6, 1], [9.4, 10, 1.1, .6],
+ [7.2, 11.4, .9, 2.1], [16, 7.2, 1, .75], [17.4, 7.3, .5, .5], [13, 8.3, 1.3, .6], [11.2, 14.4, 2.4, 1.2], [12.7, 9.3, .2, .2], [7.9, 15.2, 1.6, .9]].forEach((r) => OB(...r));
+
+// ── 길찾기 (0.5칸 격자 + 벽 통과 금지) ──
+const GS = 2, GW = W * GS, GH = H * GS;
+const BLOCK = new Uint8Array(GW * GH);
+for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const cx = (i + .5) / GS, cy = (j + .5) / GS; BLOCK[j * GW + i] = OBST.some(([x, y, w, d]) => cx > x - .15 && cx < x + w + .15 && cy > y - .15 && cy < y + d + .15) ? 1 : 0; }
+function crossesWall(x1, y1, x2, y2) {
+  for (let yl = Math.ceil(Math.min(y1, y2)); yl <= Math.floor(Math.max(y1, y2)); yl++) if ((y1 - yl) * (y2 - yl) < 0) { const t = (yl - y1) / (y2 - y1); if (WALLH.has(yl + ':' + Math.floor(x1 + (x2 - x1) * t))) return true; }
+  for (let xl = Math.ceil(Math.min(x1, x2)); xl <= Math.floor(Math.max(x1, x2)); xl++) if ((x1 - xl) * (x2 - xl) < 0) { const t = (xl - x1) / (x2 - x1); if (WALLV.has(xl + ':' + Math.floor(y1 + (y2 - y1) * t))) return true; }
+  return false;
+}
+const cellOf = (x, y) => [Math.max(0, Math.min(GW - 1, Math.floor(x * GS))), Math.max(0, Math.min(GH - 1, Math.floor(y * GS)))];
+const freeCell = (i, j) => i >= 0 && j >= 0 && i < GW && j < GH && !BLOCK[j * GW + i];
+function lineClear(x1, y1, x2, y2) {
+  const n = Math.ceil(Math.hypot(x2 - x1, y2 - y1) / .2); let px = x1, py = y1;
+  for (let k = 1; k <= n; k++) { const x = x1 + (x2 - x1) * k / n, y = y1 + (y2 - y1) * k / n; const [i, j] = cellOf(x, y); if (!freeCell(i, j) || crossesWall(px, py, x, y)) return false; px = x; py = y; }
+  return true;
+}
+function nearestFree(i, j) { for (let r = 0; r < 8; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) if (freeCell(i + di, j + dj)) return [i + di, j + dj]; return [i, j]; }
+function findPath(x1, y1, x2, y2) {
+  let [si, sj] = cellOf(x1, y1), [ti, tj] = cellOf(x2, y2);
+  if (!freeCell(si, sj)) [si, sj] = nearestFree(si, sj);
+  if (!freeCell(ti, tj)) [ti, tj] = nearestFree(ti, tj);
+  const N = GW * GH, gc = new Float32Array(N).fill(1e9), from = new Int32Array(N).fill(-1), closed = new Uint8Array(N), open = [[0, si, sj]];
+  gc[sj * GW + si] = 0;
+  const ctr = (i, j) => [(i + .5) / GS, (j + .5) / GS];
+  while (open.length) {
+    let bi = 0; for (let k = 1; k < open.length; k++) if (open[k][0] < open[bi][0]) bi = k;
+    const [, i, j] = open.splice(bi, 1)[0], id = j * GW + i; if (closed[id]) continue; closed[id] = 1;
+    if (i === ti && j === tj) break;
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const ni = i + di, nj = j + dj; if (!freeCell(ni, nj)) continue;
+      if (di && dj && (!freeCell(i + di, j) || !freeCell(i, j + dj))) continue;
+      const [ax, ay] = ctr(i, j), [bx, by] = ctr(ni, nj); if (crossesWall(ax, ay, bx, by)) continue;
+      const nid = nj * GW + ni, ng = gc[id] + (di && dj ? 1.414 : 1);
+      if (ng < gc[nid]) { gc[nid] = ng; from[nid] = id; open.push([ng + Math.hypot(ti - ni, tj - nj), ni, nj]); }
+    }
+  }
+  const tid = tj * GW + ti; if (from[tid] < 0 && tid !== sj * GW + si) return [[x2, y2]];
+  const cells = []; for (let c = tid; c >= 0 && c !== sj * GW + si; c = from[c]) cells.unshift(ctr(c % GW, Math.floor(c / GW)));
+  const end = lineClear(...cells[cells.length - 1] || [x2, y2], x2, y2) ? [x2, y2] : null; if (end) cells.push(end);
+  // 직선으로 갈 수 있는 점은 건너뛰기
+  const out = []; let cx = x1, cy = y1, k = 0;
+  while (k < cells.length) { let far = k; for (let m = cells.length - 1; m > k; m--) if (lineClear(cx, cy, ...cells[m])) { far = m; break; } out.push(cells[far]); [cx, cy] = cells[far]; k = far + 1; }
+  return out.length ? out : [[x2, y2]];
+}
 
 function renderBackground() {
   ctx = bgctx; ctx.clearRect(0, 0, BW, BH);
@@ -459,22 +533,14 @@ const LOOK = {
 };
 const agents = {};
 const rnd = (a, b) => a + Math.random() * (b - a);
-const LOUNGE = () => { for (;;) { const x = rnd(7, 17.5), y = rnd(7, 17.5); if (!(x > 17 && y > 11.5) && !(x > 8.6 && x < 11.6 && y > 7.9 && y < 9.3) && !(x > 11 && x < 13.8 && y > 14.2 && y < 15.8) && !(x < 8.3 && y > 11.2 && y < 13.7)) return [x, y]; } };
+const LOUNGE = () => { for (let n = 0; n < 200; n++) { const x = rnd(6.8, 17.6), y = rnd(6.8, 17.6); if (x > 17.6 && y > 12) continue; const [i, j] = cellOf(x, y); if (freeCell(i, j) && freeCell(i + 1, j) && freeCell(i - 1, j) && freeCell(i, j + 1) && freeCell(i, j - 1)) return [x, y]; } return [12, 12]; };
 for (const [k, d] of Object.entries(AGENT_DEF)) {
   const [x, y] = LOUNGE();
   agents[k] = { key: k, ...d, x, y, tx: x, ty: y, state: 'idle', dir: 'front', bubble: null, bubbleUntil: 0, pose: null, poseUntil: 0, queue: [], roomIn: null, nextWander: performance.now() + rnd(1500, 9000), busy: false };
 }
 const workSpot = (k) => agents[k].spot.slice();
 function say(a, text, ms = 4500) { a.bubble = text; a.bubbleUntil = performance.now() + ms; }
-// 문을 거쳐 이동
-function goTo(a, x, y) {
-  const target = roomAt(x, y), pts = [];
-  if (a.roomIn && a.roomIn !== target?.id) { const r = ROOMS.find((q) => q.id === a.roomIn); pts.push(r.doorIn, r.doorOut); }
-  if (target && target.id !== a.roomIn) pts.push(target.doorOut, target.doorIn);
-  pts.push([x, y]);
-  a.roomIn = target ? target.id : null;
-  [a.tx, a.ty] = pts.shift(); a.queue = pts;
-}
+function goTo(a, x, y) { const path = findPath(a.x, a.y, x, y); [a.tx, a.ty] = path.shift(); a.queue = path; }
 
 function drawCritter(a, t) {
   const L = LOOK[a.kind], [sx0, sy0] = iso(a.x, a.y), sx = Math.round(sx0), sy = Math.round(sy0);
@@ -557,10 +623,22 @@ function computeView() {
   offY = Math.round(isMobile() ? 130 + cam.py : (cv.height - BH * Zs) / 2 + cam.py);
 }
 const sc = (bx, by) => [offX + bx * Zs, offY + by * Zs];
-let drag = null;
-cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, px: cam.px, py: cam.py }; cv.setPointerCapture(e.pointerId); });
-cv.addEventListener('pointermove', (e) => { if (drag) { cam.px = drag.px + e.clientX - drag.x; cam.py = drag.py + e.clientY - drag.y; } });
-cv.addEventListener('pointerup', () => (drag = null));
+let drag = null; const ptrs = new Map(); let pinch = null, moved = 0;
+cv.addEventListener('pointerdown', (e) => { ptrs.set(e.pointerId, [e.clientX, e.clientY]); cv.setPointerCapture(e.pointerId); moved = 0;
+  if (ptrs.size === 2) { const [p1, p2] = [...ptrs.values()]; pinch = { d: Math.hypot(p1[0] - p2[0], p1[1] - p2[1]), zoom: cam.zoom }; drag = null; }
+  else drag = { x: e.clientX, y: e.clientY, px: cam.px, py: cam.py }; });
+cv.addEventListener('pointermove', (e) => {
+  if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pinch && ptrs.size === 2) { const [p1, p2] = [...ptrs.values()]; const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2; computeView(); const wx = (mx - offX) / Zs, wy = (my - offY) / Zs;
+    cam.zoom = Math.min(3.5, Math.max(.5, pinch.zoom * Math.hypot(p1[0] - p2[0], p1[1] - p2[1]) / pinch.d)); computeView(); cam.px += mx - (offX + wx * Zs); cam.py += my - (offY + wy * Zs); moved = 99; }
+  else if (drag) { cam.px = drag.px + e.clientX - drag.x; cam.py = drag.py + e.clientY - drag.y; moved = Math.max(moved, Math.hypot(e.clientX - drag.x, e.clientY - drag.y)); } });
+const endPtr = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) { if (drag && moved < 6) clickAt(e.clientX, e.clientY); drag = null; } };
+cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+function clickAt(mx, my) {
+  let best = null, bd = 30;
+  for (const a of Object.values(agents)) { const [x, y] = sc(...iso(a.x, a.y, 7)); const d = Math.hypot(mx - x, my - y); if (d < bd + 10 * Zs / 2) { bd = d; best = a; } }
+  if (typeof showAgentCard === 'function') showAgentCard(best, mx, my);
+}
 cv.addEventListener('wheel', (e) => {
   e.preventDefault(); computeView();
   const wx = (e.clientX - offX) / Zs, wy = (e.clientY - offY) / Zs;
@@ -624,7 +702,10 @@ function loop(t) {
   ctx = bctx; bctx.clearRect(0, 0, BW, BH); bctx.drawImage(bg, 0, 0);
   drawNeon(t);
   for (const a of Object.values(agents)) if (a.state === 'working' && a.spot) { const [sx, sy] = iso(a.spot[0], a.spot[1] - 1.1, 13); pr(sx - 3, sy - 1, 6, 3, Math.floor(t / 300) % 2 ? '#8ff' : '#5cf'); }
-  Object.values(agents).sort((a, b) => (a.x + a.y) - (b.x + b.y)).forEach((a) => drawCritter(a, t));
+  // 캐릭터와 겹치는 소품은 깊이 순서대로 다시 그려서 가구 뒤에 숨도록
+  const items = Object.values(agents).map((a) => ({ d: a.x + a.y + .25, a }));
+  for (const pp of PROPS) { if (pp.x > W || pp.y > H) continue; const [px, py] = iso(pp.x, pp.y); if (items.some((it) => it.a && pp.d > it.d && Math.abs(iso(it.a.x, it.a.y)[0] - px) < 34 && Math.abs(iso(it.a.x, it.a.y)[1] - py) < 30)) items.push({ d: pp.d, p: pp }); }
+  items.sort((u, v) => u.d - v.d).forEach((it) => it.a ? drawCritter(it.a, t) : it.p.f());
   computeView();
   g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#221a30'; g.fillRect(0, 0, cv.width, cv.height);
   g.fillStyle = '#4a3f66'; for (const [sx, sy, s] of STARS) g.fillRect(sx * cv.width, sy * cv.height, s, s);
@@ -667,7 +748,7 @@ const DEFAULT_CTX = {
   edu: `# 학교 맥락
 - 학교급: 초등학교
 - 담당 학년/반: (예: 5학년 3반, 학생 25명)
-- 담당 과목/업무: (예: 담임, 과학 전담 아님, 정보 업무 담당)
+- 담당 과목/업무: (예: 담임, 정보 업무 담당)
 - 교육과정: 2022 개정 교육과정
 - 지역/학교 특색: (예: 거제, 바다 생태교육)
 - 문체: 공문·계획서는 개조식, 학부모 안내는 정중하고 따뜻한 존댓말
@@ -676,16 +757,47 @@ const DEFAULT_CTX = {
 const getKey = () => store.get('eco_key') || '';
 const getModel = () => store.getL('eco_model') || DEFAULT_MODEL;
 const getCtx = (team) => store.getL('eco_ctx_' + team) || DEFAULT_CTX[team];
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // =====================================================================
-// 7. 교무팀 업무 분류
+// 7. 개인정보 가리기 — 명단은 이 브라우저에만
+// =====================================================================
+const getRoster = () => (store.getL('eco_roster') || '').split(/\n|,/).map((s) => s.trim()).filter((s) => s.length >= 2);
+const label = (i) => '학생' + (i < 26 ? String.fromCharCode(65 + i) : i + 1);
+function makeMasker() {
+  const names = getRoster(), pairs = [];
+  names.forEach((full, i) => { pairs.push([full, label(i)]); if (store.getL('eco_roster_given') !== '0' && full.length === 3) pairs.push([full.slice(1), label(i)]); });
+  pairs.sort((a, b) => b[0].length - a[0].length);
+  const back = names.map((full, i) => [label(i), full]).sort((a, b) => b[0].length - a[0].length);
+  return {
+    mask(text) {
+      let t = String(text).replace(/01[016789][-\s]?\d{3,4}[-\s]?\d{4}/g, '[전화번호]').replace(/\d{6}[-\s]?[1-4]\d{6}/g, '[주민번호]');
+      for (const [n, l] of pairs) t = t.split(n).join(l);
+      return t;
+    },
+    unmask(text) {
+      let t = String(text);
+      for (const [l, n] of back) {
+        const code = n.charCodeAt(n.length - 1) - 0xac00, jong = code >= 0 && code < 11172 ? code % 28 : 0, has = jong > 0, rieul = jong === 8;
+        const fix = { 가: has ? '이' : '가', 이: has ? '이' : '가', 는: has ? '은' : '는', 은: has ? '은' : '는', 를: has ? '을' : '를', 을: has ? '을' : '를', 와: has ? '과' : '와', 과: has ? '과' : '와', 야: has ? '아' : '야', 아: has ? '아' : '야', 랑: has ? '이랑' : '랑', 로: has && !rieul ? '으로' : '로' };
+        t = t.replace(new RegExp(l + '(?![A-Z0-9])(가|이|는|은|를|을|와|과|야|아|랑|로)?', 'g'), (m, j) => n + (j ? fix[j] : ''));
+      }
+      return t;
+    },
+    count: names.length,
+  };
+}
+const NO_MASK = { mask: (t) => t, unmask: (t) => t, count: 0 };
+
+// =====================================================================
+// 8. 교무팀 업무 분류
 // =====================================================================
 const EDU_TYPES = [
   { id: 'lesson',    label: '수업 지도안·수업 설계', lead: 'yoonseul', reviewers: ['yejun', 'haram'], kw: ['지도안', '교수학습', '수업 설계', '수업안', '차시', '수업 계획', '수업 아이디어', '발문', '수업'] },
   { id: 'worksheet', label: '활동지·평가문항',       lead: 'yoonseul', reviewers: ['haram'],          kw: ['활동지', '학습지', '워크시트', '평가', '수행평가', '단원평가', '서술형', '루브릭', '채점', '문항', '정답'] },
   { id: 'guidance',  label: '생활지도·상담',         lead: 'yejun',    reviewers: ['sua', 'haram'],   kw: ['생활지도', '갈등', '다툼', '싸움', '욕설', '규칙', '수업 방해', '상담', '친구 관계', '따돌림', '학교폭력'] },
   { id: 'parent',    label: '학부모 문자·알림장·가정통신문', lead: 'sua', reviewers: ['yejun', 'haram'], weight: 2, kw: ['학부모', '알림장', '가정통신문', '문자', '안내문', '하이클래스', '클래스팅', 'e알리미', '학부모님'] },
-  { id: 'record',    label: '관찰 기록·평가 피드백 문장', lead: 'sua', reviewers: ['yoonseul'], weight: 2,     kw: ['관찰', '기록', '누가기록', '피드백 문장', '행발', '행동특성', '세특', '교과 발달', '종합의견', '상담 일지'] },
+  { id: 'record',    label: '관찰 기록·평가 피드백 문장', lead: 'sua', reviewers: ['yoonseul'], weight: 2, kw: ['관찰', '기록', '누가기록', '피드백 문장', '행발', '행동특성', '세특', '교과 발달', '종합의견', '상담 일지'] },
   { id: 'admin',     label: '공문·계획서·보고서·행사', lead: 'taeyun', reviewers: ['haram'],         kw: ['공문', '계획서', '보고서', '결과보고', '출장', '행사', '체험학습', '현장체험', '운동회', '학예회', '방과후', '운영 계획', '제출', '기안'] },
   { id: 'todo',      label: '할 일 정리·우선순위',   lead: 'haram',    reviewers: [],                 kw: ['할 일', '우선순위', '마감', '일정', '정리해', '업무 정리', '이번 주', '오늘'] },
 ];
@@ -694,153 +806,221 @@ function classify(text) {
   for (const t of EDU_TYPES) { const s = t.kw.reduce((n, k) => n + (text.includes(k) ? k.length : 0), 0) * (t.weight || 1); if (s > score) { score = s; best = t; } }
   return best;
 }
-const maskPrivacy = (s) => s.replace(/01[016789][-\s]?\d{3,4}[-\s]?\d{4}/g, '[전화번호]').replace(/\d{6}[-\s]?[1-4]\d{6}/g, '[주민번호]');
 
 // =====================================================================
-// 8. Gemini 호출
+// 9. Gemini 호출
 // =====================================================================
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let forceMock = false;
 const MOCK = {
-  planner: '💡 아이디어 초안\n1. 학동 몽돌해변 — 파도 소리에 반응하는 돌 몬스터\n2. 동백섬 — 겨울에만 나오는 꽃 몬스터\n3. 갯벌 — 썰물 시간에만 열리는 숨은 길',
-  coder: '1번: 하 (기존 조우 테이블에 추가)\n2번: 중 (계절 시스템 필요)\n3번: 상 (시간대별 맵 변경) → 0.5는 1·2번만 추천',
-  qa: '- 2번은 원작의 시간대 포켓몬과 비슷해 익숙함 ✅\n- 3번은 모바일에서 시간 맞추기 불편 ⚠️',
-  reviewer: '우선순위: 1번 → 2번 → 3번(S5 이후로 보류)',
-  yoonseul: '📚 [5학년 과학] 40분 수업 흐름\n도입(5분): 질문 던지기 → 전개(28분): 모둠 실험 → 정리(7분): 배움 공책',
-  yejun: '🧑‍🤝‍🧑 검토: 모둠 구성 시 갈등 가능성 있는 학생 배치 주의, 역할 카드 사용 권장',
-  sua: '💬 학부모님 안녕하세요. 내일 현장체험학습 관련 안내드립니다. 도시락과 물을 꼭 챙겨 주세요. 감사합니다.',
-  taeyun: '📄 □ 목적 ○ 운영 개요 - 일시: - 장소: □ 세부 계획 (표) □ 안전 대책',
-  haram: '🗂 오늘 할 일\n1) [긴급] 공문 회신 (15시 마감)\n2) 알림장 작성\n3) 다음 주 수업 준비',
+  planner: '## 💡 아이디어 초안\n1. **학동 몽돌해변** — 파도 소리에 반응하는 돌 몬스터\n2. **동백섬** — 겨울에만 나오는 꽃 몬스터\n3. **갯벌** — 썰물 시간에만 열리는 숨은 길',
+  coder: '| 아이디어 | 난이도 | 0.5 포함 |\n|---|---|---|\n| 몽돌 | 하 | O |\n| 동백 | 중 | O |\n| 갯벌 | 상 | X |',
+  qa: '- 동백 몬스터는 원작의 시간대 포켓몬과 비슷해 익숙함 ✅\n- 갯벌 길은 모바일에서 시간 맞추기 불편 ⚠️',
+  reviewer: '우선순위: **몽돌 → 동백 → 갯벌(S5 이후 보류)**',
+  yoonseul: '## 5학년 과학 40분 수업\n| 단계 | 시간 | 활동 |\n|---|---|---|\n| 도입 | 5분 | 질문 던지기 |\n| 전개 | 28분 | 모둠 실험 |\n| 정리 | 7분 | 배움 공책 |',
+  yejun: '- **모둠 구성**: 갈등 가능성 있는 학생A와 학생B는 다른 모둠으로\n- 역할 카드 사용 권장',
+  sua: '학부모님 안녕하세요.\n\n내일 **현장체험학습**이 있습니다.\n- 도시락과 물\n- 편한 운동화\n\n감사합니다.',
+  taeyun: '# 현장체험학습 운영 계획\n## 1. 목적\n- 지역 생태 이해\n## 2. 개요\n| 항목 | 내용 |\n|---|---|\n| 일시 | [ ] |\n| 장소 | 거제 해양생태관 |',
+  haram: '## 🗂 오늘 할 일\n1. **[긴급]** 공문 회신 (15시 마감)\n2. 알림장 작성\n3. 다음 주 수업 준비',
 };
 let modelCache = null;
+async function fetchModels() {
+  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': getKey() } });
+  if (!r.ok) throw new Error(r.status);
+  return ((await r.json()).models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent')).map((m) => m.name.replace('models/', ''));
+}
 async function pickFallback(current) {
   try { modelCache = modelCache || await fetchModels(); } catch { return null; }
-  const pref = modelCache.filter((m) => m !== current && /flash/.test(m) && !/(image|tts|audio|live|embedding|preview-tts)/.test(m));
+  const pref = modelCache.filter((m) => m !== current && /flash/.test(m) && !/(image|tts|audio|live|embedding)/.test(m));
   return pref.find((m) => /lite/.test(m)) || pref[0] || null;
 }
-async function callGemini(agentKey, prompt) {
+let callsToday = Number(store.getL('eco_calls_' + new Date().toDateString()) || 0);
+async function callGemini(agentKey, prompt, mock) {
   const key = getKey(), a = AGENT_DEF[agentKey];
-  if (forceMock || !key) { await sleep(rnd(1200, 2200)); return '[시연] ' + MOCK[agentKey]; }
-  const sysText = a.role + '\n\n[맥락]\n' + getCtx(a.team) + '\n\n답변은 한국어로, 바로 쓸 수 있는 완성형으로 작성하세요.';
+  if (mock || !key) { await sleep(rnd(1200, 2200)); return MOCK[agentKey]; }
+  const sysText = a.role + '\n\n[맥락]\n' + getCtx(a.team) + '\n\n답변은 한국어 마크다운(제목 #, 목록 -, 표 |)으로, 바로 쓸 수 있는 완성형으로 작성하세요. 학생은 학생A처럼 표기된 그대로 쓰세요.';
   const body = JSON.stringify({ systemInstruction: { parts: [{ text: sysText }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }] });
   let model = getModel();
   for (let i = 1; i <= 4; i++) {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body });
-    if (r.ok) {
-      const j = await r.json();
-      return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim() || '(빈 응답)';
-    }
+    callsToday++; store.setL('eco_calls_' + new Date().toDateString(), callsToday);
+    if (r.ok) { const j = await r.json(); return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim() || '(빈 응답)'; }
     const raw = await r.text(); let msg = raw; try { msg = JSON.parse(raw).error.message; } catch {}
     const suggested = r.status === 404 && msg.match(/models\/([\w.\-]+)/g)?.map((m) => m.slice(7)).find((m) => m !== model);
-    if (suggested && i < 4) { // 모델이 바뀌었다고 안내하면 자동으로 갈아타기
-      model = suggested; store.setL('eco_model', model); $('modelIn').value = model; refreshMode();
-      logLine('시스템', null, `모델을 ${model}(으)로 자동 변경했어요.`); continue;
-    }
+    if (suggested && i < 4) { model = suggested; store.setL('eco_model', model); $('modelIn').value = model; logLine('시스템', null, `모델을 ${model}(으)로 자동 변경했어요.`); continue; }
     if (r.status === 429 && i < 4) { say(agents[agentKey], '호출 한도에 걸렸어요. 잠깐 쉴게요…', 8000); await sleep(15000 * i); continue; }
-    if ((r.status === 503 || r.status === 500) && i < 4) { // 서버 혼잡 → 잠깐 뒤 재시도, 2번 실패하면 다른 모델로
+    if ((r.status === 503 || r.status === 500) && i < 4) {
       if (i >= 2) { const alt = await pickFallback(model); if (alt) { logLine('시스템', null, `${model}이 혼잡해서 이번 호출은 ${alt}로 대신할게요.`); model = alt; continue; } }
       say(agents[agentKey], '서버가 붐벼요. 잠깐 기다릴게요…', 6000); await sleep(4000 * i); continue;
     }
+    if (r.status === 403 && /referer|referrer/i.test(msg)) throw new Error('이 사이트 주소가 API 키 허용 목록에 없어요. Google Cloud에서 키의 웹사이트 제한을 확인하세요.');
     throw new Error(`Gemini ${r.status}: ${msg.slice(0, 220)}`);
   }
 }
 
 // =====================================================================
-// 9. 작업 흐름
+// 10. 작업 흐름 — 팀마다 따로 진행 (동시 진행 가능)
 // =====================================================================
-let running = false, totalSteps = 1, doneSteps = 0, lastResult = null;
-function setProgress(v) { $('pct').textContent = Math.round(v) + '%'; $('barFill').style.width = v + '%'; }
-async function step(agentKey, prompt, to, sayFn) {
-  const a = agents[agentKey]; a.busy = true; a.state = 'working'; a.queue = []; goTo(a, ...workSpot(agentKey)); counts();
-  const out = await callGemini(agentKey, prompt);
+const jobs = { edu: null, vibe: null }, lastResult = { edu: null, vibe: null };
+let currentTeam = 'edu', doneJobs = 0;
+function updateProgress() {
+  const act = Object.values(jobs).filter(Boolean), total = act.reduce((n, j) => n + j.total, 0), done = act.reduce((n, j) => n + j.done, 0);
+  if (!act.length) return;
+  const v = total ? done / total * 100 : 0;
+  $('pct').innerHTML = `${Math.round(v)}<small>%</small>`; $('barFill').style.width = v + '%'; $('doneLbl').textContent = `${done}/${total}`;
+  $('pctLbl').textContent = act.length > 1 ? `작업 ${act.length}개 동시 진행` : '작업 공정률';
+  $('topicLbl').textContent = act.map((j) => (j.team === 'edu' ? '🏫 ' : '💻 ') + j.topic.slice(0, 26)).join('   ');
+}
+async function step(job, agentKey, prompt, to, sayFn) {
+  const a = agents[agentKey]; a.busy = true; a.state = 'working'; a.task = job.topic; goTo(a, ...workSpot(agentKey)); counts();
+  const raw = await callGemini(agentKey, prompt, job.mock);
   a.state = 'idle'; counts();
-  const text = sayFn(out); say(a, text); logLine(a.name, to && agents[to].name, text);
-  a.pose = to ? 'action-report' : 'action-complete'; a.poseUntil = performance.now() + 2500;
+  const shown = job.masker.unmask(raw); a.lastOut = shown; a.doneCount = (a.doneCount || 0) + 1;
+  const text = sayFn(raw); say(a, text); logLine(a.name, to && agents[to].name, text, '', shown);
+  a.pose = to ? 'report' : 'done'; a.poseUntil = performance.now() + 2500;
   if (to) { const [x, y] = workSpot(to); goTo(a, x - 0.7, y + 0.3); }
   setTimeout(() => { a.busy = false; }, 3000);
-  setProgress(++doneSteps / totalSteps * 100);
-  await sleep(1200);
-  return out;
+  job.done++; updateProgress();
+  await sleep(1000);
+  return raw;
 }
 function teacherAsk(leadKey, text) {
   const t = agents.teacher; t.busy = true; const [x, y] = workSpot(leadKey);
-  goTo(t, x - 1, y + 0.8); say(t, text, 5000); setTimeout(() => { t.busy = false; }, 7000);
+  goTo(t, x - 1, y + 0.6); say(t, text, 5000); setTimeout(() => { t.busy = false; }, 7000);
 }
-
-async function runVibe(topic) {
-  totalSteps = 5;
+async function runVibe(job) {
+  const topic = job.sent; job.total = 5;
   teacherAsk('planner', '아이디어 회의 부탁해요!');
-  const draft = await step('planner', `요청: "${topic}"\n이 요청에 대한 게임 아이디어 초안을 번호 목록으로 작성하세요. 각 항목은 이름, 한 줄 설명, 원작의 어떤 요소와 닮았는지.`, 'coder', () => '초안 나왔어요. 구현 가능성 봐 주세요!');
-  const dev = await step('coder', `아이디어 초안:\n${draft}\n\n각 아이디어의 구현 난이도(상/중/하), 웹(HTML5)에서의 구현 방법 한 줄, 0.5 범위에 넣을지 의견을 쓰세요.`, 'qa', () => '난이도 표시했어요. 검증 부탁해요!');
-  const qa = await step('qa', `초안:\n${draft}\n\n개발 의견:\n${dev}\n\n원작 유사성, 밸런스, 모바일 조작 관점의 문제점을 짧게.`, 'reviewer', (o) => `걸리는 점 ${(o.match(/^\s*[-*\d]/gm) || []).length}개 찾았어요.`);
-  const rv = await step('reviewer', `초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n우선순위 Top 3와 보류할 것, 이유를 짧게.`, 'planner', () => '우선순위 정했어요. 정리 부탁해요.');
-  const final = await step('planner', `아래 회의 내용을 최종 정리하세요.\n1) 채택안 (우선순위 순)\n2) 보류안\n3) "Claude Code에 넘길 작업 지시문" — 그대로 복사해 붙여 넣을 수 있게, 파일·기능·완료 조건 포함\n\n초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n리뷰:\n${rv}`, null, () => '회의록 완성! Claude Code용 지시문도 넣었어요 🎉');
-  return { final, md: `# [바이브코딩팀] ${topic}\n\n## 최종 정리\n${final}\n\n---\n## 기획 초안\n${draft}\n\n## 개발 의견\n${dev}\n\n## QA\n${qa}\n\n## 리뷰\n${rv}\n` };
+  const draft = await step(job, 'planner', `요청: "${topic}"\n이 요청에 대한 게임 아이디어 초안을 번호 목록으로 작성하세요. 각 항목은 이름, 한 줄 설명, 원작의 어떤 요소와 닮았는지.`, 'coder', () => '초안 나왔어요. 구현 가능성 봐 주세요!');
+  const dev = await step(job, 'coder', `아이디어 초안:\n${draft}\n\n각 아이디어의 구현 난이도(상/중/하), 웹(HTML5)에서의 구현 방법 한 줄, 0.5 범위에 넣을지 의견을 표로 쓰세요.`, 'qa', () => '난이도 표시했어요. 검증 부탁해요!');
+  const qa = await step(job, 'qa', `초안:\n${draft}\n\n개발 의견:\n${dev}\n\n원작 유사성, 밸런스, 모바일 조작 관점의 문제점을 짧게.`, 'reviewer', (o) => `걸리는 점 ${(o.match(/^\s*[-*\d]/gm) || []).length}개 찾았어요.`);
+  const rv = await step(job, 'reviewer', `초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n우선순위 Top 3와 보류할 것, 이유를 짧게.`, 'planner', () => '우선순위 정했어요. 정리 부탁해요.');
+  const final = await step(job, 'planner', `아래 회의 내용을 최종 정리하세요.\n## 1. 채택안 (우선순위 순)\n## 2. 보류안\n## 3. Claude Code에 넘길 작업 지시문 — 그대로 복사해 붙여 넣을 수 있게, 파일·기능·완료 조건 포함\n\n초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n리뷰:\n${rv}`, null, () => '회의록 완성! Claude Code용 지시문도 넣었어요 🎉');
+  return { final, title: '아이디어 회의: ' + job.topic, md: `# [바이브코딩팀] ${topic}\n\n## 최종 정리\n${final}\n\n---\n## 기획 초안\n${draft}\n\n## 개발 의견\n${dev}\n\n## QA\n${qa}\n\n## 리뷰\n${rv}\n` };
 }
-
-async function runEdu(topic, type, mode) {
-  const lead = type.lead, reviewers = mode === 'quick' ? [] : type.reviewers;
-  totalSteps = 1 + reviewers.length + (reviewers.length ? 1 : 0);
+async function runEdu(job, type, mode) {
+  const topic = job.sent, lead = type.lead, reviewers = mode === 'quick' ? [] : type.reviewers;
+  job.total = 1 + reviewers.length + (reviewers.length ? 1 : 0);
   teacherAsk(lead, '이 업무 부탁해요!');
-  if (lead !== 'haram') { const h = agents.haram; say(h, `${type.label} → ${agents[lead].name} 담당으로 배정!`, 5000); logLine(agents.haram.name, agents[lead].name, `"${type.label}" 업무로 분류해서 ${agents[lead].name}님께 배정했어요.`); }
-  await sleep(1500);
-  const draft = await step(lead, `담임 선생님 요청: "${topic}"\n업무 유형: ${type.label}\n바로 사용할 수 있는 완성형 초안을 작성하세요. 필요한 정보가 빠졌다면 [ ]로 빈칸을 두고 맨 끝에 "확인 필요" 목록을 쓰세요.`,
+  if (lead !== 'haram') { say(agents.haram, `${agents[lead].name} 담당으로 배정!`, 5000); logLine(agents.haram.name, agents[lead].name, `"${type.label}" 업무로 분류해서 ${agents[lead].name}에게 배정했어요.`); }
+  await sleep(1200);
+  const draft = await step(job, lead, `담임 선생님 요청: "${topic}"\n업무 유형: ${type.label}\n바로 사용할 수 있는 완성형 초안을 작성하세요. 필요한 정보가 빠졌다면 [ ]로 빈칸을 두고 맨 끝에 "확인 필요" 목록을 쓰세요.`,
     reviewers[0] || null, () => reviewers.length ? '초안 완성! 검토 부탁해요.' : '완성했어요! 확인해 주세요 🎉');
-  if (!reviewers.length) return { final: draft, md: `# [교무팀·${type.label}] ${topic}\n\n${draft}\n` };
+  if (!reviewers.length) return { final: draft, title: job.topic, md: `# [교무팀·${type.label}] ${topic}\n\n${draft}\n` };
   const reviews = [];
   for (let i = 0; i < reviewers.length; i++) {
     const r = reviewers[i];
-    const rv = await step(r, `동료(${agents[lead].name})가 쓴 초안을 당신의 전문 분야(${AGENT_DEF[r].title}) 관점에서 검토하세요. 꼭 고칠 점 3개 이내, 각각 "문제 → 수정 제안" 형식으로.\n\n요청: ${topic}\n\n초안:\n${draft}`,
+    const rv = await step(job, r, `동료(${agents[lead].name})가 쓴 초안을 당신의 전문 분야(${AGENT_DEF[r].title}) 관점에서 검토하세요. 꼭 고칠 점 3개 이내, 각각 "문제 → 수정 제안" 형식으로.\n\n요청: ${topic}\n\n초안:\n${draft}`,
       reviewers[i + 1] || lead, () => i + 1 < reviewers.length ? '제 의견 남겼어요. 다음 검토 부탁해요.' : '검토 끝! 반영해 주세요.');
     reviews.push(`### ${agents[r].name} (${AGENT_DEF[r].title})\n${rv}`);
   }
-  const final = await step(lead, `검토 의견을 반영해 최종본을 작성하세요. 최종본만 깔끔하게 쓰고, 맨 끝에 "반영한 점" 3줄 이내.\n\n요청: ${topic}\n\n초안:\n${draft}\n\n검토:\n${reviews.join('\n\n')}`, null, () => '최종본 완성했어요! 🎉');
-  return { final, md: `# [교무팀·${type.label}] ${topic}\n\n## 최종본\n${final}\n\n---\n## 초안\n${draft}\n\n## 검토\n${reviews.join('\n\n')}\n` };
+  const final = await step(job, lead, `검토 의견을 반영해 최종본을 작성하세요. 최종본만 깔끔하게 쓰고, 맨 끝에 "반영한 점" 3줄 이내.\n\n요청: ${topic}\n\n초안:\n${draft}\n\n검토:\n${reviews.join('\n\n')}`, null, () => '최종본 완성했어요! 🎉');
+  return { final, title: job.topic, md: `# [교무팀·${type.label}] ${topic}\n\n## 최종본\n${final}\n\n---\n## 초안\n${draft}\n\n## 검토\n${reviews.join('\n\n')}\n` };
 }
-
-let currentTeam = 'edu';
 async function runJob(demo) {
-  if (running) return;
+  const team = currentTeam;
+  if (jobs[team]) return;
   let topic = $('topic').value.trim();
-  if (!topic && demo) topic = currentTeam === 'edu' ? '내일 현장체험학습 학부모 안내 문자 써 줘' : '거제도 지역 몬스터 아이디어 회의';
+  if (!topic && demo) topic = team === 'edu' ? '내일 현장체험학습 학부모 안내 문자 써 줘' : '거제도 지역 몬스터 아이디어 회의';
   if (!topic) return $('topic').focus();
-  if ($('mask').checked) topic = maskPrivacy(topic);
-  running = true; forceMock = !!demo; $('go').disabled = $('demo').disabled = true; doneSteps = 0;
-  for (const a of Object.values(agents)) if (a.team === currentTeam) a.state = 'idle';
-  $('topicLbl').textContent = (currentTeam === 'edu' ? '🏫 ' : '💻 ') + topic.slice(0, 40); $('pctLbl').textContent = '작업 공정률'; setProgress(0);
-  $('result').classList.remove('show'); $('resultBtns').style.display = 'none';
+  const masker = $('mask').checked && !demo ? makeMasker() : NO_MASK;
+  const job = jobs[team] = { team, topic, sent: masker.mask(topic), mock: !!demo, masker, total: 1, done: 0 };
+  if (masker.count && job.sent !== topic) logLine('시스템', null, `학생 이름을 가려서 보냈어요: "${job.sent.slice(0, 40)}"`);
+  syncButtons(); updateProgress();
   try {
     let res;
-    if (currentTeam === 'vibe') res = await runVibe(topic);
-    else { const sel = $('eduType').value; res = await runEdu(topic, sel === 'auto' ? classify(topic) : EDU_TYPES.find((t) => t.id === sel), $('eduMode').value); }
-    lastResult = { team: currentTeam, topic, ...res };
-    showResult(res.final); if (!demo) saveHistory(lastResult);
+    if (team === 'vibe') res = await runVibe(job);
+    else { const sel = $('eduType').value; res = await runEdu(job, sel === 'auto' ? classify(topic) : EDU_TYPES.find((t) => t.id === sel), $('eduMode').value); }
+    res.final = masker.unmask(res.final); res.md = masker.unmask(res.md);
+    const r = lastResult[team] = { team, topic, ...res, at: new Date().toLocaleString('ko-KR') };
+    if (!demo) saveHistory(r);
+    doneJobs++; $('cDone').textContent = `완료 ${doneJobs}`; chime(); notifyDone(team, topic);
+    if (currentTeam === team) showResult(r); else logLine('시스템', null, `${team === 'edu' ? '교무팀' : '바이브코딩팀'} 작업이 끝났어요. 작업 패널에서 확인하세요.`);
   } catch (e) {
     logLine('시스템', null, String(e.message || e), 'err');
-    for (const a of Object.values(agents)) { a.state = 'idle'; a.busy = false; }
-  } finally { running = false; forceMock = false; $('go').disabled = $('demo').disabled = false; counts(); }
+    for (const a of Object.values(agents)) if (a.team === team) { a.state = 'idle'; a.busy = false; }
+  } finally {
+    jobs[team] = null; syncButtons(); counts();
+    if (!jobs.edu && !jobs.vibe) $('pctLbl').textContent = '전체 공정률'; else updateProgress();
+  }
 }
-function showResult(text) { $('result').textContent = text; $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; }
+function syncButtons() { const busy = !!jobs[currentTeam]; $('go').disabled = $('demo').disabled = busy; $('go').textContent = busy ? '이 팀은 작업 중…' : '작업 시작'; }
+
+// ── 결과 표시 (마크다운 → 화면) ──
+function inline(s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/(^|[^*])\*([^*]+)\*/g, '$1<i>$2</i>'); }
+function mdToHtml(md) {
+  const L = String(md).replace(/\r/g, '').split('\n'), out = []; let list = null;
+  const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (let i = 0; i < L.length; i++) {
+    const l = L[i];
+    if (/^```/.test(l)) { close(); const buf = []; i++; while (i < L.length && !/^```/.test(L[i])) buf.push(L[i++]); out.push(`<pre>${esc(buf.join('\n'))}</pre>`); continue; }
+    if (/^\s*\|.*\|\s*$/.test(l)) { close(); const rows = []; while (i < L.length && /^\s*\|.*\|\s*$/.test(L[i])) { const c = L[i].trim().slice(1, -1).split('|').map((x) => x.trim()); if (!c.every((x) => /^:?-{2,}:?$/.test(x))) rows.push(c); i++; } i--;
+      out.push('<table>' + rows.map((r, ri) => '<tr>' + r.map((c) => ri ? `<td>${inline(c)}</td>` : `<th>${inline(c)}</th>`).join('') + '</tr>').join('') + '</table>'); continue; }
+    let m;
+    if ((m = l.match(/^(#{1,4})\s+(.*)/))) { close(); out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); }
+    else if ((m = l.match(/^\s*[-*+•]\s+(.*)/))) { if (list !== 'ul') { close(); out.push('<ul>'); list = 'ul'; } out.push(`<li>${inline(m[1])}</li>`); }
+    else if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== 'ol') { close(); out.push('<ol>'); list = 'ol'; } out.push(`<li>${inline(m[1])}</li>`); }
+    else if ((m = l.match(/^>\s?(.*)/))) { close(); out.push(`<blockquote>${inline(m[1])}</blockquote>`); }
+    else if (/^-{3,}$/.test(l.trim())) { close(); out.push('<hr>'); }
+    else if (l.trim()) { close(); out.push(`<p>${inline(l)}</p>`); }
+    else close();
+  }
+  close(); return out.join('');
+}
+let shownResult = null;
+function showResult(r) {
+  shownResult = r;
+  $('result').innerHTML = mdToHtml(r.final || r.md); $('result').classList.add('show'); $('resultBtns').style.display = 'flex';
+  $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${r.team === 'edu' ? '교무팀' : '바이브코딩팀'} 결과 · ${r.topic.slice(0, 30)}`;
+  $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work');
+}
+function download(name, data, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1500); }
+const fname = (t, ext) => t.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '').slice(0, 40) + ext;
+const stripMd = (md) => md.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/^\s*\|?\s*:?-{2,}.*$/gm, '').replace(/\|/g, ' ').replace(/`/g, '');
+function exportHwpx(r) {
+  const bodyMd = r.final || r.md;
+  download(fname(r.topic, '.hwpx'), buildHwpx(r.title || r.topic, bodyMd), 'application/hwp+zip');
+}
+$('hwpRes').onclick = () => shownResult && exportHwpx(shownResult);
+$('copyRes').onclick = async () => {
+  if (!shownResult) return; const html = mdToHtml(shownResult.final), text = stripMd(shownResult.final);
+  try { await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]); }
+  catch { await navigator.clipboard?.writeText(text); }
+  $('copyRes').textContent = '복사됨 ✓'; setTimeout(() => ($('copyRes').textContent = '서식 복사'), 1500);
+};
+$('copyTxt').onclick = () => shownResult && navigator.clipboard?.writeText(stripMd(shownResult.final)).then(() => { $('copyTxt').textContent = '복사됨 ✓'; setTimeout(() => ($('copyTxt').textContent = '글자만 복사'), 1500); });
+$('dlRes').onclick = () => shownResult && download(fname(shownResult.topic, '.md'), shownResult.md, 'text/markdown');
+
+// ── 완료 알림 ──
+function chime() {
+  if (!$('sound').checked) return;
+  try { const ac = new (window.AudioContext || window.webkitAudioContext)(); [660, 880, 1320].forEach((f, i) => { const o = ac.createOscillator(), gn = ac.createGain(); o.type = 'square'; o.frequency.value = f; gn.gain.value = .04; o.connect(gn).connect(ac.destination); o.start(ac.currentTime + i * .09); o.stop(ac.currentTime + i * .09 + .08); }); } catch {}
+}
+function notifyDone(team, topic) {
+  if (!document.hidden || !('Notification' in window)) return;
+  const send = () => new Notification('AI 오피스 작업 완료', { body: `${team === 'edu' ? '교무팀' : '바이브코딩팀'}: ${topic.slice(0, 40)}` });
+  if (Notification.permission === 'granted') send(); else if (Notification.permission !== 'denied') Notification.requestPermission().then((p) => p === 'granted' && send());
+}
 
 // =====================================================================
-// 10. 현황 대시보드 (GitHub 커밋 + status.json)
+// 11. 현황 대시보드 (GitHub 커밋 + status.json)
 // =====================================================================
 const timeAgo = (iso) => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? '방금' : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.round(m / 60)}시간 전` : `${Math.round(m / 1440)}일 전`; };
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let dashData = null;
 async function loadDash() {
   const repo = $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { $('dash').innerHTML = '<span class="warn">"아이디/저장소이름" 형식으로 적어 주세요.</span>'; return; }
-  store.setL('eco_repo', repo); $('dash').textContent = '불러오는 중…';
-  const api = (p) => fetch(`https://api.github.com/repos/${repo}/${p}`).then((r) => r.ok ? r.json() : Promise.reject(r.status));
+  store.setL('eco_repo', repo); const tok = $('ghToken').value.trim(); if (tok) store.setL('eco_ghtoken', tok); else store.del('eco_ghtoken');
+  $('dash').textContent = '불러오는 중…';
+  const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
+  const api = (p) => fetch(`https://api.github.com/repos/${repo}/${p}`, { headers }).then((r) => r.ok ? r.json() : Promise.reject(r.status));
   const [c, s] = await Promise.allSettled([api('commits?per_page=6'), api('contents/status.json')]);
   let status = null;
   if (s.status === 'fulfilled') try { status = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.value.content.replace(/\n/g, '')), (ch) => ch.charCodeAt(0)))); } catch {}
   const commits = c.status === 'fulfilled' ? c.value : [];
-  dashData = { repo, status, commits, at: Date.now() };
+  dashData = { repo, status, commits };
   let h = '';
-  if (c.status === 'rejected') h += `<div class="err">저장소를 읽지 못했어요 (${c.reason}). 공개 저장소인지, 이름이 맞는지 확인해 주세요.</div>`;
+  if (c.status === 'rejected') h += `<div class="err">저장소를 읽지 못했어요 (${c.reason}). ${c.reason === 404 ? '이름이 맞는지, 비공개라면 토큰을 넣었는지' : c.reason === 401 ? '토큰이 맞는지' : '잠시 후 다시'} 확인해 주세요.</div>`;
   if (status) {
     h += `<div style="margin:6px 0"><b style="color:#fff">${esc(status.version ? 'v' + status.version + ' · ' : '')}진행률 ${Number(status.progress) || 0}%</b> <small>${status.updated ? timeAgo(status.updated) + ' 갱신' : ''}</small></div>`;
     if (status.note) h += `<div style="color:#dde;margin-bottom:6px">${esc(status.note)}</div>`;
@@ -849,22 +1029,21 @@ async function loadDash() {
       h += `<div class="task"><span class="st st-${esc(tk.state)}">${lbl[tk.state] || esc(tk.state)}</span>${esc(tk.title)} <small>${tk.owner && AGENT_DEF[tk.owner] ? '· ' + AGENT_DEF[tk.owner].name : ''}</small></div>`);
   } else if (c.status === 'fulfilled') h += '<div class="warn">status.json이 아직 없어요. 아래 안내문을 Claude Code에 붙여 넣으면 할 일과 진행률이 나타나요.</div>';
   if (commits.length) { h += '<div style="margin-top:10px;color:#fff;font-weight:700">최근 커밋</div>'; commits.forEach((cm) => h += `<div class="commit">• ${esc(cm.commit.message.split('\n')[0].slice(0, 70))} <small>${timeAgo(cm.commit.author.date)}</small></div>`); }
-  $('dash').innerHTML = h;
-  applyDash();
+  $('dash').innerHTML = h; applyDash();
 }
 function applyDash() {
-  if (!dashData || running) return;
+  if (!dashData || jobs.vibe) return;
   const { status, commits } = dashData;
-  for (const k of ['planner', 'coder', 'qa', 'reviewer']) { agents[k].state = 'idle'; }
+  for (const k of ['planner', 'coder', 'qa', 'reviewer']) { agents[k].state = 'idle'; agents[k].task = null; }
   (status?.tasks || []).filter((t) => t.state === 'doing' && agents[t.owner] && AGENT_DEF[t.owner].team === 'vibe').forEach((t) => {
-    const a = agents[t.owner]; a.state = 'working'; goTo(a, ...workSpot(t.owner)); say(a, t.title, 9000);
+    const a = agents[t.owner]; a.state = 'working'; a.task = t.title; goTo(a, ...workSpot(t.owner)); say(a, t.title, 9000);
   });
   if (commits[0]) { const c = agents.coder; if (c.state !== 'working') say(c, '커밋: ' + commits[0].commit.message.split('\n')[0], 9000); }
-  if (status && typeof status.progress === 'number') { $('pctLbl').textContent = '게임 개발 진행률'; $('topicLbl').textContent = '💻 ' + dashData.repo; setProgress(status.progress); }
+  if (status && typeof status.progress === 'number' && !jobs.edu) { $('pctLbl').textContent = '게임 개발 진행률'; $('topicLbl').textContent = '💻 ' + dashData.repo; $('pct').innerHTML = `${status.progress}<small>%</small>`; $('barFill').style.width = status.progress + '%'; const ts = status.tasks || []; $('doneLbl').textContent = `${ts.filter((t) => t.state === 'done').length}/${ts.length}`; }
   counts();
 }
 setInterval(() => { if ($('autoDash').checked && store.getL('eco_repo')) loadDash(); }, 180000);
-setInterval(() => { if (dashData && !running) applyDash(); }, 12000);
+setInterval(() => { if (dashData && !jobs.vibe) applyDash(); }, 12000);
 const CC_GUIDE = `이 저장소 루트에 status.json 파일을 만들고, 작업을 시작하거나 끝낼 때마다 갱신해서 함께 커밋해 줘.
 형식:
 {
@@ -882,39 +1061,71 @@ const CC_GUIDE = `이 저장소 루트에 status.json 파일을 만들고, 작�
 progress는 0.5 목표(배지 4개 구간 완성) 대비 전체 진행률(0~100).`;
 
 // =====================================================================
-// 11. 기록 · UI
+// 12. 화면 반영 · 대화 카드 · 기록
 // =====================================================================
+let logN = 0;
 function counts() {
   const all = Object.values(agents).filter((a) => a.key !== 'teacher'), w = all.filter((a) => a.state === 'working').length;
-  $('cWork').textContent = `■ 일하는 중 ${w}`; $('cIdle').textContent = `■ 대기 ${all.length - w}`;
+  $('cWork').textContent = `일하는 중 ${w}`; $('cIdle').textContent = `대기 ${all.length - w}`; $('workLbl').textContent = `일하는 중 ${w}명`;
+  $('agentPill').textContent = `에이전트 ${all.length}`;
 }
-function logLine(fromName, toName, text, cls = '') {
+function logLine(fromName, toName, text, cls = '', detail = '') {
   const el = document.createElement('div'); el.className = 'msg';
-  el.innerHTML = `<div class="who"><span></span>${toName ? ' → <b></b>' : ''}<span class="tm">${new Date().toTimeString().slice(0, 5)}</span></div><div class="txt ${cls}"></div>`;
+  const tm = new Date().toTimeString().slice(0, 5);
+  el.innerHTML = `<img alt=""><div class="body"><div class="who"><span></span>${toName ? ' → <b></b>' : ''}<span class="tm">${tm}</span></div><div class="txt ${cls}"></div>${detail ? '<div class="detail"></div>' : ''}</div>`;
+  el.querySelector('img').src = AVATAR[fromName] || AVATAR[AGENT_DEF.haram.name];
   el.querySelector('.who span').textContent = fromName; if (toName) el.querySelector('.who b').textContent = toName;
-  el.querySelector('.txt').textContent = text; $('logList').prepend(el);
+  el.querySelector('.txt').textContent = text;
+  if (detail) { el.querySelector('.txt').insertAdjacentHTML('beforeend', '<span class="more">▾ 내용 보기</span>'); el.querySelector('.detail').innerHTML = mdToHtml(detail); el.querySelector('.txt').onclick = () => el.classList.toggle('open'); }
+  $('logList').appendChild(el); $('logWrap').scrollTop = 1e6;
+  $('logCount').textContent = ++logN; $('lastTime').textContent = tm; $('lastText').textContent = `${fromName}: ${text.slice(0, 22)}${text.length > 22 ? '…' : ''}`;
+  while ($('logList').children.length > 60) $('logList').firstChild.remove();
 }
-function refreshMode() { $('mode').innerHTML = getKey() ? `<span class="badge" style="background:#c8ff2e">${esc(getModel())}</span>` : '<span class="badge">키 없음 · 시연만</span>'; }
+function refreshMode() { $('mode').innerHTML = getKey() ? '' : '<span class="badge">키 없음 · 시연만</span>'; }
 
-function loadHist() { try { return JSON.parse(store.getL('eco_hist2') || '[]'); } catch { return []; } }
-function saveHistory(r) { const h = loadHist(); h.unshift({ team: r.team, topic: r.topic, md: r.md, at: new Date().toLocaleString('ko-KR') }); store.setL('eco_hist2', JSON.stringify(h.slice(0, 30))); renderHist(); }
-function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
-const fname = (t) => t.replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 40) + '.md';
+function loadHist() { try { return JSON.parse(store.getL('eco_hist3') || store.getL('eco_hist2') || '[]'); } catch { return []; } }
+function saveHist(h) { store.setL('eco_hist3', JSON.stringify(h.slice(0, 50))); renderHist(); }
+function saveHistory(r) { const h = loadHist(); h.unshift({ team: r.team, topic: r.topic, title: r.title, final: r.final, md: r.md, at: r.at }); saveHist(h); }
 function renderHist() {
   const list = $('histList'), h = loadHist(); list.innerHTML = h.length ? '' : '<div class="note">아직 기록이 없어요.</div>';
   h.forEach((it, i) => {
     const d = document.createElement('div'); d.className = 'hist';
-    d.innerHTML = `<div><span class="tag t-${it.team}">${it.team === 'edu' ? '교무팀' : '바이브코딩팀'}</span><b></b></div><small></small><div><button class="mini">보기</button><button class="ghost mini">.md 받기</button><button class="ghost mini">복사</button><button class="danger mini">삭제</button></div>`;
+    d.innerHTML = `<div><span class="tag t-${it.team}">${it.team === 'edu' ? '교무팀' : '바이브코딩팀'}</span><b></b></div><small></small><div><button class="mini">보기</button><button class="ghost mini">한글</button><button class="ghost mini">.md</button><button class="danger mini">삭제</button></div>`;
     d.querySelector('b').textContent = it.topic; d.querySelector('small').textContent = it.at;
-    const [view, dl, cp, del] = d.querySelectorAll('button');
-    view.onclick = () => { lastResult = it; showResult(it.md); showTab('work'); };
-    dl.onclick = () => download(fname(it.topic), it.md);
-    cp.onclick = () => navigator.clipboard?.writeText(it.md).then(() => (cp.textContent = '복사됨'));
-    del.onclick = () => { const all = loadHist(); all.splice(i, 1); store.setL('eco_hist2', JSON.stringify(all)); renderHist(); };
+    const [view, hw, md, del] = d.querySelectorAll('button'), r = { ...it, final: it.final || it.md };
+    view.onclick = () => showResult(r);
+    hw.onclick = () => exportHwpx(r);
+    md.onclick = () => download(fname(it.topic, '.md'), it.md, 'text/markdown');
+    del.onclick = () => { const all = loadHist(); all.splice(i, 1); saveHist(all); };
     list.appendChild(d);
   });
 }
+$('expHist').onclick = () => download(`AI오피스_기록백업_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'ai-office', v: 1, hist: loadHist(), ctx: { edu: store.getL('eco_ctx_edu'), vibe: store.getL('eco_ctx_vibe') } }, null, 1), 'application/json');
+$('impHist').onclick = () => $('impFile').click();
+$('impFile').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { const d = JSON.parse(await f.text()); if (d.app !== 'ai-office') throw 0;
+    const cur = loadHist(), seen = new Set(cur.map((x) => x.at + x.topic)); const merged = [...cur, ...(d.hist || []).filter((x) => !seen.has(x.at + x.topic))];
+    saveHist(merged); if (d.ctx?.edu && confirm('백업의 학교 맥락도 불러올까요?')) store.setL('eco_ctx_edu', d.ctx.edu); if (d.ctx?.vibe && confirm('백업의 게임 맥락도 불러올까요?')) store.setL('eco_ctx_vibe', d.ctx.vibe);
+    alert(`기록 ${merged.length - cur.length}개를 불러왔어요.`); showCtx(ctxTeam);
+  } catch { alert('AI 오피스 백업 파일이 아니에요.'); }
+  e.target.value = '';
+};
 
+// 캐릭터 카드
+function showAgentCard(a, mx, my) {
+  const card = $('card'); if (!a) { card.style.display = 'none'; return; }
+  const st = a.state === 'working' ? `🟢 일하는 중${a.task ? ': ' + a.task.slice(0, 30) : ''}` : '🟠 대기 중';
+  $('cardBody').innerHTML = `<img src="${AVATAR[a.name]}"><b></b><div class="role"></div><div style="margin-top:4px">${esc(st)}</div><div class="role">${a.team === 'edu' ? '🏫 교무팀' : '💻 바이브코딩팀'}${a.doneCount ? ` · 오늘 ${a.doneCount}건 처리` : ''}</div>${a.lastOut ? '<div class="last"></div>' : ''}`;
+  $('cardBody').querySelector('b').textContent = a.name; $('cardBody').querySelector('.role').textContent = a.title || '';
+  if (a.lastOut) $('cardBody').querySelector('.last').innerHTML = '<small style="color:#9aa">최근 결과</small>' + mdToHtml(a.lastOut.slice(0, 600));
+  card.style.display = 'block'; card.style.left = Math.min(innerWidth - 270, mx + 12) + 'px'; card.style.top = Math.min(innerHeight - card.offsetHeight - 10, my - 20) + 'px';
+}
+$('cardX').onclick = () => ($('card').style.display = 'none');
+
+// =====================================================================
+// 13. UI 연결
+// =====================================================================
 function showTab(v) { document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === v)); document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v)); }
 document.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.v)));
 function setTeam(team) {
@@ -922,12 +1133,16 @@ function setTeam(team) {
   document.querySelectorAll('[data-team]').forEach((b) => b.classList.toggle('on', b.dataset.team === team));
   $('eduOpts').style.display = team === 'edu' ? '' : 'none'; $('vibeOpts').style.display = team === 'vibe' ? '' : 'none';
   $('topic').placeholder = team === 'edu' ? '예: 다음 주 금요일 현장체험학습(거제 해양생태관) 학부모 안내 문자 써 줘' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)';
-  $('teamNote').innerHTML = team === 'edu' ? '🔒 학생 이름은 <b>학생A</b>처럼 바꿔서 적어 주세요. 요청은 Google Gemini로 전송돼요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.';
+  const n = getRoster().length;
+  $('teamNote').innerHTML = team === 'edu' ? (n ? `🔒 학생 명단 ${n}명을 가려서 보내요. 결과는 실명으로 돌려 보여 줘요.` : '🔒 [맥락 → 학생 명단]에 우리 반 이름을 넣어 두면, 보내기 전에 자동으로 학생A·학생B로 가려요.') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
+  syncButtons();
+  const r = lastResult[team]; if (r) { shownResult = r; $('result').innerHTML = mdToHtml(r.final); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 결과 · ${r.topic.slice(0, 30)}`; }
+  else { $('result').classList.remove('show'); $('resultBtns').style.display = 'none'; $('resTitle').style.display = 'none'; }
 }
 document.querySelectorAll('[data-team]').forEach((b) => (b.onclick = () => setTeam(b.dataset.team)));
-$('eduType').innerHTML = '<option value="auto">업무 자동 분류 (하람이 배정)</option>' + EDU_TYPES.map((t) => `<option value="${t.id}">${t.label} — ${AGENT_DEF[t.lead].name}</option>`).join('');
+$('eduType').innerHTML = '<option value="auto">업무 자동 분류 (비서가 배정)</option>' + EDU_TYPES.map((t) => `<option value="${t.id}">${t.label} — ${AGENT_DEF[t.lead].name}</option>`).join('');
 
-// 키
+// API 키
 $('keyIn').value = getKey(); $('modelIn').value = getModel(); $('remember').checked = !!store.getL('eco_key');
 $('eye').onclick = () => { const p = $('keyIn').type === 'password'; $('keyIn').type = p ? 'text' : 'password'; $('eye').textContent = p ? '숨김' : '보기'; };
 $('saveKey').onclick = () => {
@@ -936,11 +1151,6 @@ $('saveKey').onclick = () => {
   $('keyStatus').innerHTML = `<span class="ok">저장됐어요 (${$('remember').checked ? '이 기기에 계속 보관' : '탭 닫으면 삭제'}).</span>`; refreshMode();
 };
 $('delKey').onclick = () => { store.del('eco_key'); $('keyIn').value = ''; $('keyStatus').innerHTML = '<span class="ok">키를 지웠어요.</span>'; refreshMode(); };
-async function fetchModels() {
-  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': getKey() } });
-  if (!r.ok) throw new Error(r.status);
-  return ((await r.json()).models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent')).map((m) => m.name.replace('models/', ''));
-}
 $('listModels').onclick = async () => {
   $('saveKey').click(); if (!getKey()) return;
   try { const ms = await fetchModels(); $('modelList').innerHTML = ms.map((m) => `<option value="${esc(m)}">`).join('');
@@ -949,23 +1159,29 @@ $('listModels').onclick = async () => {
 };
 $('testKey').onclick = async () => {
   $('saveKey').click(); if (!getKey()) return; $('keyStatus').textContent = '실제로 짧게 호출해 보는 중…';
-  try { const out = await callGemini('haram', '"연결 확인"이라고만 답하세요.'); $('keyStatus').innerHTML = `<span class="ok">✅ 연결 성공! (${esc(getModel())}) 응답: ${esc(out.slice(0, 40))}</span>`; }
+  try { const out = await callGemini('haram', '"연결 확인"이라고만 답하세요.'); $('keyStatus').innerHTML = `<span class="ok">✅ 연결 성공! (${esc(getModel())}) 응답: ${esc(out.slice(0, 40))}</span><br><small>오늘 이 브라우저에서 부른 횟수: ${callsToday}회</small>`; }
   catch (e) { $('keyStatus').innerHTML = `<span class="err">❌ ${esc(e.message)}</span><br>[목록 불러오기]로 쓸 수 있는 모델을 골라 보세요.`; }
 };
 
-// 맥락
+// 맥락 · 명단
 let ctxTeam = 'edu';
 function showCtx(team) {
   ctxTeam = team; document.querySelectorAll('[data-ctx]').forEach((b) => b.classList.toggle('on', b.dataset.ctx === team));
-  $('ctxBox').value = getCtx(team); $('ctxStatus').textContent = '';
-  $('ctxHelp').textContent = team === 'edu' ? '교무팀 5명이 이 내용을 읽고 일해요. 학년·과목·문체를 채워 주세요 (학생 실명은 넣지 마세요).' : '바이브코딩팀 4명이 이 내용을 읽고 일해요.';
+  const roster = team === 'roster';
+  $('ctxBox').style.display = roster ? 'none' : ''; $('rosterArea').style.display = roster ? '' : 'none'; $('resetCtx').style.display = roster ? 'none' : '';
+  if (roster) { $('rosterBox').value = store.getL('eco_roster') || ''; $('rosterGiven').checked = store.getL('eco_roster_given') !== '0'; $('ctxHelp').textContent = '우리 반 학생 이름 (실명은 Google로 보내지 않아요)'; }
+  else { $('ctxBox').value = getCtx(team); $('ctxHelp').textContent = team === 'edu' ? '교무팀 5명이 이 내용을 읽고 일해요. 학년·과목·문체를 채워 주세요 (학생 실명은 넣지 마세요).' : '바이브코딩팀 4명이 이 내용을 읽고 일해요.'; }
+  $('ctxStatus').textContent = '';
 }
 document.querySelectorAll('[data-ctx]').forEach((b) => (b.onclick = () => showCtx(b.dataset.ctx)));
-$('saveCtx').onclick = () => { store.setL('eco_ctx_' + ctxTeam, $('ctxBox').value); $('ctxStatus').innerHTML = '<span class="ok">저장됐어요. 다음 작업부터 반영돼요.</span>'; };
+$('saveCtx').onclick = () => {
+  if (ctxTeam === 'roster') { store.setL('eco_roster', $('rosterBox').value); store.setL('eco_roster_given', $('rosterGiven').checked ? '1' : '0'); $('ctxStatus').innerHTML = `<span class="ok">명단 ${getRoster().length}명 저장했어요 (이 브라우저에만).</span>`; setTeam(currentTeam); }
+  else { store.setL('eco_ctx_' + ctxTeam, $('ctxBox').value); $('ctxStatus').innerHTML = '<span class="ok">저장됐어요. 다음 작업부터 반영돼요.</span>'; }
+};
 $('resetCtx').onclick = () => { $('ctxBox').value = DEFAULT_CTX[ctxTeam]; };
 
 // 현황
-$('repoIn').value = store.getL('eco_repo') || '';
+$('repoIn').value = store.getL('eco_repo') || ''; $('ghToken').value = store.getL('eco_ghtoken') || '';
 $('loadRepo').onclick = loadDash;
 $('copyCC').onclick = () => navigator.clipboard?.writeText(CC_GUIDE).then(() => ($('copyCC').textContent = '✅ 복사됐어요! Claude Code에 붙여 넣으세요'));
 
@@ -973,40 +1189,12 @@ $('copyCC').onclick = () => navigator.clipboard?.writeText(CC_GUIDE).then(() => 
 $('go').onclick = () => runJob(false);
 $('demo').onclick = () => runJob(true);
 $('topic').onkeydown = (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runJob(false); };
-$('copyRes').onclick = () => lastResult && navigator.clipboard?.writeText(lastResult.final || lastResult.md).then(() => ($('copyRes').textContent = '복사됨'));
-$('dlRes').onclick = () => lastResult && download(fname(lastResult.topic), lastResult.md);
+$('sound').checked = store.getL('eco_sound') !== '0'; $('sound').onchange = () => store.setL('eco_sound', $('sound').checked ? '1' : '0');
 
-// =====================================================================
-// 12. 참고 화면 구성에 맞춘 UI
-// =====================================================================
-let doneJobs = 0, logN = 0;
-function setProgress(v) {
-  $('pct').innerHTML = `${Math.round(v)}<small>%</small>`; $('barFill').style.width = v + '%';
-  $('doneLbl').textContent = `${doneSteps}/${totalSteps}`;
-  if (v >= 100 && running) { doneJobs++; $('cDone').textContent = `완료 ${doneJobs}`; }
-}
-function counts() {
-  const all = Object.values(agents).filter((a) => a.key !== 'teacher'), w = all.filter((a) => a.state === 'working').length;
-  $('cWork').textContent = `일하는 중 ${w}`; $('cIdle').textContent = `대기 ${all.length - w}`; $('workLbl').textContent = `일하는 중 ${w}명`;
-  $('agentPill').textContent = `에이전트 ${all.length}`;
-}
-function logLine(fromName, toName, text, cls = '') {
-  const el = document.createElement('div'); el.className = 'msg';
-  const tm = new Date().toTimeString().slice(0, 5);
-  el.innerHTML = `<img alt=""><div class="body"><div class="who"><span></span>${toName ? ' → <b></b>' : ''}<span class="tm">${tm}</span></div><div class="txt ${cls}"></div></div>`;
-  el.querySelector('img').src = AVATAR[fromName] || AVATAR['업무 비서'];
-  el.querySelector('.who span').textContent = fromName; if (toName) el.querySelector('.who b').textContent = toName;
-  el.querySelector('.txt').textContent = text;
-  $('logList').appendChild(el); $('logWrap').scrollTop = 1e6;
-  $('logCount').textContent = ++logN; $('lastTime').textContent = tm; $('lastText').textContent = `${fromName}: ${text.slice(0, 22)}${text.length > 22 ? '…' : ''}`;
-}
+// 화면 구성
 $('toggleLog').onclick = () => { const c = $('logWrap').classList.toggle('closed'); $('toggleTxt').textContent = c ? '펼치기' : '접기'; };
 $('openCtrl').onclick = () => { const h = $('ctrl').classList.toggle('hide'); $('openCtrl').textContent = h ? '📝 작업 요청' : '✕ 닫기'; };
 const tick = () => { $('clock').textContent = new Date().toTimeString().slice(0, 5); }; tick(); setInterval(tick, 10000);
-const _showResult = showResult;
-showResult = function (text) { _showResult(text); $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work'); };
-const _refreshMode = refreshMode;
-refreshMode = function () { $('mode').innerHTML = getKey() ? '' : '<span class="badge">키 없음 · 시연만</span>'; };
 
 setTeam('edu'); showCtx('edu'); refreshMode(); renderHist(); counts();
 if (store.getL('eco_model') === 'gemini-2.5-flash') store.setL('eco_model', DEFAULT_MODEL), $('modelIn').value = DEFAULT_MODEL;
