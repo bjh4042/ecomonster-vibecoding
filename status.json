@@ -1,0 +1,12 @@
+{
+  "updated": "2026-11-12T09:40:00+09:00",
+  "version": "1.0",
+  "progress": 70,
+  "note": "AI 오피스: 바이브코딩팀 + 교무팀 개설",
+  "tasks": [
+    { "title": "교무팀 5명 합류 (AI 교무실 캐릭터)", "state": "done", "owner": "planner" },
+    { "title": "Claude Code 현황 대시보드", "state": "doing", "owner": "coder" },
+    { "title": "모바일 화면 점검", "state": "doing", "owner": "qa" },
+    { "title": "실제 Gemini로 업무 품질 확인", "state": "todo", "owner": "reviewer" }
+  ]
+}

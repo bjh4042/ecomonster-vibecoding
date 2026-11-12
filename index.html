@@ -3,49 +3,59 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>생태몬스터 바이브코딩 부서</title>
+<title>AI 오피스 · 바이브코딩팀 & 교무팀</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #241b33; color: #eee; font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; overflow: hidden; }
-  canvas { display: block; image-rendering: pixelated; }
-  .panel { position: absolute; background: rgba(20,24,40,.88); border: 1px solid #3b4466; border-radius: 12px; padding: 14px; }
+  canvas { display: block; }
+  .panel { position: absolute; background: rgba(20,24,40,.9); border: 1px solid #3b4466; border-radius: 12px; padding: 14px; }
   #hud { top: 16px; left: 16px; width: 300px; }
   #hud h1 { margin: 0 0 2px; font-size: 18px; } #hud small { color: #9aa; }
   .brand { color: #c8ff2e; font-weight: 800; letter-spacing: 2px; font-size: 11px; }
   .bar { height: 14px; background: #111827; border-radius: 7px; margin: 10px 0 6px; overflow: hidden; }
   .bar > div { height: 100%; width: 0; background: repeating-linear-gradient(90deg,#c8ff2e 0 18px,#a6d61f 18px 22px); transition: width .6s; }
-  .pct { font-size: 32px; font-weight: 900; color: #c8ff2e; float: right; margin-top: -4px; }
+  .pct { font-size: 30px; font-weight: 900; color: #c8ff2e; float: right; margin-top: -4px; }
   .chips span { display: inline-block; margin-right: 10px; font-size: 12px; }
-  #ctrl { top: 16px; right: 16px; width: 340px; }
-  #ctrl textarea { resize: vertical; font-family: inherit; width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #3b4466; background: #0f1424; color: #fff; }
-  #ctrl input { width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #3b4466; background: #0f1424; color: #fff; }
-  #ctrl button { margin-top: 8px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: #c8ff2e; color: #111; font-weight: 800; cursor: pointer; }
-  #ctrl button:disabled { opacity: .5; cursor: default; }
-  #result { margin-top: 10px; max-height: 52vh; overflow: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.5; color: #dde; }
-  #log { bottom: 16px; left: 16px; width: 330px; max-height: 40vh; overflow: auto; }
+  #ctrl { top: 16px; right: 16px; width: 360px; max-height: calc(100vh - 32px); overflow: auto; }
+  textarea, input, select { width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #3b4466; background: #0f1424; color: #fff; font-family: inherit; font-size: 14px; }
+  textarea { resize: vertical; }
+  button { padding: 10px; border: 0; border-radius: 8px; background: #c8ff2e; color: #111; font-weight: 800; cursor: pointer; font-family: inherit; }
+  button:disabled { opacity: .5; cursor: default; }
+  .wide { width: 100%; margin-top: 8px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tabs button { flex: 1; padding: 7px 2px; background: #1d2440; color: #ccd; border: 1px solid #3b4466; font-size: 13px; }
+  .tabs button.on { background: #c8ff2e; color: #111; }
+  .seg { display: flex; gap: 6px; margin-bottom: 10px; }
+  .seg button { flex: 1; background: #1d2440; color: #ccd; border: 1px solid #3b4466; }
+  .seg button.on { background: #fff; color: #111; }
+  .view { display: none; } .view.on { display: block; }
+  label { display: block; font-size: 12px; color: #aab; margin: 10px 0 4px; }
+  label.chk { display: flex; gap: 6px; align-items: center; } label.chk input { width: auto; }
+  .row { display: flex; gap: 6px; } .row > * { flex: 1; } .row > .fit { flex: 0 0 auto; }
+  .ghost { background: #2a3352; color: #eee; }
+  .danger { background: #ff6b6b; color: #111; }
+  .note { font-size: 12px; color: #9aa; line-height: 1.55; margin-top: 8px; }
+  .ok { color: #c8ff2e; } .warn { color: #ffb020; } .err { color: #ff7b7b; }
+  #result { margin-top: 10px; white-space: pre-wrap; font-size: 13px; line-height: 1.55; color: #dde; background: #0f1424; border-radius: 8px; padding: 10px; display: none; max-height: 45vh; overflow: auto; }
+  #result.show { display: block; }
+  .ctxBox { min-height: 200px; font-size: 12px; }
+  .hist { border-top: 1px solid #333b5a; padding: 8px 0; font-size: 13px; }
+  .hist button, .mini { padding: 4px 10px; margin: 4px 6px 0 0; font-size: 12px; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 9px; margin-right: 6px; color: #111; font-weight: 700; }
+  .t-edu { background: #7bd389; } .t-vibe { background: #4fc3f7; }
+  #log { bottom: 16px; left: 16px; width: 330px; max-height: 38vh; overflow: auto; }
   .msg { margin-bottom: 10px; } .msg .who { font-size: 12px; font-weight: 700; } .msg .who b { color: #c8ff2e; }
   .msg .txt { background: #f4f4f4; color: #111; border-radius: 10px; padding: 7px 10px; margin-top: 4px; font-size: 13px; }
+  .msg .txt.err { background: #3a1f28; color: #ffb3b3; }
   .msg .tm { float: right; color: #889; font-size: 11px; }
-  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #ff9f43; color: #111; font-weight: 700; margin-left: 6px; }
-  .err { color: #ff7b7b; }
-
-  .tabs { display:flex; gap:6px; margin-bottom:10px; }
-  #ctrl .tabs button { flex:1; margin:0; padding:7px; background:#1d2440; color:#ccd; font-weight:700; border:1px solid #3b4466; }
-  #ctrl .tabs button.on { background:#c8ff2e; color:#111; }
-  .view { display:none; } .view.on { display:block; }
-  label { display:block; font-size:12px; color:#aab; margin:10px 0 4px; }
-  .row { display:flex; gap:6px; } .row button { margin-top:0 !important; }
-  #ctrl .tabs button { margin-top:0; }
-  .ghost { background:#2a3352 !important; color:#eee !important; }
-  .danger { background:#ff6b6b !important; color:#111 !important; }
-  .note { font-size:12px; color:#9aa; line-height:1.5; margin-top:8px; }
-  .ok { color:#c8ff2e; } .warn { color:#ffb020; }
-  #ctxBox { min-height: 260px; font-size:12px; }
-  .hist { border-top:1px solid #333b5a; padding:8px 0; font-size:13px; }
-  .hist button { width:auto !important; padding:4px 10px !important; margin:4px 6px 0 0 !important; font-size:12px; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #ff9f43; color: #111; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+  .task { font-size: 13px; padding: 5px 0; border-bottom: 1px dashed #333b5a; }
+  .st { display: inline-block; width: 46px; font-size: 11px; font-weight: 700; }
+  .st-doing { color: #c8ff2e; } .st-todo { color: #ffb020; } .st-done { color: #7aa; }
+  .commit { font-size: 12px; padding: 4px 0; color: #ccd; } .commit small { color: #889; }
   @media (max-width: 820px) {
-    #hud { right: 16px; width: auto; padding: 10px; } #hud h1 { font-size: 15px; } .pct { font-size: 22px; }
-    #ctrl { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 48vh; overflow: auto; }
+    #hud { right: 12px; left: 12px; top: 12px; width: auto; padding: 10px; } #hud h1 { font-size: 15px; } .pct { font-size: 22px; }
+    #ctrl { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 50vh; }
     #log { display: none; }
   }
 </style>
@@ -54,178 +64,267 @@
 <canvas id="c"></canvas>
 
 <div id="hud" class="panel">
-  <div class="brand">ECOMONSTER STUDIO</div>
-  <h1>바이브코딩 부서 <span id="mode"></span></h1>
+  <div class="brand">AI OFFICE</div>
+  <h1>바이브코딩팀 · 교무팀 <span id="mode"></span></h1>
   <small id="topicLbl">대기 중</small>
-  <div style="margin-top:10px"><small>전체 공정률</small><span class="pct" id="pct">0%</span></div>
+  <div style="margin-top:10px"><small id="pctLbl">작업 공정률</small><span class="pct" id="pct">0%</span></div>
   <div class="bar"><div id="barFill"></div></div>
-  <div class="chips"><span id="cWork">■ 일하는 중 0</span><span id="cIdle">■ 대기 4</span></div>
+  <div class="chips"><span id="cWork" style="color:#c8ff2e">■ 일하는 중 0</span><span id="cIdle" style="color:#ffb020">■ 대기 0</span></div>
 </div>
 
 <div id="ctrl" class="panel">
   <div class="tabs">
-    <button data-v="work" class="on">작업</button><button data-v="key">API 키</button><button data-v="ctx">맥락</button><button data-v="hist">기록</button>
+    <button data-v="work" class="on">작업</button><button data-v="dash">현황</button><button data-v="key">API 키</button><button data-v="ctx">맥락</button><button data-v="hist">기록</button>
   </div>
 
+  <!-- 작업 -->
   <div class="view on" id="v-work">
-    <small>개발 요청을 적으면 기획 → 개발 → QA → 리뷰 → 수정 순서로 처리해요</small>
-    <textarea id="topic" rows="3" placeholder="예: 배틀 화면 HP바가 줄어드는 애니메이션 추가 (원작처럼 초록→노랑→빨강)"></textarea>
-    <button id="go">작업 시작 (Ctrl+Enter)</button>
+    <div class="seg"><button data-team="edu" class="on">🏫 교무팀</button><button data-team="vibe">💻 바이브코딩팀</button></div>
+    <div id="eduOpts">
+      <div class="row">
+        <select id="eduType"></select>
+        <select id="eduMode"><option value="std">꼼꼼하게 (초안→검토→수정)</option><option value="quick">빠르게 (담당자만)</option></select>
+      </div>
+    </div>
+    <div id="vibeOpts" style="display:none"><div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + Claude Code에 넘길 작업 지시문</div></div>
+    <label>요청 내용</label>
+    <textarea id="topic" rows="4"></textarea>
+    <label class="chk"><input type="checkbox" id="mask" checked> 전화번호·주민번호 자동 가리기</label>
+    <div class="row" style="margin-top:8px"><button id="go">작업 시작</button><button id="demo" class="ghost fit">시연 보기</button></div>
+    <div class="note" id="teamNote"></div>
     <div id="result"></div>
+    <div class="row" id="resultBtns" style="display:none"><button class="ghost mini" id="copyRes">복사</button><button class="ghost mini" id="dlRes">.md 받기</button></div>
   </div>
 
+  <!-- 현황 -->
+  <div class="view" id="v-dash">
+    <small>게임 저장소의 Claude Code 작업 현황을 사무실에 띄워요 (공개 저장소)</small>
+    <label>게임 저장소 (아이디/저장소이름)</label>
+    <div class="row"><input id="repoIn" placeholder="bjh4042/게임저장소" /><button id="loadRepo" class="fit">불러오기</button></div>
+    <label class="chk"><input type="checkbox" id="autoDash" checked> 3분마다 자동 새로고침</label>
+    <div id="dash" class="note"></div>
+    <button id="copyCC" class="ghost wide">📋 Claude Code에 붙여넣을 안내문 복사</button>
+    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 여기와 사무실 캐릭터에 그대로 나타나요. 커밋 기록은 안내문 없이도 보여요.</div>
+  </div>
+
+  <!-- API 키 -->
   <div class="view" id="v-key">
     <label>Gemini API 키</label>
-    <div class="row"><input id="keyIn" type="password" autocomplete="off" placeholder="AIza..." /><button id="eye" class="ghost" style="width:52px">보기</button></div>
-    <label>모델 이름</label>
-    <input id="modelIn" placeholder="gemini-2.5-flash" />
-    <label><input type="checkbox" id="remember" style="width:auto"> 이 기기에 저장 (체크 안 하면 탭을 닫을 때 지워짐)</label>
-    <div class="row"><button id="saveKey">저장</button><button id="testKey" class="ghost">연결 테스트</button><button id="delKey" class="danger">삭제</button></div>
+    <div class="row"><input id="keyIn" type="password" autocomplete="off" placeholder="AIza..." /><button id="eye" class="ghost fit">보기</button></div>
+    <label>모델</label>
+    <div class="row"><input id="modelIn" list="modelList" placeholder="gemini-3.8-flash" /><button id="listModels" class="ghost fit">목록 불러오기</button></div>
+    <datalist id="modelList"></datalist>
+    <label class="chk"><input type="checkbox" id="remember"> 이 기기에 저장 (끄면 탭을 닫을 때 지워짐)</label>
+    <div class="row" style="margin-top:8px"><button id="saveKey">저장</button><button id="testKey" class="ghost">연결 테스트</button><button id="delKey" class="danger">삭제</button></div>
     <div id="keyStatus" class="note"></div>
-    <div class="note">🔒 키는 <b>이 브라우저에만</b> 저장되고, Google 서버로만 직접 전송돼요. 이 사이트의 코드나 GitHub에는 들어가지 않아요.<br>
-    공용 PC에서는 "이 기기에 저장"을 끄고, 다 쓰면 [삭제]를 누르세요.</div>
+    <div class="note">🔒 키는 <b>이 브라우저에만</b> 저장되고 Google 서버로만 직접 전송돼요. 사이트 코드나 GitHub에는 들어가지 않아요.<br>공용 PC에서는 "이 기기에 저장"을 끄고, 다 쓰면 [삭제]를 누르세요.</div>
   </div>
 
+  <!-- 맥락 -->
   <div class="view" id="v-ctx">
-    <small>모든 에이전트가 이 내용을 읽고 일해요. 폴더 구조와 규칙을 채워 주세요.</small>
-    <textarea id="ctxBox"></textarea>
-    <div class="row"><button id="saveCtx">맥락 저장</button><button id="resetCtx" class="ghost">기본값으로</button></div>
+    <div class="seg"><button data-ctx="edu" class="on">🏫 학교 맥락</button><button data-ctx="vibe">💻 게임 맥락</button></div>
+    <small id="ctxHelp"></small>
+    <textarea id="ctxBox" class="ctxBox"></textarea>
+    <div class="row" style="margin-top:8px"><button id="saveCtx">저장</button><button id="resetCtx" class="ghost">기본값으로</button></div>
     <div id="ctxStatus" class="note"></div>
   </div>
 
-  <div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 20개)</small><div id="histList"></div></div>
+  <!-- 기록 -->
+  <div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 30개)</small><div id="histList"></div></div>
 </div>
 
 <div id="log" class="panel"><small>대화 기록</small><div id="logList"></div></div>
 
 <script>
-// ================= 아이소메트릭 기본 =================
+// =====================================================================
+// 1. 사무실 맵
+// =====================================================================
 const cv = document.getElementById('c'), g = cv.getContext('2d');
-const TW = 44, TH = 22;            // 타일 크기
+const TW = 44, TH = 22, W = 26, H = 20;
 let OX = 0, OY = 0, S = 1;
 function resize() {
   cv.width = innerWidth; cv.height = innerHeight;
-  S = Math.min(1, innerWidth / 1050, innerHeight / 720);
   const mobile = innerWidth <= 820;
-  OX = innerWidth / 2 / S;
-  OY = mobile ? 250 / S : (innerHeight / 2) / S - 170;
-  g.imageSmoothingEnabled = false;
+  const availW = mobile ? innerWidth : innerWidth - 700;
+  S = Math.min(1, availW / 1060, (mobile ? innerHeight * 0.42 : innerHeight - 40) / 640);
+  const centerX = mobile ? innerWidth / 2 : 330 + availW / 2;
+  OX = centerX / S - (W - H) * TW / 4;
+  OY = mobile ? 210 / S : (innerHeight / S - 520) / 2 + 40;
 }
 addEventListener('resize', resize); resize();
 const iso = (x, y, z = 0) => [OX + (x - y) * TW / 2, OY + (x + y) * TH / 2 - z];
-
-function poly(pts, fill, stroke) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); if (stroke) { g.strokeStyle = stroke; g.stroke(); } }
+function poly(pts, fill) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); }
 function shade(hex, k) { const n = parseInt(hex.slice(1), 16); const f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; }
-// 직육면체 (x,y 타일 좌표, w,d 크기, h 높이px)
 function box(x, y, w, d, h, col, z = 0) {
   const a = iso(x, y, z + h), b = iso(x + w, y, z + h), c = iso(x + w, y + d, z + h), dd = iso(x, y + d, z + h);
   const b0 = iso(x + w, y, z), c0 = iso(x + w, y + d, z), d0 = iso(x, y + d, z);
-  poly([dd, c, c0, d0], shade(col, .72));
-  poly([c, b, b0, c0], shade(col, .55));
-  poly([a, b, c, dd], col);
+  poly([dd, c, c0, d0], shade(col, .72)); poly([c, b, b0, c0], shade(col, .55)); poly([a, b, c, dd], col);
+}
+function tag(text, sx, sy, fg, bg = '#1b1b2b', font = 'bold 12px sans-serif') {
+  g.font = font; const tw = g.measureText(text).width;
+  g.fillStyle = bg; g.fillRect(sx - 4, sy - 13, tw + 8, 18);
+  g.strokeStyle = fg; g.lineWidth = 2; g.strokeRect(sx - 4, sy - 13, tw + 8, 18); g.lineWidth = 1;
+  g.fillStyle = fg; g.fillText(text, sx, sy);
 }
 
-// ================= 사무실 레이아웃 =================
-const W = 22, H = 16;
-const ROOMS = {
-  plan:     { x: 0,  y: 0, w: 7,  h: 7, col: '#c9a27a', label: '기획실',   lc: '#ffb020' },
-  dev:      { x: 7,  y: 0, w: 7,  h: 7, col: '#b98e66', label: '개발실',   lc: '#4fc3f7' },
-  qa:       { x: 14, y: 0, w: 8,  h: 7, col: '#d8b48a', label: 'QA실',     lc: '#c8ff2e' },
-  review:   { x: 0,  y: 9, w: 9,  h: 7, col: '#a8784f', label: '코드 리뷰실', lc: '#ff6b6b' },
-  lounge:   { x: 11, y: 9, w: 11, h: 7, col: '#b07a4a', label: '휴게실',   lc: '#ffd166' },
-};
-const DESKS = { plan: [3, 3], dev: [10, 3], qa: [17.5, 3], review: [4, 12] };
+const ROOMS = [
+  { id: 'v_plan',   team: 'vibe', x: 0,  y: 0,  w: 6, h: 7, col: '#c9a27a', label: '기획실',      lc: '#ffb020' },
+  { id: 'v_dev',    team: 'vibe', x: 6,  y: 0,  w: 7, h: 7, col: '#b98e66', label: '개발실',      lc: '#4fc3f7' },
+  { id: 'v_qa',     team: 'vibe', x: 13, y: 0,  w: 6, h: 7, col: '#d8b48a', label: 'QA실',        lc: '#c8ff2e' },
+  { id: 'v_review', team: 'vibe', x: 19, y: 0,  w: 7, h: 7, col: '#c49a72', label: '코드 리뷰실', lc: '#ff6b6b' },
+  { id: 'lounge',   team: null,   x: 0,  y: 7,  w: 26, h: 4, col: '#a3724a', label: '휴게실',      lc: '#ffd166' },
+  { id: 'e_lesson', team: 'edu',  x: 0,  y: 11, w: 5, h: 9, col: '#d9c3a0', label: '수업연구실',  lc: '#7bd389' },
+  { id: 'e_guide',  team: 'edu',  x: 5,  y: 11, w: 5, h: 9, col: '#cdb08a', label: '생활지도실',  lc: '#ff9f6b' },
+  { id: 'e_parent', team: 'edu',  x: 10, y: 11, w: 5, h: 9, col: '#d9c3a0', label: '학부모소통실', lc: '#f78fb3' },
+  { id: 'e_admin',  team: 'edu',  x: 15, y: 11, w: 5, h: 9, col: '#cdb08a', label: '행정실',      lc: '#9fa8ff' },
+  { id: 'e_haram',  team: 'edu',  x: 20, y: 11, w: 6, h: 9, col: '#e0c9a3', label: '교무기획실',  lc: '#ffe066' },
+];
+const roomById = Object.fromEntries(ROOMS.map((r) => [r.id, r]));
+const deskPos = (roomId) => { const r = roomById[roomId]; return [r.x + r.w / 2, r.y + (r.team === 'edu' ? 4.5 : 3)]; };
 
 function drawOffice(t) {
-  // 섬(잔디 받침)
   box(-1.5, -1.5, W + 3, H + 3, 18, '#8fae4c', -18);
-  // 복도 바닥
-  for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
-    const p = [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
-    poly(p, (x + y) % 2 ? '#9c6b42' : '#a3724a');
-  }
-  // 방 바닥
-  for (const r of Object.values(ROOMS)) for (let x = r.x; x < r.x + r.w; x++) for (let y = r.y; y < r.y + r.h; y++) {
-    poly([iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)], (x + y) % 2 ? r.col : shade(r.col, .93));
-  }
+  for (const r of ROOMS) for (let x = r.x; x < r.x + r.w; x++) for (let y = r.y; y < r.y + r.h; y++)
+    poly([iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)], (x + y) % 2 ? r.col : shade(r.col, .92));
   // 뒷벽
-  for (let x = 0; x < W; x++) box(x, -0.4, 1, 0.4, 70, '#efe0c4');
-  for (let y = 0; y < H; y++) box(-0.4, y, 0.4, 1, 70, '#e6d3b3');
-  // 낮은 칸막이
-  for (let x = 0; x < W; x++) if (x !== 3 && x !== 10 && x !== 17) box(x, 7, 1, 0.3, 14, '#f0e6d6');
-  for (let y = 0; y < 7; y++) if (y !== 4) { box(7, y, 0.25, 1, 14, '#f0e6d6'); box(14, y, 0.25, 1, 14, '#f0e6d6'); }
-  // 책상 + 모니터
-  for (const [k, [x, y]] of Object.entries(DESKS)) {
-    box(x - 1, y - 0.5, 2.2, 1, 16, '#f2efe8');
-    const glow = agents[k]?.state === 'working' && Math.floor(t / 300) % 2 ? '#7cf' : '#223';
-    box(x - 0.2, y - 0.45, 0.8, 0.2, 14, glow, 16);
+  for (let x = 0; x < W; x++) box(x, -0.4, 1, 0.4, 76, x % 7 === 3 ? '#e8d6b8' : '#efe0c4');
+  for (let y = 0; y < H; y++) box(-0.4, y, 0.4, 1, 76, y >= 11 ? '#dfe8d0' : '#e6d3b3');
+  // 창문
+  for (const wx of [2, 9, 16, 22]) box(wx, -0.45, 2, 0.1, 22, '#9fd3ff', 34);
+  // 칸막이
+  const P = '#f0e6d6';
+  for (const r of ROOMS) {
+    if (!r.team) continue;
+    if (r.x > 0) for (let y = r.y; y < r.y + r.h; y++) if (y !== r.y + Math.floor(r.h / 2)) box(r.x - 0.12, y, 0.24, 1, 16, P);
+    const edgeY = r.team === 'vibe' ? 7 : 11, door = r.x + Math.floor(r.w / 2);
+    for (let x = r.x; x < r.x + r.w; x++) if (x !== door) box(x, edgeY - 0.12, 1, 0.24, 16, P);
   }
-  // 휴게실 소파, 테이블, 화분
-  box(13, 11, 3, 1, 12, '#7ed957'); box(13, 11, 3, 0.3, 22, '#68c043');
-  box(17, 12, 1.4, 1.4, 8, '#ff8a70');
-  box(20, 10, 0.8, 0.8, 10, '#8b5a2b'); box(19.8, 9.8, 1.2, 1.2, 22, '#e07b39', 10);
-  // 리뷰실 차트 보드
-  box(1, 9.1, 3, 0.2, 40, '#222');
-  [10, 22, 16, 30, 26].forEach((h, i) => box(1.3 + i * 0.5, 9.0, 0.3, 0.1, h, ['#ff6b6b', '#ffd166', '#4fc3f7', '#c8ff2e', '#b388ff'][i], 6));
+  // 책상
+  for (const a of Object.values(agents)) {
+    if (!a.room) continue;
+    const [dx, dy] = deskPos(a.room);
+    box(dx - 1.1, dy - 0.6, 2.2, 1, 16, '#f2efe8');
+    const glow = a.state === 'working' ? (Math.floor(t / 300) % 2 ? '#7cf' : '#bdf') : '#223';
+    box(dx - 0.3, dy - 0.55, 0.8, 0.2, 14, glow, 16);
+  }
+  // 휴게실 가구
+  box(3, 8, 3, 1, 12, '#7ed957'); box(3, 8, 3, 0.3, 22, '#68c043');
+  box(7.5, 8.3, 1.4, 1.4, 8, '#ff8a70');
+  box(12, 7.6, 0.9, 0.7, 40, '#3a6fd8'); box(12.1, 7.55, 0.7, 0.05, 20, '#bfe3ff', 14); // 자판기
+  box(16, 8.4, 2, 1, 10, '#2f8f5b'); // 탁구대
+  for (const [px, py] of [[1, 9.6], [24.5, 7.6], [20, 9.8]]) { box(px, py, 0.7, 0.7, 10, '#8b5a2b'); box(px - 0.2, py - 0.2, 1.1, 1.1, 22, '#e07b39', 10); }
+  // 리뷰실 차트, 교무기획실 게시판
+  box(20, 0.05, 3, 0.15, 40, '#222', 20);
+  [10, 22, 16, 30, 26].forEach((h, i) => box(20.3 + i * 0.5, 0.0, 0.3, 0.1, h, ['#ff6b6b', '#ffd166', '#4fc3f7', '#c8ff2e', '#b388ff'][i], 26));
   // 방 이름표
-  for (const r of Object.values(ROOMS)) {
-    const [sx, sy] = iso(r.x + 0.8, r.y + 0.3, 40);
-    g.font = 'bold 12px sans-serif'; const tw = g.measureText(r.label).width;
-    g.fillStyle = '#1b1b2b'; g.fillRect(sx - 4, sy - 13, tw + 8, 18);
-    g.strokeStyle = r.lc; g.lineWidth = 2; g.strokeRect(sx - 4, sy - 13, tw + 8, 18); g.lineWidth = 1;
-    g.fillStyle = r.lc; g.fillText(r.label, sx, sy);
-  }
+  for (const r of ROOMS) { const [sx, sy] = r.team === 'edu' ? iso(r.x + 0.4, r.y + 0.6, 36) : iso(r.x + 0.8, r.y + 0.3, 40); tag(r.label, sx, sy, r.lc); }
+  // 팀 간판 (왼쪽 벽)
+  let [sx, sy] = iso(-0.4, 2.2, 104); tag('💻 바이브코딩팀', sx - 60, sy, '#4fc3f7', '#10203a', 'bold 14px sans-serif');
+  [sx, sy] = iso(-0.4, 14, 104); tag('🏫 교무팀', sx - 40, sy, '#7bd389', '#10301f', 'bold 14px sans-serif');
 }
 
-// ================= 캐릭터 =================
-const COLORS = { planner: '#ffb020', coder: '#4fc3f7', qa: '#c8ff2e', reviewer: '#ff6b6b' };
-const LOUNGE_SPOTS = { planner: [14, 13], coder: [16, 13.5], qa: [18.5, 13], reviewer: [19, 14.5] };
+// =====================================================================
+// 2. 캐릭터
+// =====================================================================
+const AGENT_DEF = {
+  planner:  { team: 'vibe', name: '게임 기획', room: 'v_plan',   style: 'pixel', color: '#ffb020', hair: '#5a3b2a',
+              role: '당신은 게임 기획자입니다. 원작(포켓몬 FRLG·HGSS)의 조작감과 UI 관례를 기준으로 아이디어를 구체적으로 정리합니다.' },
+  coder:    { team: 'vibe', name: '개발자',   room: 'v_dev',    style: 'pixel', color: '#4fc3f7', hair: '#222',
+              role: '당신은 HTML5/JavaScript 웹게임 개발자입니다. 반응형(스마트폰·태블릿·PC)과 GitHub Pages 정적 배포를 전제로 구현 난이도와 방법을 현실적으로 판단합니다.' },
+  qa:       { team: 'vibe', name: 'QA 테스터', room: 'v_qa',    style: 'pixel', color: '#c8ff2e', hair: '#8a4b2a',
+              role: '당신은 게임 QA 테스터입니다. 원작 유사성, 난이도·밸런스, 모바일 터치 조작 관점에서 문제를 찾습니다.' },
+  reviewer: { team: 'vibe', name: '코드 리뷰', room: 'v_review', style: 'pixel', color: '#ff6b6b', hair: '#333',
+              role: '당신은 시니어 리뷰어입니다. 범위, 일정, 유지보수 관점에서 우선순위를 냉정하게 정합니다.' },
+  yoonseul: { team: 'edu', name: '윤슬', title: '수업·활동지·평가', room: 'e_lesson', style: 'sprite', sprite: 'yoonseul', color: '#7bd389',
+              role: '당신은 "윤슬", 초등 수업 설계 전문 교사 동료입니다. 40분 수업 흐름, 학생 활동, 교사 발문, 활동지, 평가문항과 채점 기준을 2022 개정 교육과정 취지에 맞게 구체적으로 작성합니다.' },
+  yejun:    { team: 'edu', name: '예준', title: '생활지도·상담', room: 'e_guide', style: 'sprite', sprite: 'yejun', color: '#ff9f6b',
+              role: '당신은 "예준", 초등 생활지도·학생상담 전문 교사 동료입니다. 갈등, 규칙 위반, 수업 방해, 친구 관계 문제에 대해 단계별 대응과 교사 대화 예시를 제시하고, 학교폭력 등 절차가 필요한 사안은 반드시 학교 절차와 관리자 협의를 안내합니다.' },
+  sua:      { team: 'edu', name: '수아', title: '학부모 소통·기록', room: 'e_parent', style: 'sprite', sprite: 'sua', color: '#f78fb3',
+              role: '당신은 "수아", 학부모 소통과 기록 전문 교사 동료입니다. 학부모 문자, 알림장, 가정통신문은 정중하고 따뜻하되 간결하게, 관찰·상담 기록과 평가 피드백 문장은 객관적 사실 중심으로 씁니다.' },
+  taeyun:   { team: 'edu', name: '태윤', title: '공문·행정·행사', room: 'e_admin', style: 'sprite', sprite: 'taeyun', color: '#9fa8ff',
+              role: '당신은 "태윤", 공문·행정·행사 전문 교사 동료입니다. 공문 분석, 계획서, 결과보고서, 체험학습·행사 계획을 학교 공문서 개조식 문체(□, ○, - 위계)로 작성하고, 제출 기한과 준비물을 표로 정리합니다.' },
+  haram:    { team: 'edu', name: '하람', title: '비서·업무관리', room: 'e_haram', style: 'sprite', sprite: 'haram', color: '#ffe066',
+              role: '당신은 "하람", 담임 교사의 비서 겸 업무관리 담당입니다. 할 일을 분류하고 우선순위와 마감을 정리하며, 동료 결과물의 형식·누락·일정을 최종 점검합니다.' },
+  teacher:  { team: 'edu', name: '담임(나)', room: null, style: 'sprite', sprite: 'homeroom-teacher', color: '#ffffff' },
+};
+const FRAMES = ['stand-front', 'stand-back', 'stand-left', 'stand-right', 'action-work', 'action-think', 'action-report', 'action-complete',
+  ...['front', 'back', 'left', 'right'].flatMap((d) => ['a', 'b', 'c'].map((k) => `walk-${d}-${k}`))];
+const IMG = {};
+for (const d of Object.values(AGENT_DEF)) if (d.sprite) {
+  IMG[d.sprite] = {};
+  for (const f of FRAMES) { const im = new Image(); im.src = `assets/chars/${d.sprite}/${f}.png`; IMG[d.sprite][f] = im; }
+}
 const agents = {};
-function makeAgent(key, info) {
-  const [x, y] = LOUNGE_SPOTS[key];
-  agents[key] = { key, name: info.name, x, y, tx: x, ty: y, state: 'idle', bubble: null, bubbleUntil: 0, queue: [] };
+const rnd = (a, b) => a + Math.random() * (b - a);
+const randomLounge = () => [rnd(1, 25), rnd(7.7, 10.4)];
+for (const [k, d] of Object.entries(AGENT_DEF)) {
+  const [x, y] = d.team === 'edu' ? [rnd(13, 24), rnd(8, 10.2)] : [rnd(1, 12), rnd(8, 10.2)];
+  agents[k] = { key: k, ...d, x, y, tx: x, ty: y, state: 'idle', dir: 'front', bubble: null, bubbleUntil: 0, poseUntil: 0, pose: null, queue: [], nextWander: performance.now() + rnd(2000, 8000), busy: false };
 }
-function deskOf(k) { const d = DESKS[{ planner: 'plan', coder: 'dev', qa: 'qa', reviewer: 'review' }[k]]; return [d[0] + 0.2, d[1] + 1.2]; }
+const workSpot = (k) => { const [dx, dy] = deskPos(agents[k].room); return [dx + 0.1, dy + 1.0]; };
 function goTo(a, x, y) { a.tx = x; a.ty = y; }
+function say(a, text, ms = 4500) { a.bubble = text; a.bubbleUntil = performance.now() + ms; }
 
+function drawBubble(text, sx, sy) {
+  g.font = '12px sans-serif'; const txt = text.length > 28 ? text.slice(0, 28) + '…' : text;
+  const w = g.measureText(txt).width + 16, bx = sx - w / 2, by = sy;
+  g.fillStyle = '#fff'; g.fillRect(bx, by, w, 26); g.fillRect(sx - 4, by + 26, 8, 6);
+  g.strokeStyle = '#222'; g.strokeRect(bx, by, w, 26);
+  g.fillStyle = '#111'; g.fillText(txt, bx + 8, by + 17);
+}
 function drawAgent(a, t) {
   const moving = Math.hypot(a.tx - a.x, a.ty - a.y) > 0.05;
-  const bob = moving ? Math.abs(Math.sin(t / 90)) * 3 : (a.state === 'working' ? Math.abs(Math.sin(t / 200)) * 2 : 0);
   const [sx, sy] = iso(a.x, a.y);
-  const P = 3, c = COLORS[a.key];
-  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(sx, sy, 10, 4, 0, 0, 7); g.fill();
-  const px = (cx, cy, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(sx + cx * P), Math.round(sy - bob + cy * P), w * P, h * P); };
-  px(-3, -4, 2, 4, '#334'); px(1, -4, 2, 4, '#334');           // 다리
-  px(-4, -11, 8, 7, c); px(-4, -11, 8, 1, shade(c, 1.2));       // 몸통
-  px(-3, -17, 6, 6, '#ffd9b3'); px(-3, -18, 6, 2, '#5a3b2a');   // 머리, 머리카락
-  px(-2, -15, 1, 1, '#111'); px(1, -15, 1, 1, '#111');          // 눈
-  // 이름표 + 상태 점
-  g.font = 'bold 11px sans-serif'; const label = a.name; const tw = g.measureText(label).width;
-  g.fillStyle = '#1b1b2b'; g.fillRect(sx - tw / 2 - 4, sy - 82, tw + 8, 16);
-  g.fillStyle = '#fff'; g.fillText(label, sx - tw / 2, sy - 70);
-  g.fillStyle = a.state === 'working' ? '#c8ff2e' : '#ffb020'; g.fillRect(sx - 10, sy - 62, 20, 4);
-  if (a.state === 'working') { g.fillStyle = '#fff'; g.fillText('…'.repeat(1 + Math.floor(t / 400) % 3), sx + 14, sy - 50); }
-  // 말풍선
-  if (a.bubble && t < a.bubbleUntil) {
-    g.font = '12px sans-serif'; const txt = a.bubble.length > 26 ? a.bubble.slice(0, 26) + '…' : a.bubble;
-    const w = g.measureText(txt).width + 16, bx = sx - w / 2, by = sy - 118;
-    g.fillStyle = '#fff'; g.fillRect(bx, by, w, 26); g.fillRect(sx - 4, by + 26, 8, 6);
-    g.strokeStyle = '#222'; g.strokeRect(bx, by, w, 26);
-    g.fillStyle = '#111'; g.fillText(txt, bx + 8, by + 17);
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(sx, sy, 12, 5, 0, 0, 7); g.fill();
+  let top;
+  if (a.style === 'sprite') {
+    let f;
+    if (moving) f = `walk-${a.dir}-${'abc'[Math.floor(t / 140) % 3]}`;
+    else if (a.state === 'working') f = Math.floor(t / 1500) % 3 === 2 ? 'action-think' : 'action-work';
+    else if (t < a.poseUntil) f = a.pose;
+    else f = `stand-${a.dir === 'back' ? 'front' : a.dir}`;
+    const im = IMG[a.sprite][f], size = a.key === 'teacher' ? 76 : 70;
+    if (im.complete && im.naturalWidth) { g.imageSmoothingEnabled = true; g.drawImage(im, sx - size / 2, sy - size * 0.93, size, size); }
+    top = sy - size * 0.93;
+  } else {
+    const bob = moving ? Math.abs(Math.sin(t / 90)) * 3 : (a.state === 'working' ? Math.abs(Math.sin(t / 200)) * 2 : 0);
+    const P = 3, c = a.color;
+    const px = (cx, cy, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(sx + cx * P), Math.round(sy - bob + cy * P), w * P, h * P); };
+    px(-3, -4, 2, 4, '#334'); px(1, -4, 2, 4, '#334');
+    px(-4, -11, 8, 7, c); px(-4, -11, 8, 1, shade(c, 1.2));
+    px(-3, -17, 6, 6, '#ffd9b3'); px(-3, -18, 6, 2, a.hair);
+    if (a.dir !== 'back') { px(-2, -15, 1, 1, '#111'); px(1, -15, 1, 1, '#111'); }
+    top = sy - 56;
   }
+  // 이름표 + 상태
+  const label = a.title ? `${a.name}` : a.name;
+  g.font = 'bold 11px sans-serif'; const tw = g.measureText(label).width;
+  g.fillStyle = a.key === 'teacher' ? '#c8ff2e' : '#1b1b2b'; g.fillRect(sx - tw / 2 - 4, top - 18, tw + 8, 16);
+  g.fillStyle = a.key === 'teacher' ? '#111' : '#fff'; g.fillText(label, sx - tw / 2, top - 6);
+  if (a.key !== 'teacher') { g.fillStyle = a.state === 'working' ? '#c8ff2e' : '#ffb020'; g.fillRect(sx - 10, top - 1, 20, 3); }
+  if (a.state === 'working') { g.fillStyle = '#fff'; g.font = 'bold 13px sans-serif'; g.fillText('…'.repeat(1 + Math.floor(t / 400) % 3), sx + 16, top + 14); }
+  if (a.bubble && t < a.bubbleUntil) drawBubble(a.bubble, sx, top - 52);
 }
 
-function update(dt) {
+function update(dt, t) {
   for (const a of Object.values(agents)) {
-    const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy), sp = 4 * dt;
-    if (d > sp) { a.x += dx / d * sp; a.y += dy / d * sp; } else { a.x = a.tx; a.y = a.ty; if (a.queue.length) { const [nx, ny] = a.queue.shift(); goTo(a, nx, ny); } }
+    const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy), sp = 3.2 * dt;
+    if (d > sp) {
+      a.x += dx / d * sp; a.y += dy / d * sp;
+      const scx = dx - dy, scy = dx + dy;
+      a.dir = Math.abs(scx) > Math.abs(scy) * 1.2 ? (scx > 0 ? 'right' : 'left') : (scy > 0 ? 'front' : 'back');
+    } else {
+      a.x = a.tx; a.y = a.ty;
+      if (a.queue.length) { const [nx, ny] = a.queue.shift(); goTo(a, nx, ny); }
+      else if (a.state === 'idle' && !a.busy && t > a.nextWander) { const [x, y] = randomLounge(); goTo(a, x, y); a.nextWander = t + rnd(6000, 15000); }
+      else if (a.state === 'working') a.dir = 'back';
+    }
   }
 }
-
 let last = performance.now();
 function loop(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  update(dt);
+  update(dt, t);
   g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#241b33'; g.fillRect(0, 0, cv.width, cv.height);
   g.setTransform(S, 0, 0, S, 0, 0);
   drawOffice(t);
@@ -234,8 +333,9 @@ function loop(t) {
 }
 requestAnimationFrame(loop);
 
-
-// ================= 저장소 (브라우저) =================
+// =====================================================================
+// 3. 저장소 / 설정
+// =====================================================================
 const $ = (id) => document.getElementById(id);
 const store = {
   get(k) { try { return sessionStorage.getItem(k) ?? localStorage.getItem(k); } catch { return null; } },
@@ -244,151 +344,331 @@ const store = {
   getL(k) { try { return localStorage.getItem(k); } catch { return null; } },
   setL(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
-const DEFAULT_CTX = "# 생태몬스터: 거제도 — 프로젝트 맥락\n(이 파일을 고치면 모든 에이전트가 바뀐 내용을 기준으로 일합니다. 짧고 정확하게 유지하세요.)\n\n## 현재 단계\n- 버전 0.5 클로즈베타: 배지 4개 획득 구간(S4)까지\n- 목표: 배포 + 브라우저 실플레이 검증 직전까지 완성\n- 이후 S8까지 확장 예정 (용량 증가 대비 웹앱 구조 고려)\n\n## 지향점\n- 포켓몬스터 파이어레드·리프그린·하트골드·소울실버와 최대한 유사한 인트로·조작·UI\n  (유저가 원작처럼 바로 적응할 수 있게)\n- 배경: 거제도의 실제 생태/지역\n\n## 기술 조건\n- 웹(HTML5/JavaScript), GitHub Pages로 정적 배포\n- 스마트폰·태블릿·PC 모두 지원 → 반응형 + 터치 조작 필수\n- 자료 백업: 구글 드라이브\n\n## 폴더 구조 / 코딩 규칙\n- (여기에 실제 폴더 구조, 사용하는 엔진/라이브러리, 파일 이름 규칙을 적어 두세요)\n- 예: src/battle/, src/map/, assets/sprites/, data/monsters.json\n\n## 지금 알려진 문제\n- (작업하면서 계속 추가)\n";
-const getKey = () => store.get('eco_key') || '';
-const getModel = () => store.getL('eco_model') || 'gemini-2.5-flash';
-const getCtx = () => store.getL('eco_ctx') || DEFAULT_CTX;
-
-// ================= 에이전트 =================
-const AGENTS = {
-  planner:  { name: '게임 기획', role: '당신은 게임 기획자입니다. 요청을 개발 가능한 작업 단위로 쪼개고, 완료 조건(체크리스트)을 명확히 씁니다. 원작(포켓몬 FRLG·HGSS)의 조작감과 UI 관례를 기준으로 판단합니다.' },
-  coder:    { name: '개발자',   role: '당신은 HTML5/JavaScript 웹게임 개발자입니다. 반응형(스마트폰·태블릿·PC)과 GitHub Pages 정적 배포를 전제로, 바로 붙여 넣을 수 있는 완전한 코드 블록과 파일 경로를 제시합니다.' },
-  qa:       { name: 'QA 테스터', role: '당신은 QA 테스터입니다. 코드를 읽고 버그 가능성, 모바일 터치/화면 크기 문제, 세이브 데이터 문제를 찾아 재현 절차와 함께 짧게 보고합니다.' },
-  reviewer: { name: '코드 리뷰', role: '당신은 시니어 코드 리뷰어입니다. 구조, 성능, 유지보수성 관점에서 꼭 고칠 점 3개 이내만 지적합니다.' },
+const DEFAULT_MODEL = 'gemini-3.8-flash';
+const DEFAULT_CTX = {
+  vibe: `# 생태몬스터: 거제도 — 게임 맥락
+- 현재: 0.5 클로즈베타(배지 4개 구간, S4까지), 배포와 브라우저 실플레이 검증이 목표
+- 이후 S8까지 확장 예정
+- 지향점: 포켓몬스터 파이어레드·리프그린·하트골드·소울실버와 최대한 비슷한 인트로·조작·UI
+- 배경: 거제도의 실제 생태와 지역
+- 기술: 웹(HTML5/JavaScript), GitHub Pages 배포, 스마트폰·태블릿·PC 반응형 + 터치 조작
+- 실제 개발은 Claude Code가 담당 (이 팀은 아이디어·검토용)
+- (폴더 구조, 엔진, 지금 알려진 문제를 여기에 추가)`,
+  edu: `# 학교 맥락
+- 학교급: 초등학교
+- 담당 학년/반: (예: 5학년 3반, 학생 25명)
+- 담당 과목/업무: (예: 담임, 과학 전담 아님, 정보 업무 담당)
+- 교육과정: 2022 개정 교육과정
+- 지역/학교 특색: (예: 거제, 바다 생태교육)
+- 문체: 공문·계획서는 개조식, 학부모 안내는 정중하고 따뜻한 존댓말
+- 주의: 학생 실명 대신 학생A, 학생B로 씁니다`,
 };
-for (const [k, v] of Object.entries(AGENTS)) makeAgent(k, v);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const MOCK = { planner: '작업 1) 배틀 HP바 컴포넌트 분리\n작업 2) 감소 애니메이션\n완료 조건: [ ] 초록→노랑→빨강 [ ] 모바일 끊김 없음',
-  coder: '```js\n// src/battle/hpbar.js\nexport function drawHp(ctx, ratio) { /* ... */ }\n```',
-  qa: '- 375px 폭에서 HP바 잘림\n- HP 0일 때 음수 표시', reviewer: '1) 매 프레임 DOM 접근 → 캐싱\n2) 매직 넘버 상수화' };
+const getKey = () => store.get('eco_key') || '';
+const getModel = () => store.getL('eco_model') || DEFAULT_MODEL;
+const getCtx = (team) => store.getL('eco_ctx_' + team) || DEFAULT_CTX[team];
 
+// =====================================================================
+// 4. 교무팀 업무 분류 (AI 교무실 분류 규칙 참고)
+// =====================================================================
+const EDU_TYPES = [
+  { id: 'lesson',    label: '수업 지도안·수업 설계', lead: 'yoonseul', reviewers: ['yejun', 'haram'], kw: ['지도안', '교수학습', '수업 설계', '수업안', '차시', '수업 계획', '수업 아이디어', '발문', '수업'] },
+  { id: 'worksheet', label: '활동지·평가문항',       lead: 'yoonseul', reviewers: ['haram'],          kw: ['활동지', '학습지', '워크시트', '평가', '수행평가', '단원평가', '서술형', '루브릭', '채점', '문항', '정답'] },
+  { id: 'guidance',  label: '생활지도·상담',         lead: 'yejun',    reviewers: ['sua', 'haram'],   kw: ['생활지도', '갈등', '다툼', '싸움', '욕설', '규칙', '수업 방해', '상담', '친구 관계', '따돌림', '학교폭력'] },
+  { id: 'parent',    label: '학부모 문자·알림장·가정통신문', lead: 'sua', reviewers: ['yejun', 'haram'], weight: 2, kw: ['학부모', '알림장', '가정통신문', '문자', '안내문', '하이클래스', '클래스팅', 'e알리미', '학부모님'] },
+  { id: 'record',    label: '관찰 기록·평가 피드백 문장', lead: 'sua', reviewers: ['yoonseul'], weight: 2,     kw: ['관찰', '기록', '누가기록', '피드백 문장', '행발', '행동특성', '세특', '교과 발달', '종합의견', '상담 일지'] },
+  { id: 'admin',     label: '공문·계획서·보고서·행사', lead: 'taeyun', reviewers: ['haram'],         kw: ['공문', '계획서', '보고서', '결과보고', '출장', '행사', '체험학습', '현장체험', '운동회', '학예회', '방과후', '운영 계획', '제출', '기안'] },
+  { id: 'todo',      label: '할 일 정리·우선순위',   lead: 'haram',    reviewers: [],                 kw: ['할 일', '우선순위', '마감', '일정', '정리해', '업무 정리', '이번 주', '오늘'] },
+];
+function classify(text) {
+  let best = EDU_TYPES[EDU_TYPES.length - 1], score = 0;
+  for (const t of EDU_TYPES) { const s = t.kw.reduce((n, k) => n + (text.includes(k) ? k.length : 0), 0) * (t.weight || 1); if (s > score) { score = s; best = t; } }
+  return best;
+}
+const maskPrivacy = (s) => s.replace(/01[016789][-\s]?\d{3,4}[-\s]?\d{4}/g, '[전화번호]').replace(/\d{6}[-\s]?[1-4]\d{6}/g, '[주민번호]');
+
+// =====================================================================
+// 5. Gemini 호출
+// =====================================================================
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let forceMock = false;
+const MOCK = {
+  planner: '💡 아이디어 초안\n1. 학동 몽돌해변 — 파도 소리에 반응하는 돌 몬스터\n2. 동백섬 — 겨울에만 나오는 꽃 몬스터\n3. 갯벌 — 썰물 시간에만 열리는 숨은 길',
+  coder: '1번: 하 (기존 조우 테이블에 추가)\n2번: 중 (계절 시스템 필요)\n3번: 상 (시간대별 맵 변경) → 0.5는 1·2번만 추천',
+  qa: '- 2번은 원작의 시간대 포켓몬과 비슷해 익숙함 ✅\n- 3번은 모바일에서 시간 맞추기 불편 ⚠️',
+  reviewer: '우선순위: 1번 → 2번 → 3번(S5 이후로 보류)',
+  yoonseul: '📚 [5학년 과학] 40분 수업 흐름\n도입(5분): 질문 던지기 → 전개(28분): 모둠 실험 → 정리(7분): 배움 공책',
+  yejun: '🧑‍🤝‍🧑 검토: 모둠 구성 시 갈등 가능성 있는 학생 배치 주의, 역할 카드 사용 권장',
+  sua: '💬 학부모님 안녕하세요. 내일 현장체험학습 관련 안내드립니다. 도시락과 물을 꼭 챙겨 주세요. 감사합니다.',
+  taeyun: '📄 □ 목적 ○ 운영 개요 - 일시: - 장소: □ 세부 계획 (표) □ 안전 대책',
+  haram: '🗂 오늘 할 일\n1) [긴급] 공문 회신 (15시 마감)\n2) 알림장 작성\n3) 다음 주 수업 준비',
+};
+let modelCache = null;
+async function pickFallback(current) {
+  try { modelCache = modelCache || await fetchModels(); } catch { return null; }
+  const pref = modelCache.filter((m) => m !== current && /flash/.test(m) && !/(image|tts|audio|live|embedding|preview-tts)/.test(m));
+  return pref.find((m) => /lite/.test(m)) || pref[0] || null;
+}
 async function callGemini(agentKey, prompt) {
-  const key = getKey();
-  if (!key) { await sleep(1000 + Math.random() * 1000); return '[MOCK] ' + MOCK[agentKey]; }
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}:generateContent`;
-  const body = { systemInstruction: { parts: [{ text: AGENTS[agentKey].role + '\n\n[프로젝트 맥락]\n' + getCtx() }] },
-                 contents: [{ role: 'user', parts: [{ text: prompt }] }] };
-  for (let i = 1; i <= 3; i++) {
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
-    if (r.status === 429 && i < 3) { handle({ type: 'message', from: agentKey, text: '호출 한도에 걸렸어요. 잠깐 쉬었다 할게요…' }); await sleep(15000 * i); continue; }
-    if (!r.ok) { const t = await r.text(); let m = t; try { m = JSON.parse(t).error.message; } catch {} throw new Error(`Gemini ${r.status}: ${m.slice(0, 200)}`); }
-    const j = await r.json();
-    return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim() || '(빈 응답)';
+  const key = getKey(), a = AGENT_DEF[agentKey];
+  if (forceMock || !key) { await sleep(rnd(1200, 2200)); return '[시연] ' + MOCK[agentKey]; }
+  const sysText = a.role + '\n\n[맥락]\n' + getCtx(a.team) + '\n\n답변은 한국어로, 바로 쓸 수 있는 완성형으로 작성하세요.';
+  const body = JSON.stringify({ systemInstruction: { parts: [{ text: sysText }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }] });
+  let model = getModel();
+  for (let i = 1; i <= 4; i++) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body });
+    if (r.ok) {
+      const j = await r.json();
+      return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim() || '(빈 응답)';
+    }
+    const raw = await r.text(); let msg = raw; try { msg = JSON.parse(raw).error.message; } catch {}
+    const suggested = r.status === 404 && msg.match(/models\/([\w.\-]+)/g)?.map((m) => m.slice(7)).find((m) => m !== model);
+    if (suggested && i < 4) { // 모델이 바뀌었다고 안내하면 자동으로 갈아타기
+      model = suggested; store.setL('eco_model', model); $('modelIn').value = model; refreshMode();
+      logLine('시스템', null, `모델을 ${model}(으)로 자동 변경했어요.`); continue;
+    }
+    if (r.status === 429 && i < 4) { say(agents[agentKey], '호출 한도에 걸렸어요. 잠깐 쉴게요…', 8000); await sleep(15000 * i); continue; }
+    if ((r.status === 503 || r.status === 500) && i < 4) { // 서버 혼잡 → 잠깐 뒤 재시도, 2번 실패하면 다른 모델로
+      if (i >= 2) { const alt = await pickFallback(model); if (alt) { logLine('시스템', null, `${model}이 혼잡해서 이번 호출은 ${alt}로 대신할게요.`); model = alt; continue; } }
+      say(agents[agentKey], '서버가 붐벼요. 잠깐 기다릴게요…', 6000); await sleep(4000 * i); continue;
+    }
+    throw new Error(`Gemini ${r.status}: ${msg.slice(0, 220)}`);
   }
 }
 
-let running = false;
-async function step(agentKey, prompt, { to, say, progress }) {
-  handle({ type: 'status', agent: agentKey, state: 'working' });
+// =====================================================================
+// 6. 작업 흐름
+// =====================================================================
+let running = false, totalSteps = 1, doneSteps = 0, lastResult = null;
+function setProgress(v) { $('pct').textContent = Math.round(v) + '%'; $('barFill').style.width = v + '%'; }
+async function step(agentKey, prompt, to, sayFn) {
+  const a = agents[agentKey]; a.busy = true; a.state = 'working'; a.queue = []; goTo(a, ...workSpot(agentKey)); counts();
   const out = await callGemini(agentKey, prompt);
-  handle({ type: 'status', agent: agentKey, state: 'idle' });
-  handle({ type: 'message', from: agentKey, to, text: say(out) });
-  handle({ type: 'progress', value: progress });
-  await sleep(1500);
+  a.state = 'idle'; counts();
+  const text = sayFn(out); say(a, text); logLine(a.name, to && agents[to].name, text);
+  a.pose = to ? 'action-report' : 'action-complete'; a.poseUntil = performance.now() + 2500;
+  if (to) { const [x, y] = workSpot(to); a.queue = [[x - 0.9, y + 0.5]]; }
+  setTimeout(() => { a.busy = false; }, 3000);
+  setProgress(++doneSteps / totalSteps * 100);
+  await sleep(1200);
   return out;
 }
-
-async function runJob(topic) {
-  running = true; $('go').disabled = true;
-  handle({ type: 'job', state: 'start', topic });
-  try {
-    const plan = await step('planner', `개발 요청: "${topic}"\n작업 단위(최대 5개)로 나누고, 각 작업의 완료 조건 체크리스트와 수정/추가할 파일 후보를 적으세요.`,
-      { to: 'coder', say: (o) => `작업 ${(o.match(/작업\s*\d/g) || []).length || '몇'}개로 쪼갰어요. 개발 부탁해요!`, progress: 20 });
-    const code = await step('coder', `기획:\n${plan}\n\n위 작업을 구현하세요. 파일 경로와 전체 코드 블록을 제시하세요.`,
-      { to: 'qa', say: () => '1차 구현 끝! 테스트 부탁해요.', progress: 45 });
-    const qa = await step('qa', `완료 조건:\n${plan}\n\n코드:\n${code}\n\n버그와 기기별 문제를 찾아 재현 절차와 함께 보고하세요.`,
-      { to: 'reviewer', say: (o) => `확인한 이슈 ${(o.match(/^\s*[-*\d]/gm) || []).length}건 넘길게요.`, progress: 65 });
-    const review = await step('reviewer', `코드:\n${code}\n\nQA 보고:\n${qa}\n\n꼭 고칠 점 3개 이내.`,
-      { to: 'coder', say: () => '리뷰 남겼어요. 반영해 주세요.', progress: 80 });
-    const final = await step('coder', `QA와 리뷰를 반영한 최종 코드를 작성하세요. 맨 앞에 "변경 요약"(3줄 이내)과 "적용 방법"을 쓰고, 이어서 파일별 전체 코드를 제시하세요.\n\n기획:\n${plan}\n\n1차 코드:\n${code}\n\nQA:\n${qa}\n\n리뷰:\n${review}`,
-      { to: null, say: () => '최종본 완성! 기록 탭에 저장했어요 🎉', progress: 100 });
-    const md = `# ${topic}\n\n## 최종본\n${final}\n\n---\n## 기획\n${plan}\n\n## 1차 코드\n${code}\n\n## QA 보고\n${qa}\n\n## 코드 리뷰\n${review}\n`;
-    saveHistory(topic, md);
-    $('result').textContent = final;
-  } catch (e) {
-    handle({ type: 'error', text: String(e.message || e) });
-    for (const k of Object.keys(AGENTS)) handle({ type: 'status', agent: k, state: 'idle' });
-  } finally { running = false; $('go').disabled = false; }
+function teacherAsk(leadKey, text) {
+  const t = agents.teacher; t.busy = true; const [x, y] = workSpot(leadKey);
+  goTo(t, x - 1, y + 0.8); say(t, text, 5000); setTimeout(() => { t.busy = false; }, 7000);
 }
 
-// ================= 화면 반영 =================
-function setCounts() {
-  const all = Object.values(agents), w = all.filter((a) => a.state === 'working').length;
-  $('cWork').textContent = `■ 일하는 중 ${w}`; $('cIdle').textContent = `■ 대기 ${all.length - w}`;
-  $('cWork').style.color = '#c8ff2e'; $('cIdle').style.color = '#ffb020';
+async function runVibe(topic) {
+  totalSteps = 5;
+  teacherAsk('planner', '아이디어 회의 부탁해요!');
+  const draft = await step('planner', `요청: "${topic}"\n이 요청에 대한 게임 아이디어 초안을 번호 목록으로 작성하세요. 각 항목은 이름, 한 줄 설명, 원작의 어떤 요소와 닮았는지.`, 'coder', () => '초안 나왔어요. 구현 가능성 봐 주세요!');
+  const dev = await step('coder', `아이디어 초안:\n${draft}\n\n각 아이디어의 구현 난이도(상/중/하), 웹(HTML5)에서의 구현 방법 한 줄, 0.5 범위에 넣을지 의견을 쓰세요.`, 'qa', () => '난이도 표시했어요. 검증 부탁해요!');
+  const qa = await step('qa', `초안:\n${draft}\n\n개발 의견:\n${dev}\n\n원작 유사성, 밸런스, 모바일 조작 관점의 문제점을 짧게.`, 'reviewer', (o) => `걸리는 점 ${(o.match(/^\s*[-*\d]/gm) || []).length}개 찾았어요.`);
+  const rv = await step('reviewer', `초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n우선순위 Top 3와 보류할 것, 이유를 짧게.`, 'planner', () => '우선순위 정했어요. 정리 부탁해요.');
+  const final = await step('planner', `아래 회의 내용을 최종 정리하세요.\n1) 채택안 (우선순위 순)\n2) 보류안\n3) "Claude Code에 넘길 작업 지시문" — 그대로 복사해 붙여 넣을 수 있게, 파일·기능·완료 조건 포함\n\n초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n리뷰:\n${rv}`, null, () => '회의록 완성! Claude Code용 지시문도 넣었어요 🎉');
+  return { final, md: `# [바이브코딩팀] ${topic}\n\n## 최종 정리\n${final}\n\n---\n## 기획 초안\n${draft}\n\n## 개발 의견\n${dev}\n\n## QA\n${qa}\n\n## 리뷰\n${rv}\n` };
 }
-function addLog(fromName, toName, text, cls = '') {
-  const el = document.createElement('div'); el.className = 'msg';
-  el.innerHTML = `<div class="who"></div><div class="txt ${cls}"></div>`;
-  el.querySelector('.who').innerHTML = `<span></span>${toName ? ' → <b></b>' : ''}<span class="tm">${new Date().toTimeString().slice(0, 5)}</span>`;
-  el.querySelector('.who span').textContent = fromName; if (toName) el.querySelector('.who b').textContent = toName;
-  el.querySelector('.txt').textContent = text;
-  $('logList').prepend(el);
-}
-function setProgress(v) { $('pct').textContent = v + '%'; $('barFill').style.width = v + '%'; }
-function handle(ev) {
-  const now = performance.now();
-  if (ev.type === 'job') { $('topicLbl').textContent = ev.topic; $('result').textContent = ''; setProgress(0); }
-  if (ev.type === 'status') { const a = agents[ev.agent]; a.state = ev.state; a.queue = []; if (ev.state === 'working') { const [x, y] = deskOf(ev.agent); goTo(a, x, y); } setCounts(); }
-  if (ev.type === 'message') {
-    const a = agents[ev.from]; a.bubble = ev.text; a.bubbleUntil = now + 4500;
-    const to = ev.to && agents[ev.to]; addLog(a.name, to && to.name, ev.text);
-    if (to) { const [x, y] = deskOf(ev.to); goTo(a, x - 0.8, y + 0.6); }
-    a.queue = [LOUNGE_SPOTS[ev.from]];
+
+async function runEdu(topic, type, mode) {
+  const lead = type.lead, reviewers = mode === 'quick' ? [] : type.reviewers;
+  totalSteps = 1 + reviewers.length + (reviewers.length ? 1 : 0);
+  teacherAsk(lead, '이 업무 부탁해요!');
+  if (lead !== 'haram') { const h = agents.haram; say(h, `${type.label} → ${agents[lead].name} 담당으로 배정!`, 5000); logLine('하람', agents[lead].name, `"${type.label}" 업무로 분류해서 ${agents[lead].name}님께 배정했어요.`); }
+  await sleep(1500);
+  const draft = await step(lead, `담임 선생님 요청: "${topic}"\n업무 유형: ${type.label}\n바로 사용할 수 있는 완성형 초안을 작성하세요. 필요한 정보가 빠졌다면 [ ]로 빈칸을 두고 맨 끝에 "확인 필요" 목록을 쓰세요.`,
+    reviewers[0] || null, () => reviewers.length ? '초안 완성! 검토 부탁해요.' : '완성했어요! 확인해 주세요 🎉');
+  if (!reviewers.length) return { final: draft, md: `# [교무팀·${type.label}] ${topic}\n\n${draft}\n` };
+  const reviews = [];
+  for (let i = 0; i < reviewers.length; i++) {
+    const r = reviewers[i];
+    const rv = await step(r, `동료(${agents[lead].name})가 쓴 초안을 당신의 전문 분야(${AGENT_DEF[r].title}) 관점에서 검토하세요. 꼭 고칠 점 3개 이내, 각각 "문제 → 수정 제안" 형식으로.\n\n요청: ${topic}\n\n초안:\n${draft}`,
+      reviewers[i + 1] || lead, () => i + 1 < reviewers.length ? '제 의견 남겼어요. 다음 검토 부탁해요.' : '검토 끝! 반영해 주세요.');
+    reviews.push(`### ${agents[r].name} (${AGENT_DEF[r].title})\n${rv}`);
   }
-  if (ev.type === 'progress') setProgress(ev.value);
-  if (ev.type === 'error') addLog('시스템', null, ev.text, 'err');
-}
-function refreshMode() {
-  $('mode').innerHTML = getKey() ? `<span class="badge" style="background:#c8ff2e"></span>` : '<span class="badge">MOCK · 키 없음</span>';
-  if (getKey()) $('mode').firstChild.textContent = getModel();
+  const final = await step(lead, `검토 의견을 반영해 최종본을 작성하세요. 최종본만 깔끔하게 쓰고, 맨 끝에 "반영한 점" 3줄 이내.\n\n요청: ${topic}\n\n초안:\n${draft}\n\n검토:\n${reviews.join('\n\n')}`, null, () => '최종본 완성했어요! 🎉');
+  return { final, md: `# [교무팀·${type.label}] ${topic}\n\n## 최종본\n${final}\n\n---\n## 초안\n${draft}\n\n## 검토\n${reviews.join('\n\n')}\n` };
 }
 
-// ================= 기록 =================
-function loadHist() { try { return JSON.parse(store.getL('eco_hist') || '[]'); } catch { return []; } }
-function saveHistory(topic, md) { const h = loadHist(); h.unshift({ topic, md, at: new Date().toLocaleString('ko-KR') }); store.setL('eco_hist', JSON.stringify(h.slice(0, 20))); renderHist(); }
-function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' })); a.download = name; a.click(); URL.revokeObjectURL(a.href); }
+let currentTeam = 'edu';
+async function runJob(demo) {
+  if (running) return;
+  let topic = $('topic').value.trim();
+  if (!topic && demo) topic = currentTeam === 'edu' ? '내일 현장체험학습 학부모 안내 문자 써 줘' : '거제도 지역 몬스터 아이디어 회의';
+  if (!topic) return $('topic').focus();
+  if ($('mask').checked) topic = maskPrivacy(topic);
+  running = true; forceMock = !!demo; $('go').disabled = $('demo').disabled = true; doneSteps = 0;
+  for (const a of Object.values(agents)) if (a.team === currentTeam) a.state = 'idle';
+  $('topicLbl').textContent = (currentTeam === 'edu' ? '🏫 ' : '💻 ') + topic.slice(0, 40); $('pctLbl').textContent = '작업 공정률'; setProgress(0);
+  $('result').classList.remove('show'); $('resultBtns').style.display = 'none';
+  try {
+    let res;
+    if (currentTeam === 'vibe') res = await runVibe(topic);
+    else { const sel = $('eduType').value; res = await runEdu(topic, sel === 'auto' ? classify(topic) : EDU_TYPES.find((t) => t.id === sel), $('eduMode').value); }
+    lastResult = { team: currentTeam, topic, ...res };
+    showResult(res.final); if (!demo) saveHistory(lastResult);
+  } catch (e) {
+    logLine('시스템', null, String(e.message || e), 'err');
+    for (const a of Object.values(agents)) { a.state = 'idle'; a.busy = false; }
+  } finally { running = false; forceMock = false; $('go').disabled = $('demo').disabled = false; counts(); }
+}
+function showResult(text) { $('result').textContent = text; $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; }
+
+// =====================================================================
+// 7. 현황 대시보드 (GitHub 커밋 + status.json)
+// =====================================================================
+const timeAgo = (iso) => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? '방금' : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.round(m / 60)}시간 전` : `${Math.round(m / 1440)}일 전`; };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let dashData = null;
+async function loadDash() {
+  const repo = $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { $('dash').innerHTML = '<span class="warn">"아이디/저장소이름" 형식으로 적어 주세요.</span>'; return; }
+  store.setL('eco_repo', repo); $('dash').textContent = '불러오는 중…';
+  const api = (p) => fetch(`https://api.github.com/repos/${repo}/${p}`).then((r) => r.ok ? r.json() : Promise.reject(r.status));
+  const [c, s] = await Promise.allSettled([api('commits?per_page=6'), api('contents/status.json')]);
+  let status = null;
+  if (s.status === 'fulfilled') try { status = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.value.content.replace(/\n/g, '')), (ch) => ch.charCodeAt(0)))); } catch {}
+  const commits = c.status === 'fulfilled' ? c.value : [];
+  dashData = { repo, status, commits, at: Date.now() };
+  let h = '';
+  if (c.status === 'rejected') h += `<div class="err">저장소를 읽지 못했어요 (${c.reason}). 공개 저장소인지, 이름이 맞는지 확인해 주세요.</div>`;
+  if (status) {
+    h += `<div style="margin:6px 0"><b style="color:#fff">${esc(status.version ? 'v' + status.version + ' · ' : '')}진행률 ${Number(status.progress) || 0}%</b> <small>${status.updated ? timeAgo(status.updated) + ' 갱신' : ''}</small></div>`;
+    if (status.note) h += `<div style="color:#dde;margin-bottom:6px">${esc(status.note)}</div>`;
+    const order = { doing: 0, todo: 1, done: 2 }, lbl = { doing: '진행 중', todo: '할 일', done: '완료' };
+    (status.tasks || []).slice().sort((a, b) => (order[a.state] ?? 3) - (order[b.state] ?? 3)).forEach((tk) =>
+      h += `<div class="task"><span class="st st-${esc(tk.state)}">${lbl[tk.state] || esc(tk.state)}</span>${esc(tk.title)} <small>${tk.owner && AGENT_DEF[tk.owner] ? '· ' + AGENT_DEF[tk.owner].name : ''}</small></div>`);
+  } else if (c.status === 'fulfilled') h += '<div class="warn">status.json이 아직 없어요. 아래 안내문을 Claude Code에 붙여 넣으면 할 일과 진행률이 나타나요.</div>';
+  if (commits.length) { h += '<div style="margin-top:10px;color:#fff;font-weight:700">최근 커밋</div>'; commits.forEach((cm) => h += `<div class="commit">• ${esc(cm.commit.message.split('\n')[0].slice(0, 70))} <small>${timeAgo(cm.commit.author.date)}</small></div>`); }
+  $('dash').innerHTML = h;
+  applyDash();
+}
+function applyDash() {
+  if (!dashData || running) return;
+  const { status, commits } = dashData;
+  for (const k of ['planner', 'coder', 'qa', 'reviewer']) { agents[k].state = 'idle'; }
+  (status?.tasks || []).filter((t) => t.state === 'doing' && agents[t.owner] && AGENT_DEF[t.owner].team === 'vibe').forEach((t) => {
+    const a = agents[t.owner]; a.state = 'working'; goTo(a, ...workSpot(t.owner)); say(a, t.title, 9000);
+  });
+  if (commits[0]) { const c = agents.coder; if (c.state !== 'working') say(c, '커밋: ' + commits[0].commit.message.split('\n')[0], 9000); }
+  if (status && typeof status.progress === 'number') { $('pctLbl').textContent = '게임 개발 진행률'; $('topicLbl').textContent = '💻 ' + dashData.repo; setProgress(status.progress); }
+  counts();
+}
+setInterval(() => { if ($('autoDash').checked && store.getL('eco_repo')) loadDash(); }, 180000);
+setInterval(() => { if (dashData && !running) applyDash(); }, 12000);
+const CC_GUIDE = `이 저장소 루트에 status.json 파일을 만들고, 작업을 시작하거나 끝낼 때마다 갱신해서 함께 커밋해 줘.
+형식:
+{
+  "updated": "2026-11-12T10:00:00+09:00",
+  "version": "0.5",
+  "progress": 40,
+  "note": "지금 하고 있는 일 한 줄 요약",
+  "tasks": [
+    { "title": "배틀 화면 HP바 애니메이션", "state": "doing", "owner": "coder" },
+    { "title": "배지 4개 구간 밸런스 점검", "state": "todo", "owner": "qa" },
+    { "title": "인트로 화면", "state": "done", "owner": "planner" }
+  ]
+}
+규칙: state는 todo / doing / done 중 하나. owner는 기획=planner, 구현=coder, 테스트=qa, 리뷰·정리=reviewer.
+progress는 0.5 목표(배지 4개 구간 완성) 대비 전체 진행률(0~100).`;
+
+// =====================================================================
+// 8. 화면 반영 · 기록 · UI
+// =====================================================================
+function counts() {
+  const all = Object.values(agents).filter((a) => a.key !== 'teacher'), w = all.filter((a) => a.state === 'working').length;
+  $('cWork').textContent = `■ 일하는 중 ${w}`; $('cIdle').textContent = `■ 대기 ${all.length - w}`;
+}
+function logLine(fromName, toName, text, cls = '') {
+  const el = document.createElement('div'); el.className = 'msg';
+  el.innerHTML = `<div class="who"><span></span>${toName ? ' → <b></b>' : ''}<span class="tm">${new Date().toTimeString().slice(0, 5)}</span></div><div class="txt ${cls}"></div>`;
+  el.querySelector('.who span').textContent = fromName; if (toName) el.querySelector('.who b').textContent = toName;
+  el.querySelector('.txt').textContent = text; $('logList').prepend(el);
+}
+function refreshMode() { $('mode').innerHTML = getKey() ? `<span class="badge" style="background:#c8ff2e">${esc(getModel())}</span>` : '<span class="badge">키 없음 · 시연만</span>'; }
+
+function loadHist() { try { return JSON.parse(store.getL('eco_hist2') || '[]'); } catch { return []; } }
+function saveHistory(r) { const h = loadHist(); h.unshift({ team: r.team, topic: r.topic, md: r.md, at: new Date().toLocaleString('ko-KR') }); store.setL('eco_hist2', JSON.stringify(h.slice(0, 30))); renderHist(); }
+function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+const fname = (t) => t.replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 40) + '.md';
 function renderHist() {
-  const list = $('histList'); list.innerHTML = '';
-  const h = loadHist(); if (!h.length) { list.innerHTML = '<div class="note">아직 기록이 없어요.</div>'; return; }
+  const list = $('histList'), h = loadHist(); list.innerHTML = h.length ? '' : '<div class="note">아직 기록이 없어요.</div>';
   h.forEach((it, i) => {
     const d = document.createElement('div'); d.className = 'hist';
-    d.innerHTML = '<div><b></b></div><small></small><div><button>보기</button><button class="ghost">.md 받기</button><button class="ghost">복사</button><button class="danger">삭제</button></div>';
+    d.innerHTML = `<div><span class="tag t-${it.team}">${it.team === 'edu' ? '교무팀' : '바이브코딩팀'}</span><b></b></div><small></small><div><button class="mini">보기</button><button class="ghost mini">.md 받기</button><button class="ghost mini">복사</button><button class="danger mini">삭제</button></div>`;
     d.querySelector('b').textContent = it.topic; d.querySelector('small').textContent = it.at;
     const [view, dl, cp, del] = d.querySelectorAll('button');
-    view.onclick = () => { $('result').textContent = it.md; showTab('work'); };
-    dl.onclick = () => download(it.topic.replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 40) + '.md', it.md);
+    view.onclick = () => { lastResult = it; showResult(it.md); showTab('work'); };
+    dl.onclick = () => download(fname(it.topic), it.md);
     cp.onclick = () => navigator.clipboard?.writeText(it.md).then(() => (cp.textContent = '복사됨'));
-    del.onclick = () => { const all = loadHist(); all.splice(i, 1); store.setL('eco_hist', JSON.stringify(all)); renderHist(); };
+    del.onclick = () => { const all = loadHist(); all.splice(i, 1); store.setL('eco_hist2', JSON.stringify(all)); renderHist(); };
     list.appendChild(d);
   });
 }
 
-// ================= UI 연결 =================
 function showTab(v) { document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === v)); document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v)); }
 document.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.v)));
+function setTeam(team) {
+  currentTeam = team;
+  document.querySelectorAll('[data-team]').forEach((b) => b.classList.toggle('on', b.dataset.team === team));
+  $('eduOpts').style.display = team === 'edu' ? '' : 'none'; $('vibeOpts').style.display = team === 'vibe' ? '' : 'none';
+  $('topic').placeholder = team === 'edu' ? '예: 다음 주 금요일 현장체험학습(거제 해양생태관) 학부모 안내 문자 써 줘' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)';
+  $('teamNote').innerHTML = team === 'edu' ? '🔒 학생 이름은 <b>학생A</b>처럼 바꿔서 적어 주세요. 요청은 Google Gemini로 전송돼요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.';
+}
+document.querySelectorAll('[data-team]').forEach((b) => (b.onclick = () => setTeam(b.dataset.team)));
+$('eduType').innerHTML = '<option value="auto">업무 자동 분류 (하람이 배정)</option>' + EDU_TYPES.map((t) => `<option value="${t.id}">${t.label} — ${AGENT_DEF[t.lead].name}</option>`).join('');
 
+// 키
 $('keyIn').value = getKey(); $('modelIn').value = getModel(); $('remember').checked = !!store.getL('eco_key');
 $('eye').onclick = () => { const p = $('keyIn').type === 'password'; $('keyIn').type = p ? 'text' : 'password'; $('eye').textContent = p ? '숨김' : '보기'; };
 $('saveKey').onclick = () => {
   const k = $('keyIn').value.trim(); if (!k) return ($('keyStatus').innerHTML = '<span class="warn">키를 입력하세요.</span>');
-  store.set('eco_key', k, $('remember').checked); store.setL('eco_model', $('modelIn').value.trim() || 'gemini-2.5-flash');
+  store.set('eco_key', k, $('remember').checked); store.setL('eco_model', $('modelIn').value.trim() || DEFAULT_MODEL);
   $('keyStatus').innerHTML = `<span class="ok">저장됐어요 (${$('remember').checked ? '이 기기에 계속 보관' : '탭 닫으면 삭제'}).</span>`; refreshMode();
 };
 $('delKey').onclick = () => { store.del('eco_key'); $('keyIn').value = ''; $('keyStatus').innerHTML = '<span class="ok">키를 지웠어요.</span>'; refreshMode(); };
-$('testKey').onclick = async () => {
+async function fetchModels() {
+  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': getKey() } });
+  if (!r.ok) throw new Error(r.status);
+  return ((await r.json()).models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent')).map((m) => m.name.replace('models/', ''));
+}
+$('listModels').onclick = async () => {
   $('saveKey').click(); if (!getKey()) return;
-  $('keyStatus').textContent = '확인 중…';
-  try { const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}`, { headers: { 'x-goog-api-key': getKey() } });
-    $('keyStatus').innerHTML = r.ok ? '<span class="ok">✅ 연결 성공! 모델을 쓸 수 있어요.</span>' : `<span class="warn">❌ 실패 (${r.status}). 키나 모델 이름을 확인하세요.</span>`;
-  } catch (e) { $('keyStatus').innerHTML = `<span class="warn">❌ 네트워크 오류: ${e.message}</span>`; }
+  try { const ms = await fetchModels(); $('modelList').innerHTML = ms.map((m) => `<option value="${esc(m)}">`).join('');
+    $('keyStatus').innerHTML = `<span class="ok">쓸 수 있는 모델 ${ms.length}개를 불러왔어요. 모델 칸을 눌러 고르세요.</span><br><small>${ms.filter((m) => /flash/.test(m)).slice(0, 6).map(esc).join(', ')}</small>`;
+  } catch (e) { $('keyStatus').innerHTML = `<span class="err">목록을 못 불러왔어요 (${esc(e.message)}). 키를 확인하세요.</span>`; }
 };
-$('ctxBox').value = getCtx();
-$('saveCtx').onclick = () => { store.setL('eco_ctx', $('ctxBox').value); $('ctxStatus').innerHTML = '<span class="ok">저장됐어요. 다음 작업부터 반영돼요.</span>'; };
-$('resetCtx').onclick = () => { $('ctxBox').value = DEFAULT_CTX; };
-$('go').onclick = () => { if (running) return; const t = $('topic').value.trim(); if (!t) return $('topic').focus(); runJob(t.slice(0, 500)); };
-$('topic').onkeydown = (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('go').click(); };
-refreshMode(); renderHist(); setCounts();
+$('testKey').onclick = async () => {
+  $('saveKey').click(); if (!getKey()) return; $('keyStatus').textContent = '실제로 짧게 호출해 보는 중…';
+  try { const out = await callGemini('haram', '"연결 확인"이라고만 답하세요.'); $('keyStatus').innerHTML = `<span class="ok">✅ 연결 성공! (${esc(getModel())}) 응답: ${esc(out.slice(0, 40))}</span>`; }
+  catch (e) { $('keyStatus').innerHTML = `<span class="err">❌ ${esc(e.message)}</span><br>[목록 불러오기]로 쓸 수 있는 모델을 골라 보세요.`; }
+};
+
+// 맥락
+let ctxTeam = 'edu';
+function showCtx(team) {
+  ctxTeam = team; document.querySelectorAll('[data-ctx]').forEach((b) => b.classList.toggle('on', b.dataset.ctx === team));
+  $('ctxBox').value = getCtx(team); $('ctxStatus').textContent = '';
+  $('ctxHelp').textContent = team === 'edu' ? '교무팀 5명이 이 내용을 읽고 일해요. 학년·과목·문체를 채워 주세요 (학생 실명은 넣지 마세요).' : '바이브코딩팀 4명이 이 내용을 읽고 일해요.';
+}
+document.querySelectorAll('[data-ctx]').forEach((b) => (b.onclick = () => showCtx(b.dataset.ctx)));
+$('saveCtx').onclick = () => { store.setL('eco_ctx_' + ctxTeam, $('ctxBox').value); $('ctxStatus').innerHTML = '<span class="ok">저장됐어요. 다음 작업부터 반영돼요.</span>'; };
+$('resetCtx').onclick = () => { $('ctxBox').value = DEFAULT_CTX[ctxTeam]; };
+
+// 현황
+$('repoIn').value = store.getL('eco_repo') || '';
+$('loadRepo').onclick = loadDash;
+$('copyCC').onclick = () => navigator.clipboard?.writeText(CC_GUIDE).then(() => ($('copyCC').textContent = '✅ 복사됐어요! Claude Code에 붙여 넣으세요'));
+
+// 작업
+$('go').onclick = () => runJob(false);
+$('demo').onclick = () => runJob(true);
+$('topic').onkeydown = (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runJob(false); };
+$('copyRes').onclick = () => lastResult && navigator.clipboard?.writeText(lastResult.final || lastResult.md).then(() => ($('copyRes').textContent = '복사됨'));
+$('dlRes').onclick = () => lastResult && download(fname(lastResult.topic), lastResult.md);
+
+setTeam('edu'); showCtx('edu'); refreshMode(); renderHist(); counts();
+if (store.getL('eco_model') === 'gemini-2.5-flash') store.setL('eco_model', DEFAULT_MODEL), $('modelIn').value = DEFAULT_MODEL;
+if (store.getL('eco_repo')) loadDash();
 </script>
 </body>
 </html>
