@@ -4,6 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <title>AI 오피스 · 바이브코딩팀 & 교무팀</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#221a30" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="icon" href="icons/icon-192.png" />
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -108,6 +112,10 @@
   #ctrl .chip:hover { border-color: #c8ff2e; }
   .tplForm { background: #10162c; border: 1px solid #3c4677; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
   #issueStatus code { display: block; margin-top: 4px; background: #0a0e1a; padding: 6px; border-radius: 6px; white-space: pre-wrap; }
+  #wizard { position: fixed; inset: 0; background: rgba(8,10,20,.72); display: none; align-items: center; justify-content: center; z-index: 21; padding: 16px; }
+  #wizard.show { display: flex; } #wizard label { display: block; font-size: 13px; color: #555; margin: 12px 0 4px; font-weight: 700; }
+  .liveText { background: #0f1424; border: 1px dashed #c8ff2e; border-radius: 8px; padding: 8px 10px; max-height: 26vh; overflow: auto; font-size: 12px; line-height: 1.5; color: #dde; }
+  .liveText h1, .liveText h2, .liveText h3 { font-size: 13px; margin: 6px 0 2px; } .liveText table { font-size: 11px; border-collapse: collapse; } .liveText td, .liveText th { border: 1px solid #3b4466; padding: 2px 4px; }
   #viewer { position: fixed; inset: 0; background: rgba(8,10,20,.72); display: none; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
   #viewer.show { display: flex; }
   .vbox { width: min(820px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: #f8f8f4; color: #1d1d24; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6); overflow: hidden; }
@@ -154,12 +162,15 @@
     <span><i style="background:#c8ff2e"></i><em id="cDone" style="font-style:normal">완료 0</em></span>
     <span><i style="background:#4fc3f7"></i><em id="cWait" style="font-style:normal">확인 0</em></span>
     <span id="usage">📞 오늘 0회</span>
+    <span id="mealChip" style="display:none"></span>
   </div>
   <small id="topicLbl">대기 중</small>
 </div>
 
 <div id="topr">
   <button class="pill" id="gatePill" style="display:none;background:#4fc3f7;animation:blink 1s infinite">🔔 확인 필요</button>
+  <button class="pill" id="installPill" style="display:none;background:#4fc3f7">📲 앱 설치</button>
+  <button class="pill dark" id="briefPill">☀️</button>
   <button class="pill dark" id="donePill">📂 완료함 0</button>
   <button class="pill dark" id="openCtrl">📝 작업 요청</button>
   <span class="pill" id="agentPill">에이전트 9</span>
@@ -179,6 +190,11 @@
   <div id="vBody" class="vbody"></div>
   <div class="vfoot"><button id="vCopy">서식 복사</button><button id="vTxt" class="ghost">글자만 복사</button><button id="vHwp" class="ghost">📄 한글(HWPX)</button><span style="flex:1"></span><button id="vClose" class="ghost">닫기</button></div>
 </div></div>
+<div id="wizard"><div class="vbox">
+  <div class="vhead"><img id="wzAv" alt=""><div style="flex:1;min-width:0"><div id="wzTitle" style="font-weight:900;font-size:17px"></div><small id="wzSub"></small></div><span class="x" id="wzX">✕</span></div>
+  <div id="wzBody" class="vbody"></div>
+  <div class="vfoot"><button id="wzBack" class="ghost">이전</button><span style="flex:1"></span><button id="wzSkip" class="ghost">건너뛰기</button><button id="wzNext">다음</button></div>
+</div></div>
 <div id="toast"><span id="toastTxt"></span><button id="toastBtn">보기</button></div>
 
 <div id="ctrl" class="hide">
@@ -196,11 +212,15 @@
     <div id="vibeOpts" style="display:none"><div class="note" style="margin-top:0">💡 <b>아이디어 회의</b>: 기획 → 개발(구현 난이도) → QA(원작 유사성·밸런스) → 리뷰(우선순위) → 최종 정리 + Claude Code에 넘길 작업 지시문</div></div>
     <label>요청 내용</label>
     <textarea id="topic" rows="4"></textarea>
-    <label class="chk"><input type="checkbox" id="mask" checked> 학생 이름·전화번호·주민번호 가리고 보내기</label>
+    <div class="row" style="align-items:center;margin-top:6px"><button id="attachBtn" class="ghost mini fit">📎 자료 첨부</button><span id="attachList" class="note" style="margin:0"></span></div>
+    <input type="file" id="attachFile" multiple accept=".pdf,.hwpx,.hwp,.txt,.md,.csv" style="display:none">
+    <label class="chk"><input type="checkbox" id="mask" checked> 전화번호·주민번호가 섞여 있으면 자동으로 가리기</label>
     <label class="chk"><input type="checkbox" id="gate"> 최종본 전에 내가 먼저 확인하기 (선생님 확인 단계)</label>
+    <label class="chk"><input type="checkbox" id="combineRev" checked> 동료 검토를 한 번에 받기 (호출 절약)</label>
     <div class="row" style="margin-top:8px"><button id="go">작업 시작</button><button id="demo" class="ghost fit">시연 보기</button></div>
     <button id="retry" class="ghost wide" style="display:none">↻ 끝난 단계는 건너뛰고 다시 시도</button>
     <div class="note" id="estCalls" style="margin-top:6px"></div>
+    <div id="liveBox" class="liveBox" style="display:none"><div class="resTitle" id="liveWho" style="margin-top:6px;color:#c8ff2e"></div><div id="liveText" class="liveText"></div></div>
     <div id="gateBox" style="display:none">
       <div class="resTitle" style="color:#4fc3f7;font-weight:800">🔔 선생님 확인 단계 — 초안을 보고 정해 주세요</div>
       <div id="gateBody" class="gateBody" title="두 번 누르면 크게 보기"></div><button class="ghost mini" id="gateBig">🔍 초안 크게 보기</button>
@@ -212,7 +232,8 @@
     <div id="result"></div>
     <div class="row" id="resultBtns" style="display:none"><button class="mini" id="bigRes">🔍 크게</button><button class="mini" id="hwpRes">📄 한글(HWPX)</button><button class="ghost mini" id="copyRes">서식 복사</button><button class="ghost mini" id="copyTxt">글자만 복사</button><button class="ghost mini" id="dlRes">.md</button></div>
     <div id="reviseBox" style="display:none">
-      <div class="row" style="margin-top:8px"><input id="reviseNote" placeholder="✏️ 이어서 고치기: 예) 더 짧게, 준비물에 우산 추가" /><button id="reviseGo" class="fit">고치기</button></div>
+      <div class="tplBar" id="refineChips" style="margin:10px 0 4px"></div>
+      <div class="row"><input id="reviseNote" placeholder="✏️ 직접 적기: 예) 준비물에 우산 추가" /><button id="reviseGo" class="fit">고치기</button></div>
       <div class="note" style="margin-top:4px">담당자 한 명이 한 번만 고쳐요 (Gemini 1회). 고친 결과는 완료함에 따로 남아요.</div>
     </div>
     <div id="issueBox" style="display:none"><button id="issueGo" class="wide" style="background:#4fc3f7">🐙 Claude Code에 GitHub 이슈로 보내기</button><div id="issueStatus" class="note"></div></div>
@@ -222,6 +243,15 @@
     <textarea id="todoBox" rows="8" placeholder="공문 회신 (15시)&#10;알림장 작성&#10;✓ 수업 준비"></textarea>
     <div class="row" style="margin-top:8px"><button id="saveTodo">저장</button><button id="pullTodo" class="ghost">교무팀 최근 결과에서 가져오기</button></div>
     <div id="todoStatus" class="note"></div>
+    <div style="border-top:1px solid #333b5a;margin-top:12px;padding-top:10px">
+      <div class="row"><button id="briefBtn">☀️ 오늘 브리핑 보기</button></div>
+      <label class="chk"><input type="checkbox" id="briefAuto" checked> 하루 첫 접속 때 자동으로 보여 주기</label>
+      <label>우리 학교 (급식·학사일정 — 나이스 공개 자료)</label>
+      <div class="row"><input id="schoolQ" placeholder="학교 이름 (예: 거제초등학교)" /><button id="schoolFind" class="fit">찾기</button></div>
+      <select id="schoolSel" style="display:none;margin-top:6px"></select>
+      <input id="neisKey" type="password" placeholder="나이스 인증키 (선택 — 없어도 일부 조회 가능)" style="margin-top:6px" />
+      <div id="schoolStatus" class="note"></div>
+    </div>
   </div>
   <div class="view" id="v-dash">
     <small>게임 저장소의 Claude Code 작업 현황을 사무실에 띄워요 (공개 저장소)</small>
@@ -245,10 +275,11 @@
     <div class="row" style="margin-top:8px"><button id="saveKey">저장</button><button id="testKey" class="ghost">연결 테스트</button><button id="delKey" class="danger">삭제</button></div>
     <label>하루 호출 한도 (선택 — 넘으면 시작 전에 물어봐요)</label><input id="limitIn" type="number" min="0" placeholder="예: 200 (비우면 제한 없음)" />
     <div id="keyStatus" class="note"></div>
+    <div class="note warn">⚠️ 무료 키(결제 미연결)로 보낸 내용은 구글이 서비스 개선에 쓸 수 있고 검토자가 볼 수도 있어요. 개인정보·민감한 내용은 넣지 마세요.</div>
     <div class="note">🔒 키는 <b>이 브라우저에만</b> 저장되고 Google 서버로만 직접 전송돼요. 사이트 코드나 GitHub에는 들어가지 않아요.<br>공용 PC에서는 "이 기기에 저장"을 끄고, 다 쓰면 [삭제]를 누르세요.</div>
   </div>
   <div class="view" id="v-ctx">
-    <div class="seg"><button data-ctx="edu" class="on">🏫 학교 맥락</button><button data-ctx="vibe">💻 게임 맥락</button><button data-ctx="roster">🔒 학생 명단</button></div>
+    <div class="seg"><button data-ctx="edu" class="on">🏫 학교 맥락</button><button data-ctx="vibe">💻 게임 맥락</button><button data-ctx="style">✍️ 내 말투</button><button data-ctx="roster" id="rosterTabBtn" style="display:none">🔒 학생 명단</button></div>
     <small id="ctxHelp"></small>
     <textarea id="ctxBox" class="ctxBox"></textarea>
     <div id="rosterArea" style="display:none">
@@ -258,6 +289,12 @@
     </div>
     <div class="row" style="margin-top:8px"><button id="saveCtx">저장</button><button id="resetCtx" class="ghost">기본값으로</button></div>
     <div id="ctxStatus" class="note"></div>
+    <div class="note" style="border-top:1px solid #333b5a;padding-top:8px;margin-top:12px">
+      🔒 <b>학생 개인정보 업무는 꺼져 있어요</b> — 생기부 문장·상담 기록·관찰 기록 버튼과 분류가 숨겨지고, 그런 요청은 보내기 전에 막아요.
+      <label class="chk" style="margin-top:6px"><input type="checkbox" id="personalOn"> 다시 켜기 (권장하지 않음)</label>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="ghost mini" id="expTpl">⭐ 내 버튼 내보내기</button><button class="ghost mini" id="impTpl">⭐ 내 버튼 불러오기</button><button class="ghost mini" id="wzAgain">👋 시작 안내 다시 보기</button></div>
+    <input type="file" id="impTplFile" accept=".json" style="display:none">
   </div>
   <div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 50개)</small>
     <div class="row" style="margin:8px 0"><button class="ghost mini" id="expHist">⬇ 백업 파일 받기</button><button class="ghost mini" id="impHist">⬆ 백업 불러오기</button><input type="file" id="impFile" accept=".json" style="display:none"></div>
@@ -573,7 +610,7 @@ const AGENT_DEF = {
               role: '당신은 초등 수업 설계 전문 교사 동료입니다. 40분 수업 흐름, 학생 활동, 교사 발문, 활동지, 평가문항과 채점 기준을 2022 개정 교육과정 취지에 맞게 구체적으로 작성합니다.' },
   yejun:    { team: 'edu', name: '생활지도', title: '생활지도·상담', kind: 'hedgehog', room: 'e_guide', spot: [2.9, 11.0],
               role: '당신은 초등 생활지도·학생상담 전문 교사 동료입니다. 갈등, 규칙 위반, 수업 방해, 친구 관계 문제에 단계별 대응과 교사 대화 예시를 제시하고, 학교폭력 등 절차가 필요한 사안은 반드시 학교 절차와 관리자 협의를 안내합니다.' },
-  sua:      { team: 'edu', name: '학부모 소통', title: '학부모 소통·기록', kind: 'bunny', room: 'e_parent', spot: [2.9, 14.0],
+  sua:      { team: 'edu', name: '학부모 소통', title: '학부모 소통', kind: 'bunny', room: 'e_parent', spot: [2.9, 14.0],
               role: '당신은 학부모 소통과 기록 전문 교사 동료입니다. 학부모 문자, 알림장, 가정통신문은 정중하고 따뜻하되 간결하게, 관찰·상담 기록과 평가 피드백 문장은 객관적 사실 중심으로 씁니다.' },
   taeyun:   { team: 'edu', name: '행정 담당', title: '공문·행정·행사', kind: 'turtle', room: 'e_admin', spot: [2.9, 17.0],
               role: '당신은 공문·행정·행사 전문 교사 동료입니다. 공문 분석, 계획서, 결과보고서, 체험학습·행사 계획을 학교 공문서 개조식 문체(□, ○, - 위계)로 작성하고, 제출 기한과 준비물을 표로 정리합니다.' },
@@ -908,7 +945,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const getRoster = () => (store.getL('eco_roster') || '').split(/\n|,/).map((s) => s.trim()).filter((s) => s.length >= 2);
 const label = (i) => '학생' + (i < 26 ? String.fromCharCode(65 + i) : i + 1);
 function makeMasker() {
-  const names = getRoster(), pairs = [];
+  const names = personalOn() ? getRoster() : [], pairs = [];
   names.forEach((full, i) => { pairs.push([full, label(i)]); if (store.getL('eco_roster_given') !== '0' && full.length === 3) pairs.push([full.slice(1), label(i)]); });
   pairs.sort((a, b) => b[0].length - a[0].length);
   const back = names.map((full, i) => [label(i), full]).sort((a, b) => b[0].length - a[0].length);
@@ -938,15 +975,18 @@ const NO_MASK = { mask: (t) => t, unmask: (t) => t, count: 0 };
 const EDU_TYPES = [
   { id: 'lesson',    label: '수업 지도안·수업 설계', lead: 'yoonseul', reviewers: ['yejun', 'haram'], kw: ['지도안', '교수학습', '수업 설계', '수업안', '차시', '수업 계획', '수업 아이디어', '발문', '수업'] },
   { id: 'worksheet', label: '활동지·평가문항',       lead: 'yoonseul', reviewers: ['haram'],          kw: ['활동지', '학습지', '워크시트', '평가', '수행평가', '단원평가', '서술형', '루브릭', '채점', '문항', '정답'] },
-  { id: 'guidance',  label: '생활지도·상담',         lead: 'yejun',    reviewers: ['sua', 'haram'],   kw: ['생활지도', '갈등', '다툼', '싸움', '욕설', '규칙', '수업 방해', '상담', '친구 관계', '따돌림', '학교폭력'] },
+  { id: 'guidance',  label: '생활지도 방법 (일반)',         lead: 'yejun',    reviewers: ['sua', 'haram'],   kw: ['생활지도', '갈등', '다툼', '싸움', '욕설', '규칙', '수업 방해', '상담', '친구 관계', '따돌림', '학교폭력'] },
   { id: 'parent',    label: '학부모 문자·알림장·가정통신문', lead: 'sua', reviewers: ['yejun', 'haram'], weight: 2, kw: ['학부모', '알림장', '가정통신문', '문자', '안내문', '하이클래스', '클래스팅', 'e알리미', '학부모님'] },
-  { id: 'record',    label: '관찰 기록·평가 피드백 문장', lead: 'sua', reviewers: ['yoonseul'], weight: 2, kw: ['관찰', '기록', '누가기록', '피드백 문장', '행발', '행동특성', '세특', '교과 발달', '종합의견', '상담 일지'] },
+  { id: 'record',    label: '관찰 기록·평가 피드백 문장', personal: true, lead: 'sua', reviewers: ['yoonseul'], weight: 2, kw: ['관찰', '기록', '누가기록', '피드백 문장', '행발', '행동특성', '세특', '교과 발달', '종합의견', '상담 일지'] },
   { id: 'admin',     label: '공문·계획서·보고서·행사', lead: 'taeyun', reviewers: ['haram'],         kw: ['공문', '계획서', '보고서', '결과보고', '출장', '행사', '체험학습', '현장체험', '운동회', '학예회', '방과후', '운영 계획', '제출', '기안'] },
   { id: 'todo',      label: '할 일 정리·우선순위',   lead: 'haram',    reviewers: [],                 kw: ['할 일', '우선순위', '마감', '일정', '정리해', '업무 정리', '이번 주', '오늘'] },
 ];
+const personalOn = () => store.getL('eco_personal') === '1';
+const activeTypes = () => EDU_TYPES.filter((t) => !t.personal || personalOn());
+const PERSONAL_RE = /생기부|생활\s?기록부|세특|세부\s?능력|행발|행동\s?특성|종합\s?의견|누가\s?기록|관찰\s?기록|상담\s?(기록|일지|내용)|교과\s?발달/;
 function classify(text) {
-  let best = EDU_TYPES[EDU_TYPES.length - 1], score = 0;
-  for (const t of EDU_TYPES) { const s = t.kw.reduce((n, k) => n + (text.includes(k) ? k.length : 0), 0) * (t.weight || 1); if (s > score) { score = s; best = t; } }
+  let best = EDU_TYPES.find((t) => t.id === 'todo'), score = 0;
+  for (const t of activeTypes()) { const s = t.kw.reduce((n, k) => n + (text.includes(k) ? k.length : 0), 0) * (t.weight || 1); if (s > score) { score = s; best = t; } }
   return best;
 }
 
@@ -998,19 +1038,35 @@ async function pickFallback(current) {
   return pref.find((m) => /lite/.test(m)) || pref[0] || null;
 }
 let callsToday = Number(store.getL('eco_calls_' + new Date().toDateString()) || 0);
-async function callGemini(agentKey, prompt, mock) {
+// 실시간 응답(스트리밍): onChunk(지금까지의 글)로 조금씩 알려 줌. files = [{mime, b64}]
+async function callGemini(agentKey, prompt, mock, onChunk, files) {
   const key = getKey(), a = AGENT_DEF[agentKey];
-  if (mock || !key) { await sleep(rnd(1200, 2200)); return MOCK[agentKey]; }
-  const sysText = a.role + '\n\n[맥락]\n' + getCtx(a.team) + '\n\n답변은 한국어 마크다운(제목 #, 목록 -, 표 |)으로, 바로 쓸 수 있는 완성형으로 작성하세요. 학생은 학생A처럼 표기된 그대로 쓰세요.';
-  const body = JSON.stringify({ systemInstruction: { parts: [{ text: sysText }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }] });
+  if (mock || !key) { // 시연: 글자가 써지는 것처럼
+    const t = MOCK[agentKey]; await sleep(rnd(500, 900));
+    for (let k = 8; k < t.length; k += 8) { onChunk?.(t.slice(0, k)); await sleep(60); }
+    onChunk?.(t); return t;
+  }
+  const style = a.team === 'edu' && store.getL('eco_style') ? `\n\n[선생님이 쓴 글 예시 — 말투·문장 길이·형식만 참고하고 내용은 따라 하지 마세요]\n${store.getL('eco_style').slice(0, 3000)}` : '';
+  const sysText = a.role + '\n\n[맥락]\n' + getCtx(a.team) + style + '\n\n답변은 한국어 마크다운(제목 #, 목록 -, 표 |)으로, 바로 쓸 수 있는 완성형으로 작성하세요. 학생은 학생A처럼 표기된 그대로 쓰세요.';
+  const parts = [{ text: prompt }, ...(files || []).map((f) => ({ inline_data: { mime_type: f.mime, data: f.b64 } }))];
+  const body = JSON.stringify({ systemInstruction: { parts: [{ text: sysText }] }, contents: [{ role: 'user', parts }] });
   let model = getModel();
   for (let i = 1; i <= 4; i++) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body });
     callsToday++; store.setL('eco_calls_' + new Date().toDateString(), callsToday);
-    if (r.ok) { const j = await r.json(); return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim() || '(빈 응답)'; }
-    const raw = await r.text(); let msg = raw; try { msg = JSON.parse(raw).error.message; } catch {}
-    const suggested = r.status === 404 && msg.match(/models\/([\w.\-]+)/g)?.map((m) => m.slice(7)).find((m) => m !== model);
+    if (r.ok) {
+      let text = '', buf = ''; const rd = r.body.getReader(), dec = new TextDecoder();
+      for (;;) {
+        const { value, done } = await rd.read(); if (done) break;
+        buf += dec.decode(value, { stream: true }); const lines = buf.split('\n'); buf = lines.pop();
+        for (const l of lines) { if (!l.startsWith('data:')) continue; try { const j = JSON.parse(l.slice(5)); text += (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(''); onChunk?.(text); } catch {} }
+      }
+      if (buf.startsWith('data:')) try { const j = JSON.parse(buf.slice(5)); text += (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(''); } catch {}
+      return text.trim() || '(빈 응답)';
+    }
+    const raw = await r.text(); let msg = raw; try { msg = JSON.parse(raw).error?.message || JSON.parse(raw)[0]?.error?.message || raw; } catch {}
+    const suggested = r.status === 404 && String(msg).match(/models\/([\w.\-]+)/g)?.map((m) => m.slice(7)).find((m) => m !== model);
     if (suggested && i < 4) { model = suggested; store.setL('eco_model', model); fillModelSelects(); logLine('시스템', null, `모델을 ${model}(으)로 자동 변경했어요.`); continue; }
     if (r.status === 429 && i < 4) { say(agents[agentKey], '호출 한도에 걸렸어요. 잠깐 쉴게요…', 8000); await sleep(15000 * i); continue; }
     if ((r.status === 503 || r.status === 500) && i < 4) {
@@ -1018,7 +1074,7 @@ async function callGemini(agentKey, prompt, mock) {
       say(agents[agentKey], '서버가 붐벼요. 잠깐 기다릴게요…', 6000); await sleep(4000 * i); continue;
     }
     if (r.status === 403 && /referer|referrer/i.test(msg)) throw new Error('이 사이트 주소가 API 키 허용 목록에 없어요. Google Cloud에서 키의 웹사이트 제한을 확인하세요.');
-    throw new Error(`Gemini ${r.status}: ${msg.slice(0, 220)}`);
+    throw new Error(`Gemini ${r.status}: ${String(msg).slice(0, 220)}`);
   }
 }
 
@@ -1032,7 +1088,7 @@ let currentTeam = 'edu', doneJobs = 0;
 const READ_SPOT = { haram: [1.1, 1], yoonseul: [.8, 7.6], yejun: [1.2, 11.3], sua: [.8, 13.6], taeyun: [5.1, 16.5], planner: [9.4, 2.2], coder: [15.4, 1], qa: [17.9, 1], reviewer: [21.6, 1] };
 const MEET_SPOT = { edu: [4.3, 5.1], vibe: [21.4, 4.1] };
 function persistJobs() {
-  const o = {}; for (const t of ['edu', 'vibe']) if (jobs[t]) { const { masker, resolveGate, ...rest } = jobs[t]; o[t] = rest; }
+  const o = {}; for (const t of ['edu', 'vibe']) if (jobs[t]) { const { masker, resolveGate, ...rest } = jobs[t]; if (rest.attach) rest.attach = { ...rest.attach, pdfs: [] }; o[t] = rest; }
   store.setL('eco_jobs', JSON.stringify(o));
 }
 function updateProgress() {
@@ -1049,8 +1105,10 @@ async function step(job, agentKey, prompt, to, sayFn, opt = {}) {
   a.busy = true; a.state = 'working'; a.task = job.topic; clearTimeout(a.after); counts();
   if (opt.review) { const [mx, my] = MEET_SPOT[a.team]; goTo(a, mx + rnd(-.5, .5), my + rnd(-.2, .2)); a.activity = 'review'; }
   else { goTo(a, ...READ_SPOT[agentKey]); a.activity = 'read'; a.after = setTimeout(() => { if (a.state === 'working') { goTo(a, ...workSpot(agentKey)); a.activity = 'write'; } }, 2800); }
-  let raw;
-  try { raw = await callGemini(agentKey, prompt, job.mock); } finally { a.state = 'idle'; a.activity = null; clearTimeout(a.after); counts(); }
+  let raw; const att = opt.attach ? job.attach : null;
+  if (att?.text) prompt += `\n\n[첨부 자료 — 이 내용을 근거로 작성하세요]\n${att.text}`;
+  const live = (t) => { a.liveLen = t.length; liveShow(job, a, t); };
+  try { raw = await callGemini(agentKey, prompt, job.mock, live, att?.pdfs); } finally { a.state = 'idle'; a.activity = null; a.liveLen = 0; clearTimeout(a.after); counts(); liveShow(job, null); }
   job.outputs[id] = raw; job.done++; persistJobs();
   const shown = job.masker.unmask(raw); a.lastOut = shown; a.doneCount = (a.doneCount || 0) + 1;
   const text = sayFn(raw); say(a, text); logLine(a.name, to && agents[to].name, text, '', shown);
@@ -1096,7 +1154,7 @@ const job_mask = (j, t) => j.masker.mask(t);
 async function runVibe(job) {
   const topic = job.sent; job.total = 5;
   if (!job.done) teacherAsk('planner', '아이디어 회의 부탁해요!');
-  const draft = await step(job, 'planner', `요청: "${topic}"\n이 요청에 대한 게임 아이디어 초안을 번호 목록으로 작성하세요. 각 항목은 이름, 한 줄 설명, 원작의 어떤 요소와 닮았는지.`, 'coder', () => '초안 나왔어요. 구현 가능성 봐 주세요!');
+  const draft = await step(job, 'planner', `요청: "${topic}"\n이 요청에 대한 게임 아이디어 초안을 번호 목록으로 작성하세요. 각 항목은 이름, 한 줄 설명, 원작의 어떤 요소와 닮았는지.`, 'coder', () => '초안 나왔어요. 구현 가능성 봐 주세요!', { attach: true });
   const dev = await step(job, 'coder', `아이디어 초안:\n${draft}\n\n각 아이디어의 구현 난이도(상/중/하), 웹(HTML5)에서의 구현 방법 한 줄, 0.5 범위에 넣을지 의견을 표로 쓰세요.`, 'qa', () => '난이도 표시했어요. 검증 부탁해요!', { review: true });
   const qa = await step(job, 'qa', `초안:\n${draft}\n\n개발 의견:\n${dev}\n\n원작 유사성, 밸런스, 모바일 조작 관점의 문제점을 짧게.`, 'reviewer', (o) => `걸리는 점 ${(o.match(/^\s*[-*\d]/gm) || []).length}개 찾았어요.`, { review: true });
   const rv = await step(job, 'reviewer', `초안:\n${draft}\n\n개발:\n${dev}\n\nQA:\n${qa}\n\n우선순위 Top 3와 보류할 것, 이유를 짧게.`, 'planner', () => '우선순위 정했어요. 정리 부탁해요.', { review: true });
@@ -1107,16 +1165,26 @@ async function runVibe(job) {
 }
 async function runEdu(job) {
   const type = EDU_TYPES.find((t) => t.id === job.typeId), topic = job.sent, lead = type.lead, reviewers = job.mode === 'quick' ? [] : type.reviewers;
-  job.total = 1 + reviewers.length + (reviewers.length ? 1 : 0);
+  const combine = job.combine && reviewers.length > 1;
+  job.total = 1 + (combine ? 1 : reviewers.length) + (reviewers.length ? 1 : 0);
   if (!job.done) {
     teacherAsk(lead, '이 업무 부탁해요!');
     if (lead !== 'haram') { say(agents.haram, `${agents[lead].name} 담당으로 배정!`, 5000); logLine(agents.haram.name, agents[lead].name, `"${type.label}" 업무로 분류해서 ${agents[lead].name}에게 배정했어요.`); }
     await sleep(1200);
   }
   const draft = await step(job, lead, `담임 선생님 요청: "${topic}"\n업무 유형: ${type.label}\n바로 사용할 수 있는 완성형 초안을 작성하세요. 필요한 정보가 빠졌다면 [ ]로 빈칸을 두고 맨 끝에 "확인 필요" 목록을 쓰세요.`,
-    reviewers[0] || null, () => reviewers.length ? '초안 완성! 검토 부탁해요.' : (job.gate ? '초안 완성! 선생님 확인 기다릴게요.' : '완성했어요! 확인해 주세요 🎉'));
+    reviewers[0] || null, () => reviewers.length ? '초안 완성! 검토 부탁해요.' : (job.gate ? '초안 완성! 선생님 확인 기다릴게요.' : '완성했어요! 확인해 주세요 🎉'), { attach: true });
   const reviews = [];
-  for (let i = 0; i < reviewers.length; i++) {
+  if (combine) { // 검토자 여럿을 한 번의 호출로
+    const others = reviewers.slice(1);
+    others.forEach((k) => { const o = agents[k]; o.state = 'working'; o.activity = 'review'; o.busy = true; const [mx, my] = MEET_SPOT.edu; goTo(o, mx + rnd(-.7, .7), my + rnd(-.3, .3)); });
+    try {
+      const rv = await step(job, reviewers[0], `동료(${agents[lead].name})가 쓴 초안을 다음 동료들이 함께 검토합니다: ${reviewers.map((r) => `${agents[r].name}(${AGENT_DEF[r].title})`).join(', ')}.\n각 동료 관점마다 "### 이름" 소제목 아래, 꼭 고칠 점 2개 이내를 "문제 → 수정 제안" 형식으로 쓰세요.\n\n요청: ${topic}\n\n초안:\n${draft}`,
+        lead, () => '함께 검토했어요. 반영해 주세요.', { review: true });
+      reviews.push(rv);
+    } finally { others.forEach((k) => { const o = agents[k]; o.state = 'idle'; o.busy = false; o.activity = null; }); counts(); }
+  }
+  for (let i = 0; i < (combine ? 0 : reviewers.length); i++) {
     const r = reviewers[i];
     const rv = await step(job, r, `동료(${agents[lead].name})가 쓴 초안을 당신의 전문 분야(${AGENT_DEF[r].title}) 관점에서 검토하세요. 꼭 고칠 점 3개 이내, 각각 "문제 → 수정 제안" 형식으로.\n\n요청: ${topic}\n\n초안:\n${draft}`,
       reviewers[i + 1] || lead, () => i + 1 < reviewers.length ? '제 의견 남겼어요. 다음 검토 부탁해요.' : '검토 끝! 반영해 주세요.', { review: true });
@@ -1131,7 +1199,8 @@ async function runEdu(job) {
 function estimateCalls(team) {
   if (team === 'vibe') return 5;
   const t = $('eduType').value === 'auto' ? classify($('topic').value) : EDU_TYPES.find((x) => x.id === $('eduType').value);
-  const r = $('eduMode').value === 'quick' ? 0 : t.reviewers.length;
+  let r = $('eduMode').value === 'quick' ? 0 : t.reviewers.length; const rc = $('combineRev').checked && r > 1 ? 1 : r;
+  return 1 + rc + (r ? 1 : 0) + ($('gate').checked && !r ? 1 : 0);
   return 1 + r + (r ? 1 : 0) + ($('gate').checked && !r ? 1 : 0);
 }
 async function runJob(demo) {
@@ -1140,10 +1209,15 @@ async function runJob(demo) {
   let topic = $('topic').value.trim();
   if (!topic && demo) topic = team === 'edu' ? '내일 현장체험학습 학부모 안내 문자 써 줘' : '거제도 지역 몬스터 아이디어 회의';
   if (!topic) return $('topic').focus();
+  if (team === 'edu' && !personalOn() && PERSONAL_RE.test(topic)) {
+    logLine('시스템', null, '학생 개인정보가 필요한 업무(생기부·상담·관찰 기록)는 꺼져 있어요. 학생 정보는 넣지 말아 주세요.', 'err');
+    return alert('학생 개인정보가 필요한 업무(생기부·상담 기록·관찰 기록)는 꺼져 있어요.\n학생 이름이나 개인 정보가 들어가지 않는 요청으로 바꿔 주세요.');
+  }
   const lim = Number(store.getL('eco_limit') || 0);
   if (!demo && lim && callsToday + estimateCalls(team) > lim && !confirm(`오늘 호출 ${callsToday}회로, 정해 둔 한도 ${lim}회를 넘을 수 있어요. 계속할까요?`)) return;
   const useMask = $('mask').checked && !demo, masker = useMask ? makeMasker() : NO_MASK;
-  const job = { id: Date.now(), team, topic, sent: masker.mask(topic), mock: !!demo, useMask, gate: $('gate').checked, outputs: {}, done: 0, total: estimateCalls(team), si: 0, masker };
+  const job = { id: Date.now(), team, topic, sent: masker.mask(topic), mock: !!demo, useMask, gate: $('gate').checked, combine: $('combineRev').checked, outputs: {}, done: 0, total: estimateCalls(team), si: 0, masker };
+  job.attach = takeAttach(masker); if (job.attach) logLine('시스템', null, `자료 ${job.attach.names.length}개를 함께 보냈어요: ${job.attach.names.join(', ')}`);
   if (team === 'edu') { const sel = $('eduType').value; job.typeId = sel === 'auto' ? classify(topic).id : sel; job.mode = $('eduMode').value; }
   if (masker.count && job.sent !== topic) logLine('시스템', null, `학생 이름을 가려서 보냈어요: "${job.sent.slice(0, 40)}"`);
   $('topic').value = '';
@@ -1267,7 +1341,7 @@ function notify(title, body) {
 let toastTimer;
 function toast(text, onView) {
   $('toastTxt').textContent = text; $('toast').style.display = 'flex';
-  $('toastBtn').onclick = () => { $('toast').style.display = 'none'; onView(); };
+  $('toastBtn').style.display = onView ? '' : 'none'; $('toastBtn').onclick = () => { $('toast').style.display = 'none'; onView?.(); };
   clearTimeout(toastTimer); toastTimer = setTimeout(() => ($('toast').style.display = 'none'), 12000);
 }
 
@@ -1409,9 +1483,9 @@ const TEMPLATES = {
       make: (v) => `가정통신문 "${v.title}"을 써 줘. 일시: ${v.when}. 장소: ${v.where}. 준비물·주의사항: ${v.items}.${v.reply ? ' 회신: ' + v.reply + ' (회신서 양식도 아래에 붙여 줘).' : ''} 인사말-안내-세부 일정 표-준비물-문의 순서로.` },
     { icon: '🗓', label: '주간학습안내', type: 'admin', fields: [['week', '기간', '11월 17일~21일'], ['grade', '학년', '5학년'], ['plan', '요일별 주요 활동 (아는 만큼)', '월: 국어 토론 / 수: 과학 실험 / 금: 현장체험학습', 1], ['notice', '알림 사항', '수요일 방과후 휴강']],
       make: (v) => `${v.grade} 주간학습안내(${v.week})를 써 줘. 요일별 활동: ${v.plan}. 알림: ${v.notice}. 요일×교시 표와 주간 알림, 가정 협조 사항으로 구성하고 모르는 칸은 [ ]로 비워 줘.` },
-    { icon: '📝', label: '생기부 문장', type: 'record', fields: [['area', '영역', '행동특성 및 종합의견'], ['who', '학생 (명단 이름 그대로)', '김민준'], ['facts', '관찰한 사실', '모둠 활동에서 친구들 의견 정리, 학급 텃밭 물 주기 꾸준히', 1], ['len', '분량', '300자 내외']],
+    { icon: '📝', label: '생기부 문장', personal: true, type: 'record', fields: [['area', '영역', '행동특성 및 종합의견'], ['who', '학생 (명단 이름 그대로)', '김민준'], ['facts', '관찰한 사실', '모둠 활동에서 친구들 의견 정리, 학급 텃밭 물 주기 꾸준히', 1], ['len', '분량', '300자 내외']],
       make: (v) => `${v.who} 학생의 생활기록부 "${v.area}" 문장을 써 줘. 관찰 사실: ${v.facts}. 분량 ${v.len}. 관찰 근거가 드러나게, 과장 없이, 기재 요령에 맞는 문체(~함, ~임)로 2가지 버전.` },
-    { icon: '🗣', label: '상담 기록', type: 'record', fields: [['who', '대상', '김민준 학부모'], ['when', '일시·방법', '11월 12일 전화 상담'], ['talk', '나눈 이야기 (메모 그대로)', '교우관계 걱정, 집에서는 밝음, 다음 주 다시 연락', 1]],
+    { icon: '🗣', label: '상담 기록', personal: true, type: 'record', fields: [['who', '대상', '김민준 학부모'], ['when', '일시·방법', '11월 12일 전화 상담'], ['talk', '나눈 이야기 (메모 그대로)', '교우관계 걱정, 집에서는 밝음, 다음 주 다시 연락', 1]],
       make: (v) => `상담 기록을 정리해 줘. 대상: ${v.who}. 일시·방법: ${v.when}. 메모: ${v.talk}. 상담 내용-교사 의견-후속 조치 표로, 객관적 사실 중심.` },
     { icon: '📚', label: '수업 지도안', type: 'lesson', fields: [['subject', '학년·과목', '5학년 과학'], ['unit', '단원·차시', '생물과 환경 3/10차시'], ['goal', '학습 목표', '갯벌 생물이 사는 환경을 설명할 수 있다'], ['idea', '하고 싶은 활동 (선택)', '거제 갯벌 사진 탐구', 1]],
       make: (v) => `${v.subject} ${v.unit} 40분 수업 지도안을 써 줘. 학습 목표: ${v.goal}.${v.idea ? ' 활동 아이디어: ' + v.idea + '.' : ''} 도입-전개-정리 표(시간, 교사 발문, 학생 활동, 자료·유의점)와 평가 계획 포함.` },
@@ -1430,22 +1504,25 @@ const TEMPLATES = {
   ],
 };
 function renderTemplates() {
-  const list = TEMPLATES[currentTeam];
-  $('tplBar').innerHTML = list.map((t, i) => `<button class="chip" data-i="${i}">${t.icon} ${t.label}</button>`).join('');
-  $('tplBar').querySelectorAll('button').forEach((b) => (b.onclick = () => openTemplate(list[b.dataset.i])));
+  const list = [...TEMPLATES[currentTeam].filter((t) => !t.personal || personalOn()), ...customTemplates(currentTeam)];
+  $('tplBar').innerHTML = list.map((t, i) => `<button class="chip" data-i="${i}">${t.icon} ${esc(t.label)}</button>`).join('') + '<button class="chip" id="addTpl" title="지금 요청 내용을 버튼으로 저장">＋ 내 버튼</button>';
+  $('addTpl').onclick = addMyButton;
+  $('tplBar').querySelectorAll('button[data-i]').forEach((b) => (b.onclick = () => openTemplate(list[b.dataset.i])));
   $('tplForm').style.display = 'none';
 }
 function openTemplate(t) {
   const f = $('tplForm'); f.style.display = 'block';
   f.innerHTML = `<div class="resTitle" style="margin-top:0;color:#fff;font-weight:800">${t.icon} ${t.label} — 아는 칸만 채우세요</div>` +
     t.fields.map(([k, label, ph, multi]) => `<label>${label}</label>${multi ? `<textarea data-k="${k}" rows="2" placeholder="${esc(ph)}"></textarea>` : `<input data-k="${k}" placeholder="${esc(ph)}">`}`).join('') +
-    `<div class="row" style="margin-top:8px"><button id="tplGo">바로 시작</button><button id="tplFill" class="ghost">요청문만 만들기</button><button id="tplX" class="ghost fit">닫기</button></div>`;
+    (t.fields.length ? '' : `<div class="note" style="margin-top:0">${esc(t.make({}).slice(0, 160))}</div>`) +
+    `<div class="row" style="margin-top:8px"><button id="tplGo">바로 시작</button><button id="tplFill" class="ghost">요청문만 만들기</button>${t.custom != null ? '<button id="tplDel" class="danger fit">🗑</button>' : ''}<button id="tplX" class="ghost fit">닫기</button></div>`;
+  if (t.custom != null) $('tplDel').onclick = () => { if (!confirm(`"${t.label}" 버튼을 지울까요?`)) return; const m = loadMyTpl(); m[currentTeam].splice(t.custom, 1); saveMyTpl(m); renderTemplates(); };
   const build = () => { const v = {}; f.querySelectorAll('[data-k]').forEach((el) => (v[el.dataset.k] = el.value.trim() || el.placeholder)); return t.make(v); };
   const fill = () => { $('topic').value = build(); if (t.type) $('eduType').value = t.type; syncButtons(); f.style.display = 'none'; };
   $('tplFill').onclick = () => { fill(); $('topic').focus(); };
   $('tplGo').onclick = () => { fill(); runJob(false); };
   $('tplX').onclick = () => (f.style.display = 'none');
-  f.querySelector('[data-k]').focus();
+  f.querySelector('[data-k]')?.focus();
 }
 
 // =====================================================================
@@ -1498,6 +1575,204 @@ async function sendIssue() {
 }
 
 // =====================================================================
+// 17. 실시간 작성 미리보기 · 원클릭 다듬기
+// =====================================================================
+let liveTimer = 0;
+function liveShow(job, a, t) {
+  if (job.team !== currentTeam) return;
+  if (!a) { $('liveBox').style.display = 'none'; return; }
+  const now = performance.now(); if (now - liveTimer < 120 && t.length > 20) return; liveTimer = now;
+  $('liveBox').style.display = 'block'; $('liveWho').textContent = `✏️ ${a.name} 작성 중… ${t.length.toLocaleString()}자`;
+  $('liveText').innerHTML = mdToHtml(job.masker.unmask(t.slice(-1800))); $('liveText').scrollTop = 1e6;
+}
+const REFINE = [['✂️ 더 짧게', '전체 분량을 절반 정도로 줄여 주세요. 핵심만 남기세요.'], ['📖 더 쉽게', '초등학생 학부모도 바로 이해하도록 쉬운 말로 바꿔 주세요.'], ['🙇 더 정중하게', '더 정중하고 공손한 표현으로 바꿔 주세요.'],
+  ['😊 더 따뜻하게', '딱딱하지 않게, 따뜻하고 친근한 말투로 바꿔 주세요.'], ['📋 표로 정리', '내용을 표 중심으로 다시 정리해 주세요.'], ['➕ 더 자세히', '빠진 세부 사항(일정, 준비물, 유의점 등)을 보충해 더 자세히 써 주세요.']];
+$('refineChips').innerHTML = REFINE.map(([l], i) => `<button class="chip" data-i="${i}">${l}</button>`).join('');
+$('refineChips').querySelectorAll('button').forEach((b) => (b.onclick = () => { $('reviseNote').value = REFINE[b.dataset.i][1]; startRevise(); }));
+
+// =====================================================================
+// 18. 자료 첨부 (PDF · HWPX · 텍스트)
+// =====================================================================
+let ATTACH = [];
+const toB64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); });
+async function readHwpx(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let e = u8.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('HWPX 형식이 아니에요');
+  const n = dv.getUint16(e + 10, true), out = []; let p = dv.getUint32(e + 16, true);
+  for (let i = 0; i < n; i++) {
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nlen)); p += 46 + nlen + xlen + clen;
+    if (!/^Contents\/section\d+\.xml$/.test(name)) continue;
+    const s0 = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true), data = u8.slice(s0, s0 + csize);
+    const xml = method === 0 ? new TextDecoder().decode(data) : await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+    out.push([name, xml]);
+  }
+  out.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+  const unesc = (t) => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  return out.map(([, x]) => x.split(/<\/hp:p>/).map((pp) => (pp.match(/<hp:t(?:\s[^>]*)?>[\s\S]*?<\/hp:t>/g) || []).map((t) => unesc(t.replace(/<[^>]+>/g, ''))).join('')).filter((l) => l.trim()).join('\n')).join('\n');
+}
+function renderAttach() {
+  $('attachList').innerHTML = ATTACH.map((a, i) => `<span class="chip" style="cursor:default">${a.kind === 'pdf' ? '📕' : '📄'} ${esc(a.name.slice(0, 22))} <b data-i="${i}" style="cursor:pointer;color:#ff7b7b">✕</b></span>`).join(' ');
+  $('attachList').querySelectorAll('b').forEach((b) => (b.onclick = () => { ATTACH.splice(b.dataset.i, 1); renderAttach(); }));
+}
+$('attachBtn').onclick = () => $('attachFile').click();
+$('attachFile').onchange = async (e) => {
+  for (const f of e.target.files) {
+    if (ATTACH.length >= 3) { alert('자료는 3개까지 첨부할 수 있어요.'); break; }
+    const ext = f.name.split('.').pop().toLowerCase();
+    try {
+      if (ext === 'hwp') { alert('HWP 파일은 한글에서 [다른 이름으로 저장 → HWPX 또는 PDF]로 바꿔서 올려 주세요.'); continue; }
+      if (ext === 'pdf') { if (f.size > 8e6) { alert('PDF는 8MB까지 올릴 수 있어요.'); continue; } ATTACH.push({ name: f.name, kind: 'pdf', mime: 'application/pdf', b64: await toB64(f) }); }
+      else if (ext === 'hwpx') ATTACH.push({ name: f.name, kind: 'text', text: await readHwpx(await f.arrayBuffer()) });
+      else ATTACH.push({ name: f.name, kind: 'text', text: await f.text() });
+      const last = ATTACH[ATTACH.length - 1];
+      if (last.kind === 'text' && !personalOn() && PERSONAL_RE.test(last.text) && !confirm(`"${f.name}"에 생기부·상담 기록 같은 학생 개인정보 관련 단어가 있어요. 그래도 첨부할까요?`)) ATTACH.pop();
+    } catch (err) { alert(`${f.name}: 읽지 못했어요 (${err.message})`); }
+  }
+  e.target.value = ''; renderAttach();
+};
+function takeAttach(masker) {
+  if (!ATTACH.length) return null;
+  const a = { names: ATTACH.map((x) => x.name), text: ATTACH.filter((x) => x.kind === 'text').map((x) => `### ${x.name}\n${masker.mask(x.text).slice(0, 30000)}`).join('\n\n'), pdfs: ATTACH.filter((x) => x.kind === 'pdf').map((x) => ({ mime: x.mime, b64: x.b64 })) };
+  ATTACH = []; renderAttach(); return a;
+}
+
+// =====================================================================
+// 19. 우리 학교 급식·학사일정 (나이스 공개 API) + 아침 브리핑
+// =====================================================================
+const ymd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+async function neis(path, params) {
+  const k = store.getL('eco_neiskey'), q = new URLSearchParams({ Type: 'json', pIndex: 1, pSize: 50, ...(k ? { KEY: k } : {}), ...params });
+  const r = await fetch(`https://open.neis.go.kr/hub/${path}?${q}`); if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json(), root = j[path];
+  if (!root) { if (j.RESULT?.CODE === 'INFO-200') return []; throw new Error(j.RESULT?.MESSAGE || '응답 없음'); }
+  return root[1]?.row || [];
+}
+const NEIS_FAIL = '나이스에 연결하지 못했어요. 학교 전산망이나 브라우저 정책 때문일 수 있어요. 급식·행사는 [할 일]에 직접 적어 두셔도 브리핑에 나와요.';
+$('schoolFind').onclick = async () => {
+  const q = $('schoolQ').value.trim(); if (!q) return; $('schoolStatus').textContent = '찾는 중…';
+  try {
+    const rows = await neis('schoolInfo', { SCHUL_NM: q });
+    if (!rows.length) return ($('schoolStatus').innerHTML = '<span class="warn">찾는 학교가 없어요. 이름을 다시 확인해 주세요.</span>');
+    $('schoolSel').innerHTML = '<option value="">학교를 고르세요</option>' + rows.map((r) => `<option value="${esc(r.ATPT_OFCDC_SC_CODE + '|' + r.SD_SCHUL_CODE + '|' + r.SCHUL_NM)}">${esc(r.SCHUL_NM)} (${esc(r.LCTN_SC_NM || r.ATPT_OFCDC_SC_NM || '')})</option>`).join('');
+    $('schoolSel').style.display = ''; $('schoolStatus').textContent = `${rows.length}곳을 찾았어요.`;
+  } catch (e) { $('schoolStatus').innerHTML = `<span class="err">${NEIS_FAIL}</span>`; }
+};
+$('schoolSel').onchange = async () => { if (!$('schoolSel').value) return; store.setL('eco_school', $('schoolSel').value); store.del('eco_schoolday'); $('schoolStatus').innerHTML = `<span class="ok">${esc($('schoolSel').value.split('|')[2])} 저장했어요.</span>`; try { await loadSchoolDay(true); } catch {} };
+$('neisKey').value = store.getL('eco_neiskey') || ''; $('neisKey').onchange = () => store.setL('eco_neiskey', $('neisKey').value.trim());
+if (store.getL('eco_school')) $('schoolStatus').textContent = '우리 학교: ' + store.getL('eco_school').split('|')[2];
+let schoolDay = null;
+async function loadSchoolDay(force) {
+  const sc = store.getL('eco_school'); if (!sc) return null;
+  const today = ymd(new Date()); try { const c = JSON.parse(store.getL('eco_schoolday') || 'null'); if (c && c.date === today && !force) return (schoolDay = c); } catch {}
+  const [atpt, sd] = sc.split('|'), to = new Date(Date.now() + 7 * 864e5);
+  const [meal, sched] = await Promise.allSettled([neis('mealServiceDietInfo', { ATPT_OFCDC_SC_CODE: atpt, SD_SCHUL_CODE: sd, MLSV_YMD: today }), neis('SchoolSchedule', { ATPT_OFCDC_SC_CODE: atpt, SD_SCHUL_CODE: sd, AA_FROM_YMD: today, AA_TO_YMD: ymd(to) })]);
+  if (meal.status === 'rejected' && sched.status === 'rejected') { $('schoolStatus').innerHTML = `<span class="err">${NEIS_FAIL}</span>`; throw meal.reason; }
+  schoolDay = { date: today,
+    meal: meal.status === 'fulfilled' ? meal.value.map((r) => ({ kind: r.MMEAL_SC_NM, dishes: r.DDISH_NM.split(/<br\s*\/?>/).map((d) => d.replace(/\s*\([\d.]+\)\s*/g, '').trim()).filter(Boolean) })) : [],
+    sched: sched.status === 'fulfilled' ? sched.value.filter((r) => r.EVENT_NM && r.EVENT_NM !== '토요휴업일').map((r) => ({ d: r.AA_YMD, name: r.EVENT_NM })) : [] };
+  store.setL('eco_schoolday', JSON.stringify(schoolDay)); updMealChip(); return schoolDay;
+}
+function updMealChip() { const m = schoolDay?.meal?.[0]; $('mealChip').style.display = m ? '' : 'none'; if (m) { $('mealChip').textContent = '🍚 ' + m.dishes.slice(0, 2).join(', '); $('mealChip').title = m.dishes.join(', '); } }
+const parseAt = (at) => { const m = String(at || '').match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})/); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; };
+async function showBriefing() {
+  try { await loadSchoolDay(); } catch {}
+  const d = new Date(), wd = '일월화수목금토'[d.getDay()], todos = getTodos(), open = todos.filter((t) => !t.startsWith('✓'));
+  const since = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1), recent = loadHist().filter((h) => !h.demo && (parseAt(h.at) || 0) >= since).slice(0, 6);
+  const waiting = Object.values(jobs).filter((j) => j && j.waiting);
+  let md = `# ☀️ ${d.getMonth() + 1}월 ${d.getDate()}일 (${wd}) 브리핑\n\n## 📋 오늘 할 일 (${open.length})\n` + (open.length ? open.map((t) => '- ' + t).join('\n') : '- 비어 있어요. [할 일] 탭에 적어 두면 여기와 화이트보드에 나와요.');
+  if (waiting.length) md += `\n\n## 🔔 선생님 확인을 기다리는 작업\n` + waiting.map((j) => `- ${j.team === 'edu' ? '교무팀' : '바이브코딩팀'}: ${j.topic}`).join('\n');
+  if (schoolDay?.meal?.length) md += `\n\n## 🍚 오늘 급식\n` + schoolDay.meal.map((m) => `- **${m.kind}**: ${m.dishes.join(', ')}`).join('\n');
+  if (schoolDay?.sched?.length) md += `\n\n## 🗓 이번 주 학사일정\n| 날짜 | 행사 |\n|---|---|\n` + schoolDay.sched.slice(0, 8).map((s) => `| ${+s.d.slice(4, 6)}/${+s.d.slice(6)} | ${s.name} |`).join('\n');
+  if (recent.length) md += `\n\n## ✅ 어제·오늘 끝낸 작업\n` + recent.map((h) => `- ${h.team === 'edu' ? '🏫' : '💻'} ${h.topic.slice(0, 40)}`).join('\n');
+  const st = dashData?.status; if (st) md += `\n\n## 💻 생태몬스터 개발\n- 진행률 **${st.progress ?? '—'}%**${st.note ? ' · ' + st.note : ''}\n` + (st.tasks || []).filter((t) => t.state === 'doing').map((t) => `- 진행 중: ${t.title}`).join('\n');
+  if (!store.getL('eco_school')) md += `\n\n> 💡 [할 일] 탭에서 우리 학교를 등록하면 급식과 학사일정도 보여 드려요.`;
+  openViewer({ who: agents.haram.name, sub: '아침 브리핑', md });
+  const h = agents.haram; h.busy = true; goTo(h, 12, 11); say(h, '좋은 아침이에요! ☀️', 5000); setTimeout(() => (h.busy = false), 7000);
+  store.setL('eco_brief_date', d.toDateString());
+}
+$('briefBtn').onclick = $('briefPill').onclick = showBriefing;
+$('briefAuto').checked = store.getL('eco_brief_auto') !== '0'; $('briefAuto').onchange = () => store.setL('eco_brief_auto', $('briefAuto').checked ? '1' : '0');
+
+// =====================================================================
+// 20. 내 버튼 (사용자 템플릿) · 내 말투
+// =====================================================================
+const loadMyTpl = () => { try { return JSON.parse(store.getL('eco_mytpl') || '{"edu":[],"vibe":[]}'); } catch { return { edu: [], vibe: [] }; } };
+const saveMyTpl = (m) => store.setL('eco_mytpl', JSON.stringify(m));
+function customTemplates(team) {
+  return (loadMyTpl()[team] || []).map((c, idx) => {
+    const keys = [...new Set((c.text.match(/\{([^{}]{1,20})\}/g) || []).map((k) => k.slice(1, -1)))];
+    return { icon: '⭐', label: c.label, type: c.type, custom: idx, fields: keys.map((k) => [k, k, '']), make: (v) => c.text.replace(/\{([^{}]{1,20})\}/g, (_, k) => v[k] || k) };
+  });
+}
+function addMyButton() {
+  const text = $('topic').value.trim();
+  if (!text) return alert('먼저 [요청 내용]에 자주 쓰는 요청을 적어 주세요.\n{날짜}, {장소}처럼 중괄호로 감싼 말은 버튼을 누를 때 빈칸으로 물어봐요.');
+  const label = prompt('버튼 이름을 정해 주세요 (예: 주간 알림장)', text.slice(0, 10)); if (!label) return;
+  const m = loadMyTpl(); (m[currentTeam] = m[currentTeam] || []).push({ label: label.slice(0, 14), text, type: currentTeam === 'edu' && $('eduType').value !== 'auto' ? $('eduType').value : null });
+  saveMyTpl(m); renderTemplates(); toast(`⭐ "${label}" 버튼을 만들었어요`, null);
+}
+$('expTpl').onclick = () => download('AI오피스_내버튼.json', JSON.stringify({ app: 'ai-office-buttons', v: 1, buttons: loadMyTpl() }, null, 1), 'application/json');
+$('impTpl').onclick = () => $('impTplFile').click();
+$('impTplFile').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { const d = JSON.parse(await f.text()); if (d.app !== 'ai-office-buttons') throw 0; const m = loadMyTpl(); let n = 0;
+    for (const t of ['edu', 'vibe']) for (const b of d.buttons[t] || []) if (!(m[t] = m[t] || []).some((x) => x.label === b.label && x.text === b.text)) { m[t].push(b); n++; }
+    saveMyTpl(m); renderTemplates(); alert(`버튼 ${n}개를 불러왔어요.`);
+  } catch { alert('AI 오피스 버튼 파일이 아니에요.'); }
+  e.target.value = '';
+};
+
+// =====================================================================
+// 21. 처음 쓰는 분 안내 (3단계)
+// =====================================================================
+let wzStep = 0;
+const WZ = [
+  { t: '어서 오세요! 👋', s: 'AI 오피스 시작하기 1/4', body: () => `<p><b>AI 오피스</b>에는 두 팀이 있어요.</p><ul><li>🏫 <b>교무팀</b> — 알림장, 가정통신문, 수업 지도안, 공문·계획서를 함께 써요.</li><li>💻 <b>바이브코딩팀</b> — 생태몬스터 아이디어를 정리하고 Claude Code에 넘겨요.</li></ul><p>3가지만 정하면 바로 쓸 수 있어요. (언제든 바꿀 수 있어요)</p><blockquote>🔒 학생 이름·개인정보는 넣지 않는 걸 원칙으로 해요. 생기부·상담 기록 업무는 꺼져 있어요.</blockquote>` },
+  { t: 'Gemini API 키', s: '2/4 — 키는 이 브라우저에만 저장돼요', body: () => `<p>Google AI Studio에서 받은 키를 넣어 주세요. 없으면 <b>건너뛰기</b>를 눌러 시연으로 둘러볼 수 있어요.</p><input id="wzKey" type="password" placeholder="AIza..." value="${esc(getKey())}" style="width:100%;padding:10px;font-size:15px;border:1px solid #bbb;border-radius:8px"><p class="note" style="color:#666">무료 키는 입력한 내용이 구글 서비스 개선에 쓰일 수 있어요. 개인정보는 넣지 마세요.</p>` },
+  { t: '선생님 정보', s: '3/4 — 교무팀이 이걸 보고 맞춰 써요', body: () => `<label>담당 학년·반</label><input id="wzGrade" placeholder="예: 5학년 3반 (학생 25명)" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px"><label>담당 과목·업무</label><input id="wzWork" placeholder="예: 담임, 정보 업무 담당" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px"><label>지역·학교 특색</label><input id="wzLocal" placeholder="예: 거제, 바다 생태교육" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px"><label>학부모 안내 말투</label><select id="wzTone" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px"><option>정중하고 따뜻한 존댓말</option><option>간결하고 깔끔한 존댓말</option><option>친근하고 부드러운 말투</option></select>` },
+  { t: '내 말투 (선택)', s: '4/4 — 예전에 쓴 글을 붙여 넣으면 그 말투로 써요', body: () => `<p>예전에 쓴 알림장이나 가정통신문을 2~3개 붙여 넣어 주세요. <b>학생 이름은 지우고</b> 넣어 주세요.</p><textarea id="wzStyle" rows="8" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:8px" placeholder="예) 안녕하세요, 5학년 3반 담임입니다. 내일은...">${esc(store.getL('eco_style') || '')}</textarea>` },
+];
+function wzShow() {
+  const w = WZ[wzStep]; $('wzTitle').textContent = w.t; $('wzSub').textContent = w.s; $('wzBody').innerHTML = w.body();
+  $('wzAv').src = AVATAR[agents.haram.name]; $('wzBack').style.visibility = wzStep ? 'visible' : 'hidden';
+  $('wzNext').textContent = wzStep === WZ.length - 1 ? '시작하기 🎉' : '다음'; $('wizard').classList.add('show');
+}
+function wzSave() {
+  if (wzStep === 1) { const k = $('wzKey').value.trim(); if (k) { $('keyIn').value = k; $('remember').checked = true; $('saveKey').click(); } }
+  if (wzStep === 2) {
+    const g = $('wzGrade').value.trim(), w = $('wzWork').value.trim(), l = $('wzLocal').value.trim(), tone = $('wzTone').value;
+    let c = getCtx('edu');
+    if (g) c = c.replace(/- 담당 학년\/반:.*$/m, '- 담당 학년/반: ' + g); if (w) c = c.replace(/- 담당 과목\/업무:.*$/m, '- 담당 과목/업무: ' + w);
+    if (l) c = c.replace(/- 지역\/학교 특색:.*$/m, '- 지역/학교 특색: ' + l); c = c.replace(/학부모 안내는 [^\n]*/, '학부모 안내는 ' + tone);
+    store.setL('eco_ctx_edu', c);
+  }
+  if (wzStep === 3) { const t = $('wzStyle').value.trim(); if (t) store.setL('eco_style', t); }
+}
+function wzClose() { $('wizard').classList.remove('show'); store.setL('eco_onboarded', '1'); showCtx(ctxTeam); }
+$('wzNext').onclick = () => { wzSave(); if (wzStep < WZ.length - 1) { wzStep++; wzShow(); } else { wzClose(); $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work'); toast('준비 끝! 아래 버튼으로 첫 업무를 맡겨 보세요 📒', null); } };
+$('wzSkip').onclick = () => { if (wzStep < WZ.length - 1) { wzStep++; wzShow(); } else wzClose(); };
+$('wzBack').onclick = () => { if (wzStep) { wzStep--; wzShow(); } };
+$('wzX').onclick = wzClose;
+$('wzAgain').onclick = () => { wzStep = 0; wzShow(); };
+
+// =====================================================================
+// 22. 앱 설치 (PWA) · 공유하기로 받기
+// =====================================================================
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+let installEvt = null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; $('installPill').style.display = ''; });
+$('installPill').onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('installPill').style.display = 'none'; };
+(() => { // 다른 앱에서 [공유 → AI 오피스]로 보낸 글
+  const q = new URLSearchParams(location.search), shared = [q.get('title'), q.get('text'), q.get('url')].filter(Boolean).join('\n');
+  if (!shared) return;
+  history.replaceState(null, '', location.pathname);
+  $('topic').value = shared; $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('work');
+  toast('📥 공유받은 글을 요청 칸에 넣었어요. 무엇을 할지 덧붙여 주세요', () => $('topic').focus());
+})();
+
+// =====================================================================
 // 13. UI 연결
 // =====================================================================
 function showTab(v) { document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === v)); document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v)); }
@@ -1508,14 +1783,15 @@ function setTeam(team) {
   $('eduOpts').style.display = team === 'edu' ? '' : 'none'; $('vibeOpts').style.display = team === 'vibe' ? '' : 'none';
   $('topic').placeholder = team === 'edu' ? '예: 다음 주 금요일 현장체험학습(거제 해양생태관) 학부모 안내 문자 써 줘' : '예: 거제도 지역 몬스터 아이디어 10개 (학동 몽돌해변, 동백섬, 갯벌)';
   const n = getRoster().length;
-  $('teamNote').innerHTML = team === 'edu' ? (n ? `🔒 학생 명단 ${n}명을 가려서 보내요. 결과는 실명으로 돌려 보여 줘요.` : '🔒 [맥락 → 학생 명단]에 우리 반 이름을 넣어 두면, 보내기 전에 자동으로 학생A·학생B로 가려요.') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
+  $('teamNote').innerHTML = team === 'edu' ? (personalOn() && n ? `🔒 학생 명단 ${n}명을 가려서 보내요.` : '🔒 학생 이름·개인정보는 넣지 마세요. (생기부·상담 기록 업무는 꺼져 있어요)') + '<br>다른 팀이 일하는 중에도 요청할 수 있어요.' : '실제 코드 작업은 Claude Code가 해요. 여기서는 아이디어를 정리해 Claude Code에 넘길 지시문까지 만들어요.<br>다른 팀이 일하는 중에도 요청할 수 있어요.';
   syncButtons(); refreshGate();
   renderTemplates();
   const r = lastResult[team]; if (r) { shownResult = r; $('result').innerHTML = mdToHtml(r.final); $('result').classList.add('show'); $('resultBtns').style.display = 'flex'; resExtras(r); $('resTitle').style.display = 'block'; $('resTitle').textContent = `📌 ${team === 'edu' ? '교무팀' : '바이브코딩팀'} 최근 결과${r.demo ? ' (시연)' : ''} · ${r.topic.slice(0, 30)} · ${r.at || ''}`; }
   else { $('result').classList.remove('show'); $('resultBtns').style.display = 'none'; $('resTitle').style.display = 'none'; resExtras(null); }
 }
 document.querySelectorAll('[data-team]').forEach((b) => (b.onclick = () => setTeam(b.dataset.team)));
-$('eduType').innerHTML = '<option value="auto">업무 자동 분류 (비서가 배정)</option>' + EDU_TYPES.map((t) => `<option value="${t.id}">${t.label} — ${AGENT_DEF[t.lead].name}</option>`).join('');
+const buildTypeOptions = () => $('eduType').innerHTML = '<option value="auto">업무 자동 분류 (비서가 배정)</option>' + activeTypes().map((t) => `<option value="${t.id}">${t.label} — ${AGENT_DEF[t.lead].name}</option>`).join('');
+buildTypeOptions();
 
 // API 키
 $('keyIn').value = getKey(); fillModelSelects(); refreshModels(true); $('remember').checked = !!store.getL('eco_key');
@@ -1543,15 +1819,26 @@ function showCtx(team) {
   const roster = team === 'roster';
   $('ctxBox').style.display = roster ? 'none' : ''; $('rosterArea').style.display = roster ? '' : 'none'; $('resetCtx').style.display = roster ? 'none' : '';
   if (roster) { $('rosterBox').value = store.getL('eco_roster') || ''; $('rosterGiven').checked = store.getL('eco_roster_given') !== '0'; $('ctxHelp').textContent = '우리 반 학생 이름 (실명은 Google로 보내지 않아요)'; }
+  else if (team === 'style') { $('ctxBox').value = store.getL('eco_style') || ''; $('ctxBox').placeholder = '예전에 쓴 알림장·가정통신문 2~3개를 붙여 넣으세요 (학생 이름은 지우고)'; $('ctxHelp').textContent = '교무팀이 이 글의 말투·문장 길이·형식을 따라 써요. 내용은 따라 하지 않아요.'; }
   else { $('ctxBox').value = getCtx(team); $('ctxHelp').textContent = team === 'edu' ? '교무팀 5명이 이 내용을 읽고 일해요. 학년·과목·문체를 채워 주세요 (학생 실명은 넣지 마세요).' : '바이브코딩팀 4명이 이 내용을 읽고 일해요.'; }
   $('ctxStatus').textContent = '';
 }
 document.querySelectorAll('[data-ctx]').forEach((b) => (b.onclick = () => showCtx(b.dataset.ctx)));
 $('saveCtx').onclick = () => {
   if (ctxTeam === 'roster') { store.setL('eco_roster', $('rosterBox').value); store.setL('eco_roster_given', $('rosterGiven').checked ? '1' : '0'); $('ctxStatus').innerHTML = `<span class="ok">명단 ${getRoster().length}명 저장했어요 (이 브라우저에만).</span>`; setTeam(currentTeam); }
+  else if (ctxTeam === 'style') { store.setL('eco_style', $('ctxBox').value.trim()); $('ctxStatus').innerHTML = '<span class="ok">내 말투 예시를 저장했어요. 교무팀이 이 말투로 써요.</span>'; }
   else { store.setL('eco_ctx_' + ctxTeam, $('ctxBox').value); $('ctxStatus').innerHTML = '<span class="ok">저장됐어요. 다음 작업부터 반영돼요.</span>'; }
 };
-$('resetCtx').onclick = () => { $('ctxBox').value = DEFAULT_CTX[ctxTeam]; };
+$('resetCtx').onclick = () => { $('ctxBox').value = ctxTeam === 'style' ? '' : DEFAULT_CTX[ctxTeam]; };
+function applyPersonal() {
+  const on = personalOn(); $('personalOn').checked = on; $('rosterTabBtn').style.display = on ? '' : 'none';
+  AGENT_DEF.sua.title = agents.sua.title = on ? '학부모 소통·기록' : '학부모 소통';
+  if (!on && ctxTeam === 'roster') showCtx('edu'); buildTypeOptions(); renderTemplates(); setTeam(currentTeam);
+}
+$('personalOn').onchange = () => {
+  if ($('personalOn').checked && !confirm('학생 개인정보가 들어가는 업무를 다시 켤까요?\n무료 Gemini 키는 입력 내용이 구글 서비스 개선에 쓰일 수 있어요.')) { $('personalOn').checked = false; return; }
+  store.setL('eco_personal', $('personalOn').checked ? '1' : '0'); applyPersonal();
+};
 
 // 현황
 $('repoIn').value = store.getL('eco_repo') || ''; $('ghToken').value = store.getL('eco_ghtoken') || '';
@@ -1579,7 +1866,8 @@ $('gatePill').onclick = () => { const t = jobs.edu?.waiting ? 'edu' : 'vibe'; se
 $('donePill').onclick = () => { $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('hist'); };
 $('reviseGo').onclick = startRevise; $('reviseNote').onkeydown = (e) => { if (e.key === 'Enter') startRevise(); }; $('issueGo').onclick = sendIssue;
 $('retry').onclick = () => { const j = failedJob[currentTeam]; if (!j) return; failedJob[currentTeam] = null; logLine('시스템', null, '끝난 단계는 건너뛰고 이어서 다시 시도해요.'); execute(j); };
-['eduType', 'eduMode', 'gate'].forEach((id) => ($(id).onchange = syncButtons)); $('topic').addEventListener('input', () => { clearTimeout(window._est); window._est = setTimeout(syncButtons, 300); });
+['eduType', 'eduMode', 'gate', 'combineRev'].forEach((id) => ($(id).onchange = syncButtons));
+$('combineRev').checked = store.getL('eco_combine') !== '0'; $('combineRev').addEventListener('change', () => store.setL('eco_combine', $('combineRev').checked ? '1' : '0')); $('topic').addEventListener('input', () => { clearTimeout(window._est); window._est = setTimeout(syncButtons, 300); });
 $('gate').checked = store.getL('eco_gate') === '1'; $('gate').addEventListener('change', () => store.setL('eco_gate', $('gate').checked ? '1' : '0'));
 // 할 일 (교무기획실 화이트보드)
 const getTodos = () => (store.getL('eco_todo') || '').split('\n').map((s) => s.trim()).filter(Boolean);
@@ -1588,10 +1876,12 @@ $('saveTodo').onclick = () => { store.setL('eco_todo', $('todoBox').value); $('t
 $('pullTodo').onclick = () => { const r = lastResult.edu; if (!r) return ($('todoStatus').innerHTML = '<span class="warn">아직 교무팀 결과가 없어요.</span>');
   const items = r.final.split('\n').map((l) => l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/)).filter(Boolean).map((m) => m[1].replace(/\*\*/g, '').trim()).slice(0, 12);
   $('todoBox').value = [...getTodos(), ...items].join('\n'); $('saveTodo').click(); };
-setTeam('edu'); showCtx('edu'); refreshMode(); renderHist(); counts(); refreshGate();
+setTeam('edu'); showCtx('edu'); applyPersonal(); refreshMode(); renderHist(); counts(); refreshGate();
 if (store.getL('eco_model') === 'gemini-2.5-flash') store.setL('eco_model', DEFAULT_MODEL), fillModelSelects();
 if (store.getL('eco_repo')) loadDash();
-if (!getKey() && !loadHist().length) { $('ctrl').classList.remove('hide'); $('openCtrl').textContent = '✕ 닫기'; showTab('key'); }
+try { schoolDay = JSON.parse(store.getL('eco_schoolday') || 'null'); if (schoolDay && schoolDay.date !== ymd(new Date())) schoolDay = null; } catch {} updMealChip();
+if (!store.getL('eco_onboarded')) setTimeout(wzShow, 600);
+else if (store.getL('eco_brief_auto') !== '0' && store.getL('eco_brief_date') !== new Date().toDateString()) setTimeout(showBriefing, 1500);
 resumeSaved();
 </script>
 </body>
