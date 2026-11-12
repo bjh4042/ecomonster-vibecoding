@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>생태몬스터 바이브코딩 부서</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #241b33; color: #eee; font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; overflow: hidden; }
+  canvas { display: block; image-rendering: pixelated; }
+  .panel { position: absolute; background: rgba(20,24,40,.88); border: 1px solid #3b4466; border-radius: 12px; padding: 14px; }
+  #hud { top: 16px; left: 16px; width: 300px; }
+  #hud h1 { margin: 0 0 2px; font-size: 18px; } #hud small { color: #9aa; }
+  .brand { color: #c8ff2e; font-weight: 800; letter-spacing: 2px; font-size: 11px; }
+  .bar { height: 14px; background: #111827; border-radius: 7px; margin: 10px 0 6px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: repeating-linear-gradient(90deg,#c8ff2e 0 18px,#a6d61f 18px 22px); transition: width .6s; }
+  .pct { font-size: 32px; font-weight: 900; color: #c8ff2e; float: right; margin-top: -4px; }
+  .chips span { display: inline-block; margin-right: 10px; font-size: 12px; }
+  #ctrl { top: 16px; right: 16px; width: 340px; }
+  #ctrl textarea { resize: vertical; font-family: inherit; width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #3b4466; background: #0f1424; color: #fff; }
+  #ctrl input { width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #3b4466; background: #0f1424; color: #fff; }
+  #ctrl button { margin-top: 8px; width: 100%; padding: 10px; border: 0; border-radius: 8px; background: #c8ff2e; color: #111; font-weight: 800; cursor: pointer; }
+  #ctrl button:disabled { opacity: .5; cursor: default; }
+  #result { margin-top: 10px; max-height: 52vh; overflow: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.5; color: #dde; }
+  #log { bottom: 16px; left: 16px; width: 330px; max-height: 40vh; overflow: auto; }
+  .msg { margin-bottom: 10px; } .msg .who { font-size: 12px; font-weight: 700; } .msg .who b { color: #c8ff2e; }
+  .msg .txt { background: #f4f4f4; color: #111; border-radius: 10px; padding: 7px 10px; margin-top: 4px; font-size: 13px; }
+  .msg .tm { float: right; color: #889; font-size: 11px; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #ff9f43; color: #111; font-weight: 700; margin-left: 6px; }
+  .err { color: #ff7b7b; }
+
+  .tabs { display:flex; gap:6px; margin-bottom:10px; }
+  #ctrl .tabs button { flex:1; margin:0; padding:7px; background:#1d2440; color:#ccd; font-weight:700; border:1px solid #3b4466; }
+  #ctrl .tabs button.on { background:#c8ff2e; color:#111; }
+  .view { display:none; } .view.on { display:block; }
+  label { display:block; font-size:12px; color:#aab; margin:10px 0 4px; }
+  .row { display:flex; gap:6px; } .row button { margin-top:0 !important; }
+  #ctrl .tabs button { margin-top:0; }
+  .ghost { background:#2a3352 !important; color:#eee !important; }
+  .danger { background:#ff6b6b !important; color:#111 !important; }
+  .note { font-size:12px; color:#9aa; line-height:1.5; margin-top:8px; }
+  .ok { color:#c8ff2e; } .warn { color:#ffb020; }
+  #ctxBox { min-height: 260px; font-size:12px; }
+  .hist { border-top:1px solid #333b5a; padding:8px 0; font-size:13px; }
+  .hist button { width:auto !important; padding:4px 10px !important; margin:4px 6px 0 0 !important; font-size:12px; }
+  @media (max-width: 820px) {
+    #hud { right: 16px; width: auto; padding: 10px; } #hud h1 { font-size: 15px; } .pct { font-size: 22px; }
+    #ctrl { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 48vh; overflow: auto; }
+    #log { display: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="panel">
+  <div class="brand">ECOMONSTER STUDIO</div>
+  <h1>바이브코딩 부서 <span id="mode"></span></h1>
+  <small id="topicLbl">대기 중</small>
+  <div style="margin-top:10px"><small>전체 공정률</small><span class="pct" id="pct">0%</span></div>
+  <div class="bar"><div id="barFill"></div></div>
+  <div class="chips"><span id="cWork">■ 일하는 중 0</span><span id="cIdle">■ 대기 4</span></div>
+</div>
+
+<div id="ctrl" class="panel">
+  <div class="tabs">
+    <button data-v="work" class="on">작업</button><button data-v="key">API 키</button><button data-v="ctx">맥락</button><button data-v="hist">기록</button>
+  </div>
+
+  <div class="view on" id="v-work">
+    <small>개발 요청을 적으면 기획 → 개발 → QA → 리뷰 → 수정 순서로 처리해요</small>
+    <textarea id="topic" rows="3" placeholder="예: 배틀 화면 HP바가 줄어드는 애니메이션 추가 (원작처럼 초록→노랑→빨강)"></textarea>
+    <button id="go">작업 시작 (Ctrl+Enter)</button>
+    <div id="result"></div>
+  </div>
+
+  <div class="view" id="v-key">
+    <label>Gemini API 키</label>
+    <div class="row"><input id="keyIn" type="password" autocomplete="off" placeholder="AIza..." /><button id="eye" class="ghost" style="width:52px">보기</button></div>
+    <label>모델 이름</label>
+    <input id="modelIn" placeholder="gemini-2.5-flash" />
+    <label><input type="checkbox" id="remember" style="width:auto"> 이 기기에 저장 (체크 안 하면 탭을 닫을 때 지워짐)</label>
+    <div class="row"><button id="saveKey">저장</button><button id="testKey" class="ghost">연결 테스트</button><button id="delKey" class="danger">삭제</button></div>
+    <div id="keyStatus" class="note"></div>
+    <div class="note">🔒 키는 <b>이 브라우저에만</b> 저장되고, Google 서버로만 직접 전송돼요. 이 사이트의 코드나 GitHub에는 들어가지 않아요.<br>
+    공용 PC에서는 "이 기기에 저장"을 끄고, 다 쓰면 [삭제]를 누르세요.</div>
+  </div>
+
+  <div class="view" id="v-ctx">
+    <small>모든 에이전트가 이 내용을 읽고 일해요. 폴더 구조와 규칙을 채워 주세요.</small>
+    <textarea id="ctxBox"></textarea>
+    <div class="row"><button id="saveCtx">맥락 저장</button><button id="resetCtx" class="ghost">기본값으로</button></div>
+    <div id="ctxStatus" class="note"></div>
+  </div>
+
+  <div class="view" id="v-hist"><small>이 브라우저에 저장된 작업 기록 (최근 20개)</small><div id="histList"></div></div>
+</div>
+
+<div id="log" class="panel"><small>대화 기록</small><div id="logList"></div></div>
+
+<script>
+// ================= 아이소메트릭 기본 =================
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const TW = 44, TH = 22;            // 타일 크기
+let OX = 0, OY = 0, S = 1;
+function resize() {
+  cv.width = innerWidth; cv.height = innerHeight;
+  S = Math.min(1, innerWidth / 1050, innerHeight / 720);
+  const mobile = innerWidth <= 820;
+  OX = innerWidth / 2 / S;
+  OY = mobile ? 250 / S : (innerHeight / 2) / S - 170;
+  g.imageSmoothingEnabled = false;
+}
+addEventListener('resize', resize); resize();
+const iso = (x, y, z = 0) => [OX + (x - y) * TW / 2, OY + (x + y) * TH / 2 - z];
+
+function poly(pts, fill, stroke) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); if (stroke) { g.strokeStyle = stroke; g.stroke(); } }
+function shade(hex, k) { const n = parseInt(hex.slice(1), 16); const f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; }
+// 직육면체 (x,y 타일 좌표, w,d 크기, h 높이px)
+function box(x, y, w, d, h, col, z = 0) {
+  const a = iso(x, y, z + h), b = iso(x + w, y, z + h), c = iso(x + w, y + d, z + h), dd = iso(x, y + d, z + h);
+  const b0 = iso(x + w, y, z), c0 = iso(x + w, y + d, z), d0 = iso(x, y + d, z);
+  poly([dd, c, c0, d0], shade(col, .72));
+  poly([c, b, b0, c0], shade(col, .55));
+  poly([a, b, c, dd], col);
+}
+
+// ================= 사무실 레이아웃 =================
+const W = 22, H = 16;
+const ROOMS = {
+  plan:     { x: 0,  y: 0, w: 7,  h: 7, col: '#c9a27a', label: '기획실',   lc: '#ffb020' },
+  dev:      { x: 7,  y: 0, w: 7,  h: 7, col: '#b98e66', label: '개발실',   lc: '#4fc3f7' },
+  qa:       { x: 14, y: 0, w: 8,  h: 7, col: '#d8b48a', label: 'QA실',     lc: '#c8ff2e' },
+  review:   { x: 0,  y: 9, w: 9,  h: 7, col: '#a8784f', label: '코드 리뷰실', lc: '#ff6b6b' },
+  lounge:   { x: 11, y: 9, w: 11, h: 7, col: '#b07a4a', label: '휴게실',   lc: '#ffd166' },
+};
+const DESKS = { plan: [3, 3], dev: [10, 3], qa: [17.5, 3], review: [4, 12] };
+
+function drawOffice(t) {
+  // 섬(잔디 받침)
+  box(-1.5, -1.5, W + 3, H + 3, 18, '#8fae4c', -18);
+  // 복도 바닥
+  for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
+    const p = [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
+    poly(p, (x + y) % 2 ? '#9c6b42' : '#a3724a');
+  }
+  // 방 바닥
+  for (const r of Object.values(ROOMS)) for (let x = r.x; x < r.x + r.w; x++) for (let y = r.y; y < r.y + r.h; y++) {
+    poly([iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)], (x + y) % 2 ? r.col : shade(r.col, .93));
+  }
+  // 뒷벽
+  for (let x = 0; x < W; x++) box(x, -0.4, 1, 0.4, 70, '#efe0c4');
+  for (let y = 0; y < H; y++) box(-0.4, y, 0.4, 1, 70, '#e6d3b3');
+  // 낮은 칸막이
+  for (let x = 0; x < W; x++) if (x !== 3 && x !== 10 && x !== 17) box(x, 7, 1, 0.3, 14, '#f0e6d6');
+  for (let y = 0; y < 7; y++) if (y !== 4) { box(7, y, 0.25, 1, 14, '#f0e6d6'); box(14, y, 0.25, 1, 14, '#f0e6d6'); }
+  // 책상 + 모니터
+  for (const [k, [x, y]] of Object.entries(DESKS)) {
+    box(x - 1, y - 0.5, 2.2, 1, 16, '#f2efe8');
+    const glow = agents[k]?.state === 'working' && Math.floor(t / 300) % 2 ? '#7cf' : '#223';
+    box(x - 0.2, y - 0.45, 0.8, 0.2, 14, glow, 16);
+  }
+  // 휴게실 소파, 테이블, 화분
+  box(13, 11, 3, 1, 12, '#7ed957'); box(13, 11, 3, 0.3, 22, '#68c043');
+  box(17, 12, 1.4, 1.4, 8, '#ff8a70');
+  box(20, 10, 0.8, 0.8, 10, '#8b5a2b'); box(19.8, 9.8, 1.2, 1.2, 22, '#e07b39', 10);
+  // 리뷰실 차트 보드
+  box(1, 9.1, 3, 0.2, 40, '#222');
+  [10, 22, 16, 30, 26].forEach((h, i) => box(1.3 + i * 0.5, 9.0, 0.3, 0.1, h, ['#ff6b6b', '#ffd166', '#4fc3f7', '#c8ff2e', '#b388ff'][i], 6));
+  // 방 이름표
+  for (const r of Object.values(ROOMS)) {
+    const [sx, sy] = iso(r.x + 0.8, r.y + 0.3, 40);
+    g.font = 'bold 12px sans-serif'; const tw = g.measureText(r.label).width;
+    g.fillStyle = '#1b1b2b'; g.fillRect(sx - 4, sy - 13, tw + 8, 18);
+    g.strokeStyle = r.lc; g.lineWidth = 2; g.strokeRect(sx - 4, sy - 13, tw + 8, 18); g.lineWidth = 1;
+    g.fillStyle = r.lc; g.fillText(r.label, sx, sy);
+  }
+}
+
+// ================= 캐릭터 =================
+const COLORS = { planner: '#ffb020', coder: '#4fc3f7', qa: '#c8ff2e', reviewer: '#ff6b6b' };
+const LOUNGE_SPOTS = { planner: [14, 13], coder: [16, 13.5], qa: [18.5, 13], reviewer: [19, 14.5] };
+const agents = {};
+function makeAgent(key, info) {
+  const [x, y] = LOUNGE_SPOTS[key];
+  agents[key] = { key, name: info.name, x, y, tx: x, ty: y, state: 'idle', bubble: null, bubbleUntil: 0, queue: [] };
+}
+function deskOf(k) { const d = DESKS[{ planner: 'plan', coder: 'dev', qa: 'qa', reviewer: 'review' }[k]]; return [d[0] + 0.2, d[1] + 1.2]; }
+function goTo(a, x, y) { a.tx = x; a.ty = y; }
+
+function drawAgent(a, t) {
+  const moving = Math.hypot(a.tx - a.x, a.ty - a.y) > 0.05;
+  const bob = moving ? Math.abs(Math.sin(t / 90)) * 3 : (a.state === 'working' ? Math.abs(Math.sin(t / 200)) * 2 : 0);
+  const [sx, sy] = iso(a.x, a.y);
+  const P = 3, c = COLORS[a.key];
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(sx, sy, 10, 4, 0, 0, 7); g.fill();
+  const px = (cx, cy, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(sx + cx * P), Math.round(sy - bob + cy * P), w * P, h * P); };
+  px(-3, -4, 2, 4, '#334'); px(1, -4, 2, 4, '#334');           // 다리
+  px(-4, -11, 8, 7, c); px(-4, -11, 8, 1, shade(c, 1.2));       // 몸통
+  px(-3, -17, 6, 6, '#ffd9b3'); px(-3, -18, 6, 2, '#5a3b2a');   // 머리, 머리카락
+  px(-2, -15, 1, 1, '#111'); px(1, -15, 1, 1, '#111');          // 눈
+  // 이름표 + 상태 점
+  g.font = 'bold 11px sans-serif'; const label = a.name; const tw = g.measureText(label).width;
+  g.fillStyle = '#1b1b2b'; g.fillRect(sx - tw / 2 - 4, sy - 82, tw + 8, 16);
+  g.fillStyle = '#fff'; g.fillText(label, sx - tw / 2, sy - 70);
+  g.fillStyle = a.state === 'working' ? '#c8ff2e' : '#ffb020'; g.fillRect(sx - 10, sy - 62, 20, 4);
+  if (a.state === 'working') { g.fillStyle = '#fff'; g.fillText('…'.repeat(1 + Math.floor(t / 400) % 3), sx + 14, sy - 50); }
+  // 말풍선
+  if (a.bubble && t < a.bubbleUntil) {
+    g.font = '12px sans-serif'; const txt = a.bubble.length > 26 ? a.bubble.slice(0, 26) + '…' : a.bubble;
+    const w = g.measureText(txt).width + 16, bx = sx - w / 2, by = sy - 118;
+    g.fillStyle = '#fff'; g.fillRect(bx, by, w, 26); g.fillRect(sx - 4, by + 26, 8, 6);
+    g.strokeStyle = '#222'; g.strokeRect(bx, by, w, 26);
+    g.fillStyle = '#111'; g.fillText(txt, bx + 8, by + 17);
+  }
+}
+
+function update(dt) {
+  for (const a of Object.values(agents)) {
+    const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy), sp = 4 * dt;
+    if (d > sp) { a.x += dx / d * sp; a.y += dy / d * sp; } else { a.x = a.tx; a.y = a.ty; if (a.queue.length) { const [nx, ny] = a.queue.shift(); goTo(a, nx, ny); } }
+  }
+}
+
+let last = performance.now();
+function loop(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  update(dt);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#241b33'; g.fillRect(0, 0, cv.width, cv.height);
+  g.setTransform(S, 0, 0, S, 0, 0);
+  drawOffice(t);
+  Object.values(agents).sort((a, b) => (a.x + a.y) - (b.x + b.y)).forEach((a) => drawAgent(a, t));
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+
+// ================= 저장소 (브라우저) =================
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return sessionStorage.getItem(k) ?? localStorage.getItem(k); } catch { return null; } },
+  set(k, v, persist) { try { (persist ? localStorage : sessionStorage).setItem(k, v); (persist ? sessionStorage : localStorage).removeItem(k); } catch {} },
+  del(k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch {} },
+  getL(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  setL(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const DEFAULT_CTX = "# 생태몬스터: 거제도 — 프로젝트 맥락\n(이 파일을 고치면 모든 에이전트가 바뀐 내용을 기준으로 일합니다. 짧고 정확하게 유지하세요.)\n\n## 현재 단계\n- 버전 0.5 클로즈베타: 배지 4개 획득 구간(S4)까지\n- 목표: 배포 + 브라우저 실플레이 검증 직전까지 완성\n- 이후 S8까지 확장 예정 (용량 증가 대비 웹앱 구조 고려)\n\n## 지향점\n- 포켓몬스터 파이어레드·리프그린·하트골드·소울실버와 최대한 유사한 인트로·조작·UI\n  (유저가 원작처럼 바로 적응할 수 있게)\n- 배경: 거제도의 실제 생태/지역\n\n## 기술 조건\n- 웹(HTML5/JavaScript), GitHub Pages로 정적 배포\n- 스마트폰·태블릿·PC 모두 지원 → 반응형 + 터치 조작 필수\n- 자료 백업: 구글 드라이브\n\n## 폴더 구조 / 코딩 규칙\n- (여기에 실제 폴더 구조, 사용하는 엔진/라이브러리, 파일 이름 규칙을 적어 두세요)\n- 예: src/battle/, src/map/, assets/sprites/, data/monsters.json\n\n## 지금 알려진 문제\n- (작업하면서 계속 추가)\n";
+const getKey = () => store.get('eco_key') || '';
+const getModel = () => store.getL('eco_model') || 'gemini-2.5-flash';
+const getCtx = () => store.getL('eco_ctx') || DEFAULT_CTX;
+
+// ================= 에이전트 =================
+const AGENTS = {
+  planner:  { name: '게임 기획', role: '당신은 게임 기획자입니다. 요청을 개발 가능한 작업 단위로 쪼개고, 완료 조건(체크리스트)을 명확히 씁니다. 원작(포켓몬 FRLG·HGSS)의 조작감과 UI 관례를 기준으로 판단합니다.' },
+  coder:    { name: '개발자',   role: '당신은 HTML5/JavaScript 웹게임 개발자입니다. 반응형(스마트폰·태블릿·PC)과 GitHub Pages 정적 배포를 전제로, 바로 붙여 넣을 수 있는 완전한 코드 블록과 파일 경로를 제시합니다.' },
+  qa:       { name: 'QA 테스터', role: '당신은 QA 테스터입니다. 코드를 읽고 버그 가능성, 모바일 터치/화면 크기 문제, 세이브 데이터 문제를 찾아 재현 절차와 함께 짧게 보고합니다.' },
+  reviewer: { name: '코드 리뷰', role: '당신은 시니어 코드 리뷰어입니다. 구조, 성능, 유지보수성 관점에서 꼭 고칠 점 3개 이내만 지적합니다.' },
+};
+for (const [k, v] of Object.entries(AGENTS)) makeAgent(k, v);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MOCK = { planner: '작업 1) 배틀 HP바 컴포넌트 분리\n작업 2) 감소 애니메이션\n완료 조건: [ ] 초록→노랑→빨강 [ ] 모바일 끊김 없음',
+  coder: '```js\n// src/battle/hpbar.js\nexport function drawHp(ctx, ratio) { /* ... */ }\n```',
+  qa: '- 375px 폭에서 HP바 잘림\n- HP 0일 때 음수 표시', reviewer: '1) 매 프레임 DOM 접근 → 캐싱\n2) 매직 넘버 상수화' };
+
+async function callGemini(agentKey, prompt) {
+  const key = getKey();
+  if (!key) { await sleep(1000 + Math.random() * 1000); return '[MOCK] ' + MOCK[agentKey]; }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}:generateContent`;
+  const body = { systemInstruction: { parts: [{ text: AGENTS[agentKey].role + '\n\n[프로젝트 맥락]\n' + getCtx() }] },
+                 contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+  for (let i = 1; i <= 3; i++) {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
+    if (r.status === 429 && i < 3) { handle({ type: 'message', from: agentKey, text: '호출 한도에 걸렸어요. 잠깐 쉬었다 할게요…' }); await sleep(15000 * i); continue; }
+    if (!r.ok) { const t = await r.text(); let m = t; try { m = JSON.parse(t).error.message; } catch {} throw new Error(`Gemini ${r.status}: ${m.slice(0, 200)}`); }
+    const j = await r.json();
+    return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim() || '(빈 응답)';
+  }
+}
+
+let running = false;
+async function step(agentKey, prompt, { to, say, progress }) {
+  handle({ type: 'status', agent: agentKey, state: 'working' });
+  const out = await callGemini(agentKey, prompt);
+  handle({ type: 'status', agent: agentKey, state: 'idle' });
+  handle({ type: 'message', from: agentKey, to, text: say(out) });
+  handle({ type: 'progress', value: progress });
+  await sleep(1500);
+  return out;
+}
+
+async function runJob(topic) {
+  running = true; $('go').disabled = true;
+  handle({ type: 'job', state: 'start', topic });
+  try {
+    const plan = await step('planner', `개발 요청: "${topic}"\n작업 단위(최대 5개)로 나누고, 각 작업의 완료 조건 체크리스트와 수정/추가할 파일 후보를 적으세요.`,
+      { to: 'coder', say: (o) => `작업 ${(o.match(/작업\s*\d/g) || []).length || '몇'}개로 쪼갰어요. 개발 부탁해요!`, progress: 20 });
+    const code = await step('coder', `기획:\n${plan}\n\n위 작업을 구현하세요. 파일 경로와 전체 코드 블록을 제시하세요.`,
+      { to: 'qa', say: () => '1차 구현 끝! 테스트 부탁해요.', progress: 45 });
+    const qa = await step('qa', `완료 조건:\n${plan}\n\n코드:\n${code}\n\n버그와 기기별 문제를 찾아 재현 절차와 함께 보고하세요.`,
+      { to: 'reviewer', say: (o) => `확인한 이슈 ${(o.match(/^\s*[-*\d]/gm) || []).length}건 넘길게요.`, progress: 65 });
+    const review = await step('reviewer', `코드:\n${code}\n\nQA 보고:\n${qa}\n\n꼭 고칠 점 3개 이내.`,
+      { to: 'coder', say: () => '리뷰 남겼어요. 반영해 주세요.', progress: 80 });
+    const final = await step('coder', `QA와 리뷰를 반영한 최종 코드를 작성하세요. 맨 앞에 "변경 요약"(3줄 이내)과 "적용 방법"을 쓰고, 이어서 파일별 전체 코드를 제시하세요.\n\n기획:\n${plan}\n\n1차 코드:\n${code}\n\nQA:\n${qa}\n\n리뷰:\n${review}`,
+      { to: null, say: () => '최종본 완성! 기록 탭에 저장했어요 🎉', progress: 100 });
+    const md = `# ${topic}\n\n## 최종본\n${final}\n\n---\n## 기획\n${plan}\n\n## 1차 코드\n${code}\n\n## QA 보고\n${qa}\n\n## 코드 리뷰\n${review}\n`;
+    saveHistory(topic, md);
+    $('result').textContent = final;
+  } catch (e) {
+    handle({ type: 'error', text: String(e.message || e) });
+    for (const k of Object.keys(AGENTS)) handle({ type: 'status', agent: k, state: 'idle' });
+  } finally { running = false; $('go').disabled = false; }
+}
+
+// ================= 화면 반영 =================
+function setCounts() {
+  const all = Object.values(agents), w = all.filter((a) => a.state === 'working').length;
+  $('cWork').textContent = `■ 일하는 중 ${w}`; $('cIdle').textContent = `■ 대기 ${all.length - w}`;
+  $('cWork').style.color = '#c8ff2e'; $('cIdle').style.color = '#ffb020';
+}
+function addLog(fromName, toName, text, cls = '') {
+  const el = document.createElement('div'); el.className = 'msg';
+  el.innerHTML = `<div class="who"></div><div class="txt ${cls}"></div>`;
+  el.querySelector('.who').innerHTML = `<span></span>${toName ? ' → <b></b>' : ''}<span class="tm">${new Date().toTimeString().slice(0, 5)}</span>`;
+  el.querySelector('.who span').textContent = fromName; if (toName) el.querySelector('.who b').textContent = toName;
+  el.querySelector('.txt').textContent = text;
+  $('logList').prepend(el);
+}
+function setProgress(v) { $('pct').textContent = v + '%'; $('barFill').style.width = v + '%'; }
+function handle(ev) {
+  const now = performance.now();
+  if (ev.type === 'job') { $('topicLbl').textContent = ev.topic; $('result').textContent = ''; setProgress(0); }
+  if (ev.type === 'status') { const a = agents[ev.agent]; a.state = ev.state; a.queue = []; if (ev.state === 'working') { const [x, y] = deskOf(ev.agent); goTo(a, x, y); } setCounts(); }
+  if (ev.type === 'message') {
+    const a = agents[ev.from]; a.bubble = ev.text; a.bubbleUntil = now + 4500;
+    const to = ev.to && agents[ev.to]; addLog(a.name, to && to.name, ev.text);
+    if (to) { const [x, y] = deskOf(ev.to); goTo(a, x - 0.8, y + 0.6); }
+    a.queue = [LOUNGE_SPOTS[ev.from]];
+  }
+  if (ev.type === 'progress') setProgress(ev.value);
+  if (ev.type === 'error') addLog('시스템', null, ev.text, 'err');
+}
+function refreshMode() {
+  $('mode').innerHTML = getKey() ? `<span class="badge" style="background:#c8ff2e"></span>` : '<span class="badge">MOCK · 키 없음</span>';
+  if (getKey()) $('mode').firstChild.textContent = getModel();
+}
+
+// ================= 기록 =================
+function loadHist() { try { return JSON.parse(store.getL('eco_hist') || '[]'); } catch { return []; } }
+function saveHistory(topic, md) { const h = loadHist(); h.unshift({ topic, md, at: new Date().toLocaleString('ko-KR') }); store.setL('eco_hist', JSON.stringify(h.slice(0, 20))); renderHist(); }
+function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' })); a.download = name; a.click(); URL.revokeObjectURL(a.href); }
+function renderHist() {
+  const list = $('histList'); list.innerHTML = '';
+  const h = loadHist(); if (!h.length) { list.innerHTML = '<div class="note">아직 기록이 없어요.</div>'; return; }
+  h.forEach((it, i) => {
+    const d = document.createElement('div'); d.className = 'hist';
+    d.innerHTML = '<div><b></b></div><small></small><div><button>보기</button><button class="ghost">.md 받기</button><button class="ghost">복사</button><button class="danger">삭제</button></div>';
+    d.querySelector('b').textContent = it.topic; d.querySelector('small').textContent = it.at;
+    const [view, dl, cp, del] = d.querySelectorAll('button');
+    view.onclick = () => { $('result').textContent = it.md; showTab('work'); };
+    dl.onclick = () => download(it.topic.replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 40) + '.md', it.md);
+    cp.onclick = () => navigator.clipboard?.writeText(it.md).then(() => (cp.textContent = '복사됨'));
+    del.onclick = () => { const all = loadHist(); all.splice(i, 1); store.setL('eco_hist', JSON.stringify(all)); renderHist(); };
+    list.appendChild(d);
+  });
+}
+
+// ================= UI 연결 =================
+function showTab(v) { document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.v === v)); document.querySelectorAll('.view').forEach((el) => el.classList.toggle('on', el.id === 'v-' + v)); }
+document.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.v)));
+
+$('keyIn').value = getKey(); $('modelIn').value = getModel(); $('remember').checked = !!store.getL('eco_key');
+$('eye').onclick = () => { const p = $('keyIn').type === 'password'; $('keyIn').type = p ? 'text' : 'password'; $('eye').textContent = p ? '숨김' : '보기'; };
+$('saveKey').onclick = () => {
+  const k = $('keyIn').value.trim(); if (!k) return ($('keyStatus').innerHTML = '<span class="warn">키를 입력하세요.</span>');
+  store.set('eco_key', k, $('remember').checked); store.setL('eco_model', $('modelIn').value.trim() || 'gemini-2.5-flash');
+  $('keyStatus').innerHTML = `<span class="ok">저장됐어요 (${$('remember').checked ? '이 기기에 계속 보관' : '탭 닫으면 삭제'}).</span>`; refreshMode();
+};
+$('delKey').onclick = () => { store.del('eco_key'); $('keyIn').value = ''; $('keyStatus').innerHTML = '<span class="ok">키를 지웠어요.</span>'; refreshMode(); };
+$('testKey').onclick = async () => {
+  $('saveKey').click(); if (!getKey()) return;
+  $('keyStatus').textContent = '확인 중…';
+  try { const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}`, { headers: { 'x-goog-api-key': getKey() } });
+    $('keyStatus').innerHTML = r.ok ? '<span class="ok">✅ 연결 성공! 모델을 쓸 수 있어요.</span>' : `<span class="warn">❌ 실패 (${r.status}). 키나 모델 이름을 확인하세요.</span>`;
+  } catch (e) { $('keyStatus').innerHTML = `<span class="warn">❌ 네트워크 오류: ${e.message}</span>`; }
+};
+$('ctxBox').value = getCtx();
+$('saveCtx').onclick = () => { store.setL('eco_ctx', $('ctxBox').value); $('ctxStatus').innerHTML = '<span class="ok">저장됐어요. 다음 작업부터 반영돼요.</span>'; };
+$('resetCtx').onclick = () => { $('ctxBox').value = DEFAULT_CTX; };
+$('go').onclick = () => { if (running) return; const t = $('topic').value.trim(); if (!t) return $('topic').focus(); runJob(t.slice(0, 500)); };
+$('topic').onkeydown = (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('go').click(); };
+refreshMode(); renderHist(); setCounts();
+</script>
+</body>
+</html>
