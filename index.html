@@ -279,8 +279,8 @@
     <div id="tplForm" class="tplForm" style="display:none"></div>
     <div class="secTitle"><span class="num">2</span> 요청 내용 <small>직접 적어도 돼요</small></div>
     <textarea id="topic" rows="4"></textarea>
-    <div class="row" style="align-items:center;margin-top:6px"><button id="attachBtn" class="ghost mini fit">📎 자료 첨부</button><span id="attachList" class="note" style="margin:0"></span></div>
-    <input type="file" id="attachFile" multiple accept=".pdf,.hwpx,.hwp,.txt,.md,.csv" style="display:none">
+    <div class="row" style="align-items:center;margin-top:6px"><button id="attachBtn" class="ghost mini fit" title="최대 10개 · 문서·코드·스크린샷 (요청 칸에 스크린샷 붙여넣기도 돼요)">📎 자료 첨부</button><span id="attachList" class="note" style="margin:0"></span></div>
+    <input type="file" id="attachFile" multiple accept=".pdf,.hwpx,.hwp,.txt,.md,.csv,.json,.js,.ts,.html,.css,.png,.jpg,.jpeg,.webp,.gif,image/*" style="display:none">
     <details id="opts" class="opts"><summary>⚙️ 세부 옵션 <span id="optSummary"></span></summary>
       <div id="eduOpts">
         <label>누가 맡을까요?</label><select id="eduType"></select>
@@ -717,6 +717,50 @@ for (const [k, d] of Object.entries(AGENT_DEF)) {
 const workSpot = (k) => agents[k].spot.slice();
 // 사무실 고양이 (갯고양이)
 const pet = (() => { const [x, y] = LOUNGE(); return { key: 'pet', pet: true, name: '갯냥이', x, y, tx: x, ty: y, queue: [], dir: 'front', state: 'idle', nextWander: 0, sleepUntil: 0, hearts: [] }; })();
+// 생태몬스터 친구들 — 「거제도」 도감에서 몇 마리가 휴게실에 놀러 왔어요
+const MON_IMG = new Image(); MON_IMG.src = 'assets/mons.png';
+const MON_C = 21, MON_DEX = [[1, '점삵이', -1], [7, '도롱이', -1], [10, '꽃쪼미', 1], [15, '밤너굴', -1], [18, '갈매쪼', -1], [20, '동백씨', 1]];
+const MONS = MON_DEX.map((d, i) => [d, i]).sort(() => Math.random() - .5).slice(0, 4).map(([[no, name, face], i]) => { const [x, y] = LOUNGE();
+  return { key: 'mon' + no, mon: true, i, no, name, face, x, y, tx: x, ty: y, queue: [], dir: Math.random() < .5 ? 'left' : 'right', back: false, nextWander: performance.now() + rnd(800, 4000), hopUntil: 0, sp: rnd(1.6, 2.6), hearts: [], tagUntil: 0 }; });
+function updateMons(dt, t) {
+  for (const m of MONS) {
+    const still = Math.hypot(m.tx - m.x, m.ty - m.y) < .05 && !m.queue.length;
+    if (still && t > m.nextWander) {
+      const r = Math.random(), others = MONS.filter((o) => o !== m);
+      if (r < .35 && others.length) { const o = others[Math.floor(Math.random() * others.length)]; goTo(m, o.x + rnd(-.7, .7), o.y + rnd(-.7, .7)); m.sp = rnd(2.6, 3.4); }  // 친구 쫓아가기
+      else if (r < .55) { m.hopUntil = t + rnd(900, 1600); }                                                                              // 제자리 깡충
+      else if (r < .65) { goTo(m, pet.x + rnd(-.8, .8), pet.y + rnd(-.8, .8)); m.sp = rnd(1.6, 2.2); }                                     // 갯냥이 구경
+      else { goTo(m, ...LOUNGE()); m.sp = rnd(1.6, 2.6); }
+      m.nextWander = t + rnd(2200, 6500);
+    }
+    const dx = m.tx - m.x, dy = m.ty - m.y, d = Math.hypot(dx, dy), sp = m.sp * dt;
+    if (d > sp) { m.x += dx / d * sp; m.y += dy / d * sp; const scx = dx - dy, scy = dx + dy; if (Math.abs(scx) > .01) m.dir = scx > 0 ? 'right' : 'left'; m.back = scy < -Math.abs(scx) * .3; }
+    else { m.x = m.tx; m.y = m.ty; if (m.queue.length) [m.tx, m.ty] = m.queue.shift(); else m.back = false; }
+  }
+}
+function monHop(m, t) {
+  const moving = Math.hypot(m.tx - m.x, m.ty - m.y) > .05 || m.queue.length;
+  if (store.getL('eco_motion') === '0') return 0;
+  return moving ? Math.round(Math.abs(Math.sin(t / 105 + m.i * 2)) * 3) : t < m.hopUntil ? Math.round(Math.abs(Math.sin(t / 85)) * 6) : 0;
+}
+function drawMon(m, t) {
+  if (!MON_IMG.naturalWidth) return;
+  const [sx0, sy0] = iso(m.x, m.y), sx = Math.round(sx0), sy = Math.round(sy0), h = monHop(m, t);
+  pixEllipse(sx, sy, h > 3 ? 5 : 7, 2, 'rgba(0,0,0,.25)');
+  const want = m.dir === 'right' ? 1 : -1, face = m.back ? -m.face : m.face;
+  ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(sx, sy - h); if (want !== face) ctx.scale(-1, 1);
+  ctx.drawImage(MON_IMG, (m.back ? 1 : 0) * MON_C, m.i * MON_C, MON_C, MON_C, -Math.floor(MON_C / 2), -MON_C + 3, MON_C, MON_C);
+  ctx.restore();
+}
+function drawMonOverlay(t) {
+  for (const m of MONS) {
+    const [x, y] = sc(...iso(m.x, m.y, 20 + monHop(m, t)));
+    m.hearts = m.hearts.filter((h) => t - h.t < 1400);
+    for (const hh of m.hearts) { const k = (t - hh.t) / 1400; g.globalAlpha = Math.max(0, 1 - k); g.font = 'bold 15px sans-serif'; g.fillStyle = '#ff6b8a'; g.fillText('♥', x + hh.dx, y - k * 30); g.globalAlpha = 1; }
+    if (t < m.tagUntil) { g.font = 'bold 12px sans-serif'; const txt = `No.${String(m.no).padStart(3, '0')} ${m.name}`, w = g.measureText(txt).width + 12; g.fillStyle = 'rgba(20,18,40,.88)'; g.fillRect(x - w / 2, y - 22, w, 18); g.fillStyle = '#c8ff2e'; g.fillText(txt, x - w / 2 + 6, y - 9); }
+  }
+}
+
 function say(a, text, ms = 4500) { a.bubble = text; a.bubbleUntil = performance.now() + ms; }
 function goTo(a, x, y) { const path = findPath(a.x, a.y, x, y); [a.tx, a.ty] = path.shift(); a.queue = path; }
 
@@ -789,6 +833,7 @@ function update(dt, t) {
     pet.nextWander = t + rnd(6000, 12000);
   }
   if (pet.sleepAt && Math.hypot(pet.tx - pet.x, pet.ty - pet.y) < .05 && !pet.queue.length) { pet.sleepAt = false; pet.sleepUntil = t + rnd(8000, 15000); pet.nextWander = pet.sleepUntil; }
+  updateMons(dt, t);
   { const a = pet, dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy), sp = 2 * dt;
     if (d > sp) { a.x += dx / d * sp; a.y += dy / d * sp; const scx = dx - dy; a.dir = scx > 0 ? 'right' : 'left'; } else { a.x = a.tx; a.y = a.ty; if (a.queue.length) [a.tx, a.ty] = a.queue.shift(); } }
   for (const a of Object.values(agents)) {
@@ -833,6 +878,7 @@ cv.addEventListener('pointermove', (e) => {
 const endPtr = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) { if (drag && moved < 6) clickAt(e.clientX, e.clientY); drag = null; } };
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
 function clickAt(mx, my) {
+  for (const m of MONS) { const [x, y] = sc(...iso(m.x, m.y, 12)); if (Math.hypot(mx - x, my - y) < 13 * Zs) { const t = performance.now(); for (let i = 0; i < 3; i++) m.hearts.push({ t: t + i * 150, dx: -8 + i * 8 }); m.tagUntil = t + 2600; m.hopUntil = t + 1400; m.nextWander = t + 1600; return; } }
   { const [x, y] = sc(...iso(pet.x, pet.y, 5)); if (Math.hypot(mx - x, my - y) < 8 * Zs) { for (let i = 0; i < 3; i++) pet.hearts.push({ t: performance.now() + i * 150, dx: -8 + i * 8 }); pet.sleepUntil = 0; say(agents.teacher, '갯냥이 귀여워 😺', 2000); return; } }
   { const [x1, y1] = sc(...iso(.6, 0, 32)), [x2, y2] = sc(...iso(4.2, 0, 12)); if (mx > Math.min(x1, x2) && mx < Math.max(x1, x2) && my > y1 - 4 && my < y2 + 4) { openPanel(); showTab('todo'); return; } }
   let best = null, bd = 30;
@@ -955,9 +1001,9 @@ function loop(t) {
   drawNeon(t);
   for (const a of Object.values(agents)) if (a.state === 'working' && a.spot) { const [sx, sy] = iso(a.spot[0], a.spot[1] - 1.1, 13); pr(sx - 3, sy - 1, 6, 3, Math.floor(t / 300) % 2 ? '#8ff' : '#5cf'); }
   // 캐릭터와 겹치는 소품은 깊이 순서대로 다시 그려서 가구 뒤에 숨도록
-  const items = Object.values(agents).map((a) => ({ d: a.x + a.y + .25, a })); items.push({ d: pet.x + pet.y + .2, a: pet });
+  const items = Object.values(agents).map((a) => ({ d: a.x + a.y + .25, a })); items.push({ d: pet.x + pet.y + .2, a: pet }); for (const m of MONS) items.push({ d: m.x + m.y + .2, a: m });
   for (const pp of PROPS) { if (pp.x > W || pp.y > H) continue; const [px, py] = iso(pp.x, pp.y); if (items.some((it) => it.a && pp.d > it.d && Math.abs(iso(it.a.x, it.a.y)[0] - px) < 34 && Math.abs(iso(it.a.x, it.a.y)[1] - py) < 30)) items.push({ d: pp.d, p: pp }); }
-  items.sort((u, v) => u.d - v.d).forEach((it) => it.a ? (it.a.pet ? drawPet(t) : drawCritter(it.a, t)) : it.p.f());
+  items.sort((u, v) => u.d - v.d).forEach((it) => it.a ? (it.a.pet ? drawPet(t) : it.a.mon ? drawMon(it.a, t) : drawCritter(it.a, t)) : it.p.f());
   // 낮·저녁·밤 (실제 시각)
   const hr = new Date().getHours() + new Date().getMinutes() / 60;
   const night = hr >= 19.5 || hr < 5.5 ? .38 : hr >= 18 ? (hr - 18) / 1.5 * .38 : hr < 7 ? (7 - hr) / 1.5 * .38 : 0, dusk = hr >= 16.5 && hr < 19.5 ? Math.sin((hr - 16.5) / 3 * Math.PI) * .16 : 0;
@@ -970,7 +1016,7 @@ function loop(t) {
   drawCloud(t);
   g.imageSmoothingEnabled = false; g.drawImage(buf, offX, offY, BW * Zs, BH * Zs);
   drawOverlay(t);
-  drawBoards(); drawPetOverlay(t);
+  drawBoards(); drawPetOverlay(t); drawMonOverlay(t);
   drawLeaves(t);
   requestAnimationFrame(loop);
 }
@@ -1727,28 +1773,37 @@ async function readHwpx(buf) {
   const unesc = (t) => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
   return out.map(([, x]) => x.split(/<\/hp:p>/).map((pp) => (pp.match(/<hp:t(?:\s[^>]*)?>[\s\S]*?<\/hp:t>/g) || []).map((t) => unesc(t.replace(/<[^>]+>/g, ''))).join('')).filter((l) => l.trim()).join('\n')).join('\n');
 }
+const ATT_MAX = 10, BIN_MAX = 14e6, TEXT_EXT = ['txt', 'md', 'csv', 'json', 'js', 'ts', 'html', 'css'], IMG_EXT = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+const binSize = () => ATTACH.reduce((n, a) => n + (a.size || 0), 0);
 function renderAttach() {
-  $('attachList').innerHTML = ATTACH.map((a, i) => `<span class="chip" style="cursor:default">${a.kind === 'pdf' ? '📕' : '📄'} ${esc(a.name.slice(0, 22))} <b data-i="${i}" style="cursor:pointer;color:#ff7b7b">✕</b></span>`).join(' ');
+  const ic = (a) => (a.kind === 'pdf' ? '📕' : a.kind === 'img' ? '🖼' : '📄');
+  $('attachList').innerHTML = (ATTACH.length ? `<span class="note" style="margin:0 4px 0 0">${ATTACH.length}/${ATT_MAX}</span>` : '') + ATTACH.map((a, i) => `<span class="chip" style="cursor:default">${ic(a)} ${esc(a.name.slice(0, 22))} <b data-i="${i}" style="cursor:pointer;color:#ff7b7b">✕</b></span>`).join(' ');
   $('attachList').querySelectorAll('b').forEach((b) => (b.onclick = () => { ATTACH.splice(b.dataset.i, 1); renderAttach(); }));
 }
-$('attachBtn').onclick = () => $('attachFile').click();
-$('attachFile').onchange = async (e) => {
-  for (const f of e.target.files) {
-    if (ATTACH.length >= 3) { alert('자료는 3개까지 첨부할 수 있어요.'); break; }
-    const ext = f.name.split('.').pop().toLowerCase();
+async function addAttachFiles(files) {
+  for (const f of files) {
+    if (ATTACH.length >= ATT_MAX) { alert(`자료는 ${ATT_MAX}개까지 첨부할 수 있어요.`); break; }
+    const ext = (f.name.split('.').pop() || '').toLowerCase(), mime = f.type && f.type.startsWith('image/') ? f.type : IMG_EXT[ext];
     try {
       if (ext === 'hwp') { alert('HWP 파일은 한글에서 [다른 이름으로 저장 → HWPX 또는 PDF]로 바꿔서 올려 주세요.'); continue; }
-      if (ext === 'pdf') { if (f.size > 8e6) { alert('PDF는 8MB까지 올릴 수 있어요.'); continue; } ATTACH.push({ name: f.name, kind: 'pdf', mime: 'application/pdf', b64: await toB64(f) }); }
-      else if (ext === 'hwpx') ATTACH.push({ name: f.name, kind: 'text', text: await readHwpx(await f.arrayBuffer()) });
-      else ATTACH.push({ name: f.name, kind: 'text', text: await f.text() });
-      const last = ATTACH[ATTACH.length - 1];
+      if (ext === 'pdf' || mime) {
+        if (binSize() + f.size > BIN_MAX) { alert(`${f.name}: PDF·이미지는 합쳐서 14MB까지 보낼 수 있어요.`); continue; }
+        ATTACH.push(ext === 'pdf' ? { name: f.name, kind: 'pdf', mime: 'application/pdf', size: f.size, b64: await toB64(f) } : { name: f.name || '스크린샷.png', kind: 'img', mime, size: f.size, b64: await toB64(f) });
+      } else if (ext === 'hwpx') ATTACH.push({ name: f.name, kind: 'text', text: await readHwpx(await f.arrayBuffer()) });
+      else if (TEXT_EXT.includes(ext) || (f.type || '').startsWith('text/')) ATTACH.push({ name: f.name, kind: 'text', text: await f.text() });
+      else alert(`${f.name}: 이 형식은 읽을 수 없어요. (PDF·HWPX·텍스트·코드·이미지)`);
     } catch (err) { alert(`${f.name}: 읽지 못했어요 (${err.message})`); }
   }
-  e.target.value = ''; renderAttach();
-};
+  renderAttach();
+}
+$('attachBtn').onclick = () => $('attachFile').click();
+$('attachFile').onchange = async (e) => { await addAttachFiles([...e.target.files]); e.target.value = ''; };
+$('topic').addEventListener('paste', (e) => { const fs = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/')); if (fs.length) { e.preventDefault(); addAttachFiles(fs.map((f, i) => new File([f], `스크린샷${ATTACH.length + i + 1}.${(f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`, { type: f.type }))); } });
+$('topic').addEventListener('dragover', (e) => e.preventDefault());
+$('topic').addEventListener('drop', (e) => { if (e.dataTransfer?.files?.length) { e.preventDefault(); addAttachFiles([...e.dataTransfer.files]); } });
 function takeAttach(masker) {
   if (!ATTACH.length) return null;
-  const a = { names: ATTACH.map((x) => x.name), text: ATTACH.filter((x) => x.kind === 'text').map((x) => `### ${x.name}\n${masker.mask(x.text).slice(0, 30000)}`).join('\n\n'), pdfs: ATTACH.filter((x) => x.kind === 'pdf').map((x) => ({ mime: x.mime, b64: x.b64 })) };
+  const a = { names: ATTACH.map((x) => x.name), text: ATTACH.filter((x) => x.kind === 'text').map((x) => `### ${x.name}\n${masker.mask(x.text).slice(0, 30000)}`).join('\n\n').slice(0, 150000), pdfs: ATTACH.filter((x) => x.kind === 'pdf' || x.kind === 'img').map((x) => ({ mime: x.mime, b64: x.b64 })) };
   ATTACH = []; renderAttach(); return a;
 }
 
