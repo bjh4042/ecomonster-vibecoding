@@ -100,7 +100,7 @@
   #ctrl .seg button { flex: 1; background: #1d2440; color: #ccd; border: 1px solid #3b4466; }
   #ctrl .seg button.on { background: #fff; color: #111; }
   #hwpRes, #vHwp, .hwpBtn { display: none !important; }
-  .pcHelp { margin-top: 10px; } .pcHelp summary { cursor: pointer; font-weight: 700; color: #c8ff2e; } #pcGuide ol { padding-left: 18px; line-height: 1.6; } #pcGuide code { background: #10101c; padding: 1px 5px; border-radius: 4px; font-size: 12px; word-break: break-all; }
+
   .projTag { display: block; font-size: 10px; opacity: .75; font-weight: 600; }
   #projRow select { flex: 1; min-width: 0; }
   .projLbl { font-size: 12px; font-weight: 800; white-space: nowrap; color: #c8a2ff; }
@@ -211,7 +211,7 @@
     <span><i style="background:#ffb020"></i><em id="cIdle" style="font-style:normal">대기 0</em></span>
     <span><i style="background:#c8ff2e"></i><em id="cDone" style="font-style:normal">완료 0</em></span>
     <span><i style="background:#4fc3f7"></i><em id="cWait" style="font-style:normal">확인 0</em></span>
-    <span id="usage">📞 오늘 0회</span><span id="pcChip" style="display:none"></span>
+    <span id="usage">📞 오늘 0회</span>
   </div>
   <small id="topicLbl">대기 중</small>
 </div>
@@ -290,6 +290,7 @@
       <div id="vibeOpts" style="display:none"></div>
       <label class="chk"><input type="checkbox" id="gate"> 최종본 전에 내가 먼저 확인하기</label>
       <label class="chk"><input type="checkbox" id="combineRev" checked> 동료 검토를 한 번에 받기 (호출 절약)</label>
+      <label class="chk"><input type="checkbox" id="saveMode" checked> 💰 아끼기: 검토는 가벼운 모델로, 고칠 게 없으면 최종 단계 생략</label>
       <label class="chk" style="display:none"><input type="checkbox" id="mask" checked> 전화번호·주민번호가 섞여 있으면 자동으로 가리기</label>
     </details>
     <div class="row startRow"><button id="go" class="bigBtn">▶ 작업 시작</button><button id="demo" class="ghost fit" title="API 호출 없이 동작만 보기">시연</button></div>
@@ -329,26 +330,16 @@
     </div>
   </div>
   <div class="view" id="v-set">
-    <details class="setSec" id="d-pc" open><summary>🖥 AI 엔진 — 내 PC(Ollama) · Gemini</summary>
-    <label>어떤 AI로 일할까요?</label>
-    <div class="seg" id="engSeg"><button data-eng="auto">🔀 자동</button><button data-eng="local">🖥 내 PC만</button><button data-eng="gemini">☁️ Gemini만</button></div>
-    <div class="note" id="engNote" style="margin-top:4px"></div>
-    <label>내 PC 주소</label>
-    <input id="pcUrl" placeholder="http://localhost:11434 (다른 기기에서는 https://내PC이름.xxx.ts.net)" />
-    <label>내 PC 모델</label>
-    <div class="row"><select id="pcModel"><option value="">— 연결 테스트를 눌러 목록 불러오기 —</option></select><button id="pcTest" class="ghost fit">연결 테스트</button></div>
-    <label>자동일 때 Gemini로 보낼 긴 작업 기준</label>
-    <select id="pcMax"><option value="4000">4천 자 넘으면 (빠르게)</option><option value="7000">7천 자 넘으면 (보통)</option><option value="12000">1만 2천 자 넘으면 (내 PC 최대한)</option></select>
-    <div id="pcStatus" class="note"></div>
-    <details class="pcHelp"><summary>📖 윈도우 11 PC 설정 방법 (처음 한 번)</summary><div id="pcGuide"></div></details>
-    </details>
-    <details class="setSec" id="d-key"><summary>🔑 Gemini API 키 · 모델</summary>
+    <details class="setSec" id="d-key" open><summary>🔑 Gemini API 키 · 모델 · 무료 한도</summary>
     <label>Gemini API 키</label>
     <div class="row"><input id="keyIn" type="password" autocomplete="off" placeholder="AIza..." /><button id="eye" class="ghost fit">보기</button></div>
     <label>모델</label>
     <div class="row"><select id="modelIn"></select><button id="listModels" class="ghost fit">↻ 목록</button></div>
-    <label>혼잡할 때 대신 쓸 모델</label>
+    <label>검토·교정용 가벼운 모델 <small>(한도가 모델마다 따로라서, 나눠 쓰면 하루에 더 많이 일할 수 있어요)</small></label>
+    <select id="liteSel"></select>
+    <label>혼잡하거나 한도를 다 썼을 때 대신 쓸 모델</label>
     <select id="fallbackSel"></select>
+    <div id="quotaBox" class="note"></div>
     <label class="chk"><input type="checkbox" id="remember"> 이 기기에 저장 (끄면 탭을 닫을 때 지워짐)</label>
     <div class="row" style="margin-top:8px"><button id="saveKey">저장</button><button id="testKey" class="ghost">연결 테스트</button><button id="delKey" class="danger">삭제</button></div>
     <label>하루 호출 한도 (선택 — 넘으면 시작 전에 물어봐요)</label><input id="limitIn" type="number" min="0" placeholder="예: 200 (비우면 제한 없음)" />
@@ -1119,7 +1110,8 @@ const DEFAULT_RULES = `# 팀 규칙 (모든 담당이 지켜요)
 - 한 번에 너무 많이 바꾸지 않는다 (작게 나눠서, 동작 확인 후 다음 단계)
 - 모르는 수치는 지어내지 말고 [ ]로 비워 둔다`;
 const getRules = () => store.getL('eco_rules') || DEFAULT_RULES;
-const getCtx = () => projCtx(curProj()) + '\n\n' + getRules();
+const clip = (t, n) => (t.length > n ? t.slice(0, n) + '\n…(이하 생략)' : t);
+const getCtx = () => clip(projCtx(curProj()), 3000) + '\n\n' + clip(getRules(), 1200);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // =====================================================================
@@ -1157,18 +1149,18 @@ const NO_MASK = { mask: (t) => t, unmask: (t) => t, count: 0 };
 // =====================================================================
 const TYPES = {
   edu: [
-    { id: 'monster', label: '몬스터·도감 설계',       lead: 'planner',  reviewers: ['yoonseul', 'taeyun'], weight: 2, kw: ['몬스터', '도감', '진화', '타입', '스킬', '기술', '종족값', '포획'] },
-    { id: 'map',     label: '맵·지역·체육관 구성',    lead: 'planner',  reviewers: ['yoonseul', 'haram'],  kw: ['맵', '지역', '도로', '마을', '체육관', '배지', '관장', '던전', '동굴', '권역'] },
-    { id: 'balance', label: '밸런스·전투·성장 시스템', lead: 'planner',  reviewers: ['haram'],              kw: ['밸런스', '레벨', '경험치', '데미지', '전투', '상성', '난이도', '확률', '수치'] },
-    { id: 'eco',     label: '생태 고증·도감 설명',    lead: 'yoonseul', reviewers: ['sua'],                weight: 2, kw: ['고증', '실제', '생태', '서식', '멸종', '보호종', '도감 설명', '사실', '생물'] },
-    { id: 'story',   label: '스토리·대사·퀘스트',     lead: 'sua',      reviewers: ['planner', 'yoonseul'], weight: 2, kw: ['대사', '스토리', '시나리오', '퀘스트', '인트로', '엔딩', '박사', '라이벌', 'NPC', '설정'] },
-    { id: 'art',     label: '아트·UI·화면 설계',      lead: 'taeyun',   reviewers: ['planner'],            weight: 2, kw: ['도트', '픽셀', '아트', '그림', 'UI', '화면', '메뉴', '버튼', '아이콘', '팔레트', '스프라이트', '반응형'] },
-    { id: 'plan',    label: '로드맵·일정·작업 쪼개기', lead: 'haram',    reviewers: ['planner'],            kw: ['로드맵', '일정', '우선순위', '범위', '버전', '마일스톤', '할 일', '쪼개', '계획', '연계', '후속작'] },
+    { id: 'monster', label: '몬스터·도감 설계',       lead: 'planner',  reviewers: ['yoonseul', 'taeyun'], weight: 2, fmt: '표 | 이름 | 타입 | 모티브(실제 생물) | 서식지·계절 | 특징 한 줄 | 진화 | 원작에서 비슷한 위치 |, 표 아래 "확인 필요" 목록만', kw: ['몬스터', '도감', '진화', '타입', '스킬', '기술', '종족값', '포획'] },
+    { id: 'map',     label: '맵·지역·체육관 구성',    lead: 'planner',  reviewers: ['yoonseul', 'haram'],  fmt: '지역마다 "### 지역명" 아래 - 구성(마을·도로·숨은 길) - 출현 몬스터 - 트레이너·아이템 - 다음 지역으로 가는 조건, 맨 끝 진행 순서 한 줄', kw: ['맵', '지역', '도로', '마을', '체육관', '배지', '관장', '던전', '동굴', '권역'] },
+    { id: 'balance', label: '밸런스·전투·성장 시스템', lead: 'planner',  reviewers: ['haram'],              fmt: '표 | 구간 | 지금 값 | 문제 | 제안 값 | 근거(원작 기준) |, 표 아래 바꿀 우선순위 3개', kw: ['밸런스', '레벨', '경험치', '데미지', '전투', '상성', '난이도', '확률', '수치'] },
+    { id: 'eco',     label: '생태 고증·도감 설명',    lead: 'yoonseul', reviewers: ['sua'],                weight: 2, fmt: '표 | 모티브 | 실제 사실(서식지·계절·생김새·보호종) | 게임 설정과 다른 점 | 판정(✅/⚠️/[확인 필요]) |, 표 아래 도감 설명문(각 2문장)', kw: ['고증', '실제', '생태', '서식', '멸종', '보호종', '도감 설명', '사실', '생물'] },
+    { id: 'story',   label: '스토리·대사·퀘스트',     lead: 'sua',      reviewers: ['planner', 'yoonseul'], weight: 2, fmt: '대사는 "이름: 대사" 한 줄씩, 한 줄 25자 이내, 장면마다 "### 장면" 소제목, 선택지는 ▶로', kw: ['대사', '스토리', '시나리오', '퀘스트', '인트로', '엔딩', '박사', '라이벌', 'NPC', '설정'] },
+    { id: 'art',     label: '아트·UI·화면 설계',      lead: 'taeyun',   reviewers: ['planner'],            weight: 2, fmt: '표 | 대상 | 크기(px) | 팔레트(색 코드) | 프레임 | 배치·터치 영역 |, 표 아래 주의점 3개', kw: ['도트', '픽셀', '아트', '그림', 'UI', '화면', '메뉴', '버튼', '아이콘', '팔레트', '스프라이트', '반응형'] },
+    { id: 'plan',    label: '로드맵·일정·작업 쪼개기', lead: 'haram',    reviewers: ['planner'],            fmt: '번호 목록으로 작업 쪼개기(각 작업: 담당 · 완료 조건 · 크기 S/M/L), 맨 끝 "이번 주 할 일" 3개', kw: ['로드맵', '일정', '우선순위', '범위', '버전', '마일스톤', '할 일', '쪼개', '계획', '연계', '후속작'] },
   ],
   vibe: [
-    { id: 'arch',    label: '구조·데이터 설계',       lead: 'yejun',    reviewers: ['coder', 'reviewer'],  weight: 2, kw: ['구조', '설계', '아키텍처', '엔진', '폴더', '데이터', '세이브', '분리', '모듈', '공통'] },
-    { id: 'test',    label: '테스트 체크리스트·버그 정리', lead: 'qa',   reviewers: ['coder'],              weight: 2, kw: ['테스트', '버그', '오류', '체크리스트', '확인', '재현', '안 돼', '깨져', '멈춰'] },
-    { id: 'review',  label: '코드 리뷰·리팩터링 계획', lead: 'reviewer', reviewers: ['yejun'],              kw: ['리뷰', '리팩터링', '정리', '중복', '성능', '느려', '최적화', '용량'] },
+    { id: 'arch',    label: '구조·데이터 설계',       lead: 'yejun',    reviewers: ['coder', 'reviewer'],  weight: 2, fmt: '## 지금 문제 / ## 바꿀 구조(폴더·데이터 예시 코드블록) / ## 옮기는 단계(번호, 단계마다 확인 방법) / ## Claude Code에 넘길 첫 단계 지시문', kw: ['구조', '설계', '아키텍처', '엔진', '폴더', '데이터', '세이브', '분리', '모듈', '공통'] },
+    { id: 'test',    label: '테스트 체크리스트·버그 정리', lead: 'qa',   reviewers: ['coder'],              weight: 2, fmt: '표 | 번호 | 확인할 것 | 방법(기기·조작) | 통과 기준 |, 우선순위 높은 순', kw: ['테스트', '버그', '오류', '체크리스트', '확인', '재현', '안 돼', '깨져', '멈춰'] },
+    { id: 'review',  label: '코드 리뷰·리팩터링 계획', lead: 'reviewer', reviewers: ['yejun'],              fmt: '## 문제(우선순위 순, 최대 5개) / ## 단계별 계획(단계마다 확인 방법) / ## Claude Code에 넘길 첫 단계 지시문', kw: ['리뷰', '리팩터링', '정리', '중복', '성능', '느려', '최적화', '용량'] },
   ],
 };
 const typeOf = (job) => TYPES[job.team].find((t) => t.id === job.typeId) || TYPES[job.team][0];
@@ -1207,6 +1199,10 @@ function fillModelSelects() {
   $('modelIn').value = cur;
   $('fallbackSel').innerHTML = '<option value="">자동 (가벼운 flash 모델)</option><option value="-">대신 쓰지 않음 (기다렸다 재시도만)</option>' + ms.filter((m) => m !== cur).map((m) => `<option value="${esc(m)}">${esc(m)}${modelTag(m) ? ' — ' + modelTag(m) : ''}</option>`).join('');
   $('fallbackSel').value = [...$('fallbackSel').options].some((o) => o.value === fb) ? fb : '';
+  const lv = store.getL('eco_lite') || '', auto = getLite();
+  $('liteSel').innerHTML = `<option value="">자동${auto && !lv ? ' (' + esc(auto) + ')' : ' (flash-lite 계열)'}</option><option value="-">쓰지 않음 (모두 주력 모델로)</option>` + ms.filter((m) => m !== cur).map((m) => `<option value="${esc(m)}">${esc(m)}${modelTag(m) ? ' — ' + modelTag(m) : ''}</option>`).join('');
+  $('liteSel').value = [...$('liteSel').options].some((o) => o.value === lv) ? lv : '';
+  renderQuota();
 }
 async function refreshModels(silent) {
   if (!getKey()) { fillModelSelects(); return; }
@@ -1226,61 +1222,56 @@ async function pickFallback(current) {
   const pref = modelCache.filter((m) => m !== current && /flash/.test(m) && !/(image|tts|audio|live|embedding)/.test(m));
   return pref.find((m) => /lite/.test(m)) || pref[0] || null;
 }
-let callsToday = Number(store.getL('eco_calls_' + new Date().toDateString()) || 0);
-// 실시간 응답(스트리밍): onChunk(지금까지의 글)로 조금씩 알려 줌. files = [{mime, b64}]
-// ── AI 엔진: 내 PC(Ollama) / Gemini ──
-const getEngine = () => store.getL('eco_engine') || 'auto';
-const pcUrl = () => (store.getL('eco_pcurl') || 'http://localhost:11434').replace(/\/+$/, '');
-const pcModel = () => store.getL('eco_pcmodel') || '';
-const aiReady = () => !!getKey() || (getEngine() !== 'gemini' && !!pcModel());
-let pcCalls = Number(store.getL('eco_pccalls_' + new Date().toDateString()) || 0), pcDown = 0;
-async function callOllama(agentKey, sys, prompt, onChunk, files) {
-  const model = pcModel(); if (!model) throw new Error('설정에서 내 PC 모델을 골라 주세요');
-  const imgs = (files || []).filter((f) => (f.mime || '').startsWith('image/')).map((f) => f.b64);
-  const ctl = new AbortController(); let timer = setTimeout(() => ctl.abort(), 180000);
-  let r;
-  try {
-    r = await fetch(pcUrl() + '/api/chat', { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, stream: true, keep_alive: '30m', options: { num_ctx: 8192, temperature: .7 }, messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt, ...(imgs.length ? { images: imgs } : {}) }] }) });
-  } catch (e) { clearTimeout(timer); pcDown = Date.now(); throw new Error(e.name === 'AbortError' ? '내 PC가 너무 오래 답하지 않아요' : '내 PC에 연결할 수 없어요 (꺼져 있거나 주소·허용 설정 확인)'); }
-  if (!r.ok) { clearTimeout(timer); const t = await r.text(); throw new Error(`내 PC ${r.status}: ${t.slice(0, 160)}`); }
-  pcCalls++; store.setL('eco_pccalls_' + new Date().toDateString(), pcCalls);
-  let text = '', buf = ''; const rd = r.body.getReader(), dec = new TextDecoder();
-  const clean = (t) => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trimStart();
-  try {
-    for (;;) {
-      const { value, done } = await rd.read(); if (done) break;
-      clearTimeout(timer); timer = setTimeout(() => ctl.abort(), 120000);
-      buf += dec.decode(value, { stream: true }); const lines = buf.split('\n'); buf = lines.pop();
-      for (const l of lines) { if (!l.trim()) continue; try { const j = JSON.parse(l); if (j.error) throw new Error(j.error); text += j.message?.content || ''; onChunk?.(clean(text)); } catch (e) { if (e.message && !/JSON/.test(e.message)) throw e; } }
-    }
-  } finally { clearTimeout(timer); }
-  if (buf.trim()) try { text += JSON.parse(buf).message?.content || ''; } catch {}
-  return clean(text).trim() || '(빈 응답)';
+// ── 무료 한도 관리 ──
+// 한도는 모델마다 따로 매겨지고, 매일 미국 태평양 시간 자정(한국 오후 5시, 여름엔 4시)에 다시 채워져요.
+const ptDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+const quota = () => { try { return JSON.parse(store.getL('eco_q_' + ptDay()) || '{}'); } catch { return {}; } };
+const saveQuota = (q) => store.setL('eco_q_' + ptDay(), JSON.stringify(q));
+const qUsed = () => Object.values(quota()).reduce((n, x) => n + (x.n || 0), 0);
+const isOut = (m) => !!quota()[m]?.out;
+function qAdd(m) { const q = quota(); (q[m] ||= { n: 0 }).n++; saveQuota(q); callsToday = qUsed(); }
+function qOut(m) { const q = quota(); (q[m] ||= { n: 0 }).out = true; saveQuota(q); store.setL('eco_rpd_' + m, String(q[m].n)); }
+const resetKst = () => { const h = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', timeZoneName: 'short' }).includes('PDT') ? 16 : 17; return `오후 ${h - 12}시`; };
+let callsToday = qUsed();
+const aiReady = () => !!getKey();
+const saveMode = () => store.getL('eco_save') !== '0';
+function getLite() {
+  const v = store.getL('eco_lite') || '';
+  if (v === '-') return null; if (v) return v;
+  const ms = sortModels(modelCache || []).filter((m) => /lite/.test(m) && !/preview|exp/.test(m));
+  return ms[0] || sortModels(modelCache || []).find((m) => /lite/.test(m)) || null;
 }
-async function callGemini(agentKey, prompt, mock, onChunk, files) {
+function modelOrder(light) {
+  const main = getModel(), lite = getLite(), fb = store.getL('eco_fallback');
+  const list = light && lite ? [lite, main] : [main, lite];
+  if (fb && fb !== '-') list.push(fb);
+  return [...new Set(list.filter(Boolean))];
+}
+const lastAt = {};
+async function pace(m) { const t = Math.max(Date.now(), (lastAt[m] || 0) + 6500); lastAt[m] = t; if (t > Date.now()) await sleep(t - Date.now()); } // 분당 한도에 안 걸리게 같은 모델은 6.5초 간격
+function renderQuota() {
+  if (!$('quotaBox')) return;
+  const q = quota(), rows = Object.entries(q).map(([m, x]) => `${esc(m)} <b>${x.n}회</b>${x.out ? ' <span class="warn">· 오늘 한도 다 씀</span>' : store.getL('eco_rpd_' + m) ? ` <small>(지난번 ${store.getL('eco_rpd_' + m)}회에서 막힘)</small>` : ''}`);
+  $('quotaBox').innerHTML = `📊 <b>오늘 쓴 호출</b> (한국 시간 ${resetKst()}에 초기화)<br>${rows.join('<br>') || '아직 없어요'}<br><small>무료 한도는 계정마다 달라서 정확한 숫자는 <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>에서 볼 수 있어요. 한도에 걸리면 자동으로 다른 모델로 넘어가고, 막힌 횟수를 기억해 둬요.</small>`;
+}
+// 실시간 응답(스트리밍): onChunk(지금까지의 글)로 조금씩 알려 줌. files = [{mime, b64}]. light = 검토·교정처럼 가벼운 일
+async function callGemini(agentKey, prompt, mock, onChunk, files, light) {
   const key = getKey(), a = AGENT_DEF[agentKey];
-  if (mock || !aiReady()) { // 시연: 글자가 써지는 것처럼
+  if (mock || !key) { // 시연: 글자가 써지는 것처럼
     const t = MOCK[typeof mock === 'string' ? mock : agentKey]; await sleep(rnd(500, 900));
     for (let k = 8; k < t.length; k += 8) { onChunk?.(t.slice(0, k)); await sleep(60); }
     onChunk?.(t); return t;
   }
-  const style = '';
-  const sysText = a.role + '\n\n[맥락]\n' + getCtx() + style + '\n\n답변은 한국어 마크다운(제목 #, 목록 -, 표 |)으로, 바로 쓸 수 있는 완성형으로 작성하세요. 지금 맡은 역할 범위 안에서만 답하세요.';
-  const eng = getEngine(), long = sysText.length + prompt.length > Number(store.getL('eco_pcmax') || 7000), hasPdf = (files || []).some((f) => f.mime === 'application/pdf');
-  const useLocal = pcModel() && (eng === 'local' || (eng === 'auto' && (!key || (!long && !hasPdf && Date.now() - pcDown > 60000))));
-  if (useLocal) {
-    try { return await callOllama(agentKey, sysText, hasPdf ? prompt + '\n\n(첨부 PDF는 내 PC AI가 읽을 수 없어 빠졌어요)' : prompt, onChunk, files); }
-    catch (e) { if (eng === 'local' || !key) throw e; logLine('시스템', null, `🖥 ${e.message} → 이번 일은 ☁️ Gemini로 넘겼어요.`); }
-  }
-  if (!key) throw new Error('Gemini 키가 없어요. 설정에서 키를 넣거나 AI 엔진을 "내 PC"로 바꿔 주세요.');
+  const sysText = a.role + '\n\n[맥락]\n' + getCtx() + '\n\n[쓰는 법] 한국어 마크다운(제목 #, 목록 -, 표 |). 서론·인사·맺음말·요청 되풀이 없이 결과만. 요청받은 형식과 길이를 지키고, 지금 맡은 역할 범위 안에서만 답하세요.';
   const parts = [{ text: prompt }, ...(files || []).map((f) => ({ inline_data: { mime_type: f.mime, data: f.b64 } }))];
   const body = JSON.stringify({ systemInstruction: { parts: [{ text: sysText }] }, contents: [{ role: 'user', parts }] });
-  let model = getModel();
-  for (let i = 1; i <= 4; i++) {
+  const order = modelOrder(light); let model = order.find((m) => !isOut(m));
+  if (!model) throw new Error(`오늘 무료 한도를 모두 썼어요. 한국 시간 ${resetKst()}에 다시 채워져요.`);
+  for (let i = 1; i <= 5; i++) {
+    await pace(model);
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body });
-    callsToday++; store.setL('eco_calls_' + new Date().toDateString(), callsToday);
+    qAdd(model); renderQuota();
     if (r.ok) {
       let text = '', buf = ''; const rd = r.body.getReader(), dec = new TextDecoder();
       for (;;) {
@@ -1291,17 +1282,28 @@ async function callGemini(agentKey, prompt, mock, onChunk, files) {
       if (buf.startsWith('data:')) try { const j = JSON.parse(buf.slice(5)); text += (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join(''); } catch {}
       return text.trim() || '(빈 응답)';
     }
-    const raw = await r.text(); let msg = raw; try { msg = JSON.parse(raw).error?.message || JSON.parse(raw)[0]?.error?.message || raw; } catch {}
+    const raw = await r.text(); let err = {}; try { const j = JSON.parse(raw); err = j.error || j[0]?.error || {}; } catch {}
+    const msg = err.message || raw;
     const suggested = r.status === 404 && String(msg).match(/models\/([\w.\-]+)/g)?.map((m) => m.slice(7)).find((m) => m !== model);
-    if (suggested && i < 4) { model = suggested; store.setL('eco_model', model); fillModelSelects(); logLine('시스템', null, `모델을 ${model}(으)로 자동 변경했어요.`); continue; }
-    if (r.status === 429 && i < 4) { say(agents[agentKey], '호출 한도에 걸렸어요. 잠깐 쉴게요…', 8000); await sleep(15000 * i); continue; }
-    if ((r.status === 503 || r.status === 500) && i < 4) {
-      if (i >= 2) { const alt = await pickFallback(model); if (alt) { logLine('시스템', null, `${model}이 혼잡해서 이번 호출은 ${alt}로 대신할게요.`); model = alt; continue; } }
+    if (suggested && i < 5) { model = suggested; store.setL('eco_model', model); fillModelSelects(); logLine('시스템', null, `모델을 ${model}(으)로 자동 변경했어요.`); continue; }
+    if (r.status === 429) {
+      const daily = /per.?day|PerDay|daily/i.test(raw);
+      if (daily) {
+        qOut(model); renderQuota(); const next = modelOrder(light).concat(sortModels(modelCache || []).filter((m) => /flash/.test(m))).find((m) => !isOut(m) && m !== model);
+        if (!next) throw new Error(`오늘 무료 한도를 모두 썼어요. 한국 시간 ${resetKst()}에 다시 채워져요.`);
+        logLine('시스템', null, `${model}의 오늘 무료 한도를 다 써서 ${next}로 이어서 할게요.`); model = next; continue;
+      }
+      const ri = (err.details || []).find((d) => /RetryInfo/.test(d['@type'] || ''))?.retryDelay; const wait = Math.min(60, (parseFloat(ri) || 10 * i) + 1);
+      if (i < 5) { say(agents[agentKey], `분당 한도라 ${Math.round(wait)}초 쉬었다 할게요…`, wait * 1000); await sleep(wait * 1000); continue; }
+    }
+    if ((r.status === 503 || r.status === 500) && i < 5) {
+      if (i >= 2) { const alt = order.find((m) => m !== model && !isOut(m)) || await pickFallback(model); if (alt && alt !== model) { logLine('시스템', null, `${model}이 혼잡해서 이번 호출은 ${alt}로 대신할게요.`); model = alt; continue; } }
       say(agents[agentKey], '서버가 붐벼요. 잠깐 기다릴게요…', 6000); await sleep(4000 * i); continue;
     }
     if (r.status === 403 && /referer|referrer/i.test(msg)) throw new Error('이 사이트 주소가 API 키 허용 목록에 없어요. Google Cloud에서 키의 웹사이트 제한을 확인하세요.');
     throw new Error(`Gemini ${r.status}: ${String(msg).slice(0, 220)}`);
   }
+  throw new Error('여러 번 시도했지만 응답을 받지 못했어요. 잠시 후 다시 해 주세요.');
 }
 
 // =====================================================================
@@ -1359,7 +1361,7 @@ async function step(job, agentKey, prompt, to, sayFn, opt = {}) {
   let raw; const att = opt.attach ? job.attach : null;
   if (att?.text) prompt += `\n\n[첨부 자료 — 이 내용을 근거로 작성하세요]\n${att.text}`;
   const live = (t) => { a.liveLen = t.length; liveShow(job, a, t); };
-  try { raw = await callGemini(agentKey, prompt, job.mock ? (opt.mockKey || true) : false, live, att?.pdfs); } finally { a.state = 'idle'; a.activity = null; a.liveLen = 0; clearTimeout(a.after); counts(); liveShow(job, null); }
+  try { raw = await callGemini(agentKey, prompt, job.mock ? (opt.mockKey || true) : false, live, att?.pdfs, opt.light ?? (opt.review && job.save)); } finally { a.state = 'idle'; a.activity = null; a.liveLen = 0; clearTimeout(a.after); counts(); liveShow(job, null); }
   job.outputs[id] = raw; job.done++; persistJobs();
   const shown = job.masker.unmask(raw); a.lastOut = shown; a.doneCount = (a.doneCount || 0) + 1;
   const text = sayFn(raw); say(a, text); logLine(a.name, to && agents[to].name, text, '', shown);
@@ -1413,27 +1415,31 @@ async function runEdu(job) {
     if (lead !== disp && !agents[disp].busy) { say(agents[disp], `${agents[lead].name} 담당으로 배정!`, 5000); logLine(agents[disp].name, agents[lead].name, `"${type.label}" 일로 분류해서 ${agents[lead].name}에게 맡겼어요.`); }
     await sleep(1200);
   }
-  const draft = await step(job, lead, `디렉터 요청: "${topic}"\n업무 유형: ${type.label}\n바로 사용할 수 있는 완성형 초안을 작성하세요. 필요한 정보가 빠졌다면 [ ]로 빈칸을 두고 맨 끝에 "확인 필요" 목록을 쓰세요.`,
+  const draft = await step(job, lead, `디렉터 요청: "${topic}"\n업무 유형: ${type.label}\n바로 사용할 수 있는 완성형 초안을 작성하세요.${type.fmt ? '\n형식: ' + type.fmt : ''}\n필요한 정보가 빠졌다면 지어내지 말고 [ ]로 비워 두고 맨 끝에 "확인 필요" 목록을 쓰세요.`,
     reviewers[0] || null, () => reviewers.length ? '초안 완성! 검토 부탁해요.' : (job.gate ? '초안 완성! 디렉터님 확인 기다릴게요.' : '완성했어요! 확인해 주세요 🎉'), { attach: true });
   const reviews = [];
   if (combine) { // 검토자 여럿을 한 번의 호출로
     const others = reviewers.slice(1);
     others.forEach((k) => { const o = agents[k]; o.state = 'working'; o.activity = 'review'; o.busy = true; const [mx, my] = MEET_SPOT[job.team]; goTo(o, mx + rnd(-.7, .7), my + rnd(-.3, .3)); });
     try {
-      const rv = await step(job, reviewers[0], `동료(${agents[lead].name})가 쓴 초안을 다음 동료들이 함께 검토합니다: ${reviewers.map((r) => `${agents[r].name}(${AGENT_DEF[r].title})`).join(', ')}.\n각 동료 관점마다 "### 이름" 소제목 아래, 꼭 고칠 점 2개 이내를 "문제 → 수정 제안" 형식으로 쓰세요.\n\n요청: ${topic}\n\n초안:\n${draft}`,
+      const rv = await step(job, reviewers[0], `동료(${agents[lead].name})가 쓴 초안을 다음 동료들이 함께 검토합니다: ${reviewers.map((r) => `${agents[r].name}(${AGENT_DEF[r].title})`).join(', ')}.\n맨 첫 줄에 "판정: 통과"(모두 그대로 써도 될 때) 또는 "판정: 수정"을 쓰세요. 그다음 각 동료 관점마다 "### 이름" 소제목 아래, 꼭 고칠 점 2개 이내를 "문제 → 수정 제안" 한 줄씩. 사소한 취향 차이는 쓰지 마세요.\n\n요청: ${topic}\n\n초안:\n${draft}`,
         lead, () => '함께 검토했어요. 반영해 주세요.', { review: true });
       reviews.push(rv);
     } finally { others.forEach((k) => { const o = agents[k]; o.state = 'idle'; o.busy = false; o.activity = null; }); counts(); }
   }
   for (let i = 0; i < (combine ? 0 : reviewers.length); i++) {
     const r = reviewers[i];
-    const rv = await step(job, r, `동료(${agents[lead].name})가 쓴 초안을 당신의 전문 분야(${AGENT_DEF[r].title}) 관점에서 검토하세요. 꼭 고칠 점 3개 이내, 각각 "문제 → 수정 제안" 형식으로.\n\n요청: ${topic}\n\n초안:\n${draft}`,
+    const rv = await step(job, r, `동료(${agents[lead].name})가 쓴 초안을 당신의 전문 분야(${AGENT_DEF[r].title}) 관점에서 검토하세요. 맨 첫 줄에 "판정: 통과"(그대로 써도 될 때) 또는 "판정: 수정"을 쓰고, 꼭 고칠 점 3개 이내를 "문제 → 수정 제안" 한 줄씩. 사소한 취향 차이는 쓰지 마세요.\n\n요청: ${topic}\n\n초안:\n${draft}`,
       reviewers[i + 1] || lead, () => i + 1 < reviewers.length ? '제 의견 남겼어요. 다음 검토 부탁해요.' : '검토 끝! 반영해 주세요.', { review: true });
     reviews.push(`### ${agents[r].name} (${AGENT_DEF[r].title})\n${rv}`);
   }
   let note = '';
   if (job.gate) { if (!reviewers.length) job.total++; note = (await teacherGate(job, lead, `## 초안\n${draft}${reviews.length ? '\n\n---\n## 동료 검토\n' + reviews.join('\n\n') : ''}`)).note; }
   if (!reviewers.length && !note) return { final: draft, lead, title: job.topic, md: `# [${TN(job.team)}·${type.label}] ${topic}\n\n${draft}\n` };
+  if (job.save && !note && reviews.length && reviews.every((r) => /판정\s*[:：]\s*통과/.test(r) && !/판정\s*[:：]\s*수정/.test(r))) {
+    job.total = job.done; say(agents[lead], '검토 통과! 최종 단계는 건너뛸게요 💰', 5000); logLine(agents[lead].name, '디렉터(나)', '동료 검토를 통과해서 초안을 그대로 최종본으로 썼어요. (호출 1회 절약)');
+    return { final: draft, lead, title: job.topic, md: `# [${TN(job.team)}·${type.label}] ${topic}\n\n## 최종본 (검토 통과)\n${draft}\n\n---\n## 검토\n${reviews.join('\n\n')}\n` };
+  }
   const final = await step(job, lead, `${reviews.length ? '검토 의견' : '디렉터 지시'}을 반영해 최종본을 작성하세요. 최종본만 깔끔하게 쓰고, 맨 끝에 "반영한 점" 3줄 이내.${job.team === 'vibe' ? ' 그 앞에 "## Claude Code에 넘길 작업 지시문" 절을 두고, 그대로 붙여 넣을 수 있게 파일·할 일·완료 조건·확인 방법을 쓰세요.' : ''}\n${note ? `\n[디렉터 지시 — 가장 우선해서 반영]\n${note}\n` : ''}\n요청: ${topic}\n\n초안:\n${draft}${reviews.length ? '\n\n검토:\n' + reviews.join('\n\n') : ''}`, null, () => '최종본 완성했어요! 🎉');
   return { final, lead, title: job.topic, md: `# [${TN(job.team)}·${type.label}] ${topic}\n\n## 최종본\n${final}\n\n---\n## 초안\n${draft}${reviews.length ? '\n\n## 검토\n' + reviews.join('\n\n') : ''}${note ? '\n\n## 디렉터 지시\n' + note : ''}\n` };
 }
@@ -1453,7 +1459,7 @@ async function runJob(demo) {
   const lim = Number(store.getL('eco_limit') || 0);
   if (!demo && lim && callsToday + estimateCalls(team) > lim && !confirm(`오늘 호출 ${callsToday}회로, 정해 둔 한도 ${lim}회를 넘을 수 있어요. 계속할까요?`)) return;
   const useMask = $('mask').checked && !demo, masker = useMask ? makeMasker() : NO_MASK;
-  const job = { id: Date.now(), team, topic, sent: masker.mask(topic), mock: !!demo, useMask, gate: $('gate').checked, combine: $('combineRev').checked, outputs: {}, done: 0, total: estimateCalls(team), si: 0, masker };
+  const job = { id: Date.now(), team, topic, sent: masker.mask(topic), mock: !!demo, useMask, gate: $('gate').checked, combine: $('combineRev').checked, save: $('saveMode').checked, outputs: {}, done: 0, total: estimateCalls(team), si: 0, masker };
   job.attach = takeAttach(masker); if (job.attach) logLine('시스템', null, `자료 ${job.attach.names.length}개를 함께 보냈어요: ${job.attach.names.join(', ')}`);
   job.project = projRef();
   if (team === 'vibe') { job.vmode = vibeMode; job.ccMode = ccModeSel(); if (vibeMode === 'cc') job.total = job.ccMode === 'quick' ? 1 : 3; }
@@ -1496,7 +1502,8 @@ function syncButtons() {
   const busy = !!jobs[currentTeam], failed = failedJob[currentTeam];
   $('go').disabled = $('demo').disabled = busy; $('go').textContent = busy ? (jobs[currentTeam].waiting ? '내 확인 기다리는 중' : '이 파트는 작업 중…') : '작업 시작';
   $('retry').style.display = !busy && failed ? '' : 'none';
-  $('estCalls').textContent = `예상 Gemini 호출 ${estimateCalls(currentTeam)}회 · 오늘 ${callsToday}회 사용`;
+  const n = estimateCalls(currentTeam), sv = $('saveMode').checked && n > 1;
+  $('estCalls').textContent = `예상 호출 ${sv ? '최대 ' : ''}${n}회${sv ? ' (검토는 가벼운 모델)' : ''} · 오늘 ${callsToday}회 사용 · 한국 ${resetKst()} 초기화`;
 }
 function resumeSaved() {
   let saved; try { saved = JSON.parse(store.getL('eco_jobs') || '{}'); } catch { saved = {}; }
@@ -1685,7 +1692,7 @@ progress는 0.5 목표(배지 4개 구간 완성) 대비 전체 진행률(0~100)
 let logN = 0;
 function counts() {
   const all = Object.values(agents).filter((a) => a.key !== 'teacher' && !a.pet), w = all.filter((a) => a.state === 'working').length;
-  $('usage').textContent = `📞 오늘 ${callsToday}회`; if (pcModel()) { $('pcChip').style.display = ''; $('pcChip').textContent = `🖥 내 PC ${pcCalls}회`; }
+  $('usage').textContent = `📞 오늘 ${callsToday}회`; $('usage').title = Object.entries(quota()).map(([m, x]) => `${m}: ${x.n}회${x.out ? ' (한도 다 씀)' : ''}`).join('\n') + `\n한국 시간 ${resetKst()}에 초기화`;
   $('cWork').textContent = `일하는 중 ${w}`; $('cIdle').textContent = `대기 ${all.length - w}`; $('workLbl').textContent = `일하는 중 ${w}명`;
   $('agentPill').textContent = `에이전트 ${all.length}`;
 }
@@ -1703,7 +1710,7 @@ function logLine(fromName, toName, text, cls = '', detail = '', tmIn, restoring)
   $('logCount').textContent = ++logN; $('lastTime').textContent = tm; $('lastText').textContent = `${fromName}: ${text.slice(0, 22)}${text.length > 22 ? '…' : ''}`;
   while ($('logList').children.length > 60) $('logList').firstChild.remove();
 }
-function refreshMode() { const e = getEngine(); $('mode').innerHTML = !aiReady() ? '<span class="badge">AI 미연결 · 시연만</span>' : e === 'gemini' || !pcModel() ? '' : `<span class="badge" style="background:#3ddc84">${e === 'local' ? '🖥 내 PC' : '🔀 내 PC+Gemini'}</span>`; }
+function refreshMode() { $('mode').innerHTML = getKey() ? '' : '<span class="badge">키 없음 · 시연만</span>'; }
 
 function loadHist() { try { return JSON.parse(store.getL('eco_hist3') || store.getL('eco_hist2') || '[]'); } catch { return []; } }
 function saveHist(h) { store.setL('eco_hist3', JSON.stringify(h.slice(0, 50))); renderHist(); }
@@ -1987,7 +1994,7 @@ const WZ = [
     <ul><li>🎨 <b>기획 파트</b> — PD · 게임 기획 · 생태 고증 · 시나리오 · 아트·UI<br><small>몬스터·맵·대사·도트 가이드 같은 <b>게임 내용 문서</b>를 만들어요.</small></li>
     <li>🛠 <b>개발 파트</b> — 아키텍트 · 개발자 · QA · 리뷰어<br><small>기획 문서를 <b>Claude Code 지시문</b>으로 바꾸고, 구조 설계·테스트·리뷰를 해요.</small></li></ul>
     <p>흐름: <b>요청 → 담당 배정 → 초안 → 동료 검토 → (내 확인) → 최종본 → Claude Code로 넘기기</b>. 두 파트는 동시에 일할 수 있어요.</p>` },
-  { t: 'Gemini API 키', s: '2/3 — 키는 이 브라우저에만 저장돼요', body: () => `<p>Google AI Studio에서 받은 키를 넣어 주세요. <b>내 PC(Ollama)</b>로만 쓸 거면 건너뛰고 설정 → 🖥 AI 엔진에서 연결하면 돼요.</p><input id="wzKey" type="password" placeholder="AIza..." value="${esc(getKey())}" style="width:100%;padding:10px;font-size:15px;border:1px solid #bbb;border-radius:8px"><p class="note" style="color:#666">무료 키는 입력한 내용이 구글 서비스 개선에 쓰일 수 있어요.</p>` },
+  { t: 'Gemini API 키', s: '2/3 — 키는 이 브라우저에만 저장돼요', body: () => `<p>Google AI Studio에서 받은 키를 넣어 주세요. 없으면 <b>건너뛰기</b>를 눌러 시연으로 둘러볼 수 있어요.</p><input id="wzKey" type="password" placeholder="AIza..." value="${esc(getKey())}" style="width:100%;padding:10px;font-size:15px;border:1px solid #bbb;border-radius:8px"><p class="note" style="color:#666">무료 키는 입력한 내용이 구글 서비스 개선에 쓰일 수 있어요.</p>` },
   { t: '지금 만드는 게임', s: '3/3 — 팀원 모두가 이 내용을 읽고 일해요', body: () => `<label>어떤 게임 일을 먼저 할까요?</label><select id="wzProj" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px">${projects.map((p) => `<option value="${p.id}"${p.id === curProj().id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
     <label>지금 단계</label><input id="wzStatus" value="${esc(curProj().status || '')}" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px">
     <p class="note" style="color:#666">게임 맥락(폴더 구조, 알려진 문제 등)은 설정 → 🎮 게임 맥락에서 더 채울 수 있어요.</p>` },
@@ -2180,6 +2187,7 @@ ${job.sent}
 ${draft}`, 'coder', (o) => /고칠 점 없음/.test(o) ? '교정 검토 끝! 고칠 점 없어요 👍' : `교정할 곳 ${(o.match(/^\s*\d+[.)]/gm) || []).length || '몇'}군데 찾았어요.`, { review: true, mockKey: 'ccReview' });
   let note = '';
   if (job.gate) note = (await teacherGate(job, 'coder', `## 지시문 초안\n${draft}\n\n---\n## 리뷰어 교정 의견\n${review}`)).note;
+  if (job.save && !note && /고칠 점 없음/.test(review)) { job.total = job.done; logLine(agents.coder.name, '디렉터(나)', '교정 검토를 통과해서 초안을 그대로 썼어요. (호출 1회 절약)'); return { final: draft, cc: true, lead: 'coder', title: 'Claude Code 지시: ' + job.topic, md: `# [Claude Code 지시문] ${job.topic}\n\n${draft}\n` }; }
   const final = await step(job, 'coder', `교정 의견${note ? '과 디렉터 지시' : ''}을 반영해 지시문 최종본을 쓰세요. 초안과 같은 형식(## 목표 … ## 주의 … 마지막 줄)으로 전체를 다시 쓰고, 그 아래에 "---" 줄과 "### 교정 반영 내역"(무엇을 어떻게 고쳤는지 3줄 이내)을 붙이세요.
 ${note ? `\n[디렉터 지시 — 가장 우선]\n${note}\n` : ''}
 [지시문 초안]
@@ -2215,7 +2223,7 @@ $('hoRecheck').onclick = async () => {
   const btn = $('hoRecheck'), rv = agents.reviewer; btn.disabled = true; btn.textContent = '🔍 교정 중…';
   rv.state = 'working'; rv.activity = 'review'; rv.busy = true; goTo(rv, ...MEET_SPOT.vibe); counts();
   try {
-    const out = await callGemini('reviewer', `아래 Claude Code 작업 지시문을 교정하세요. 고친 지시문 전체를 같은 형식으로 다시 쓰고, 그 아래에 "---" 줄과 "### 교정 반영 내역"(3줄 이내)을 붙이세요. 고칠 게 없으면 원문 그대로 쓰고 반영 내역에 "고칠 점 없음".\n${CC_CHECK}\n\n[지시문]\n${text}`, getKey() ? false : 'ccFinal', (t) => { $('hoNotes').style.display = 'block'; $('hoNotes').textContent = `✏️ 교정 중… ${t.length.toLocaleString()}자`; });
+    const out = await callGemini('reviewer', `아래 Claude Code 작업 지시문을 교정하세요. 고친 지시문 전체를 같은 형식으로 다시 쓰고, 그 아래에 "---" 줄과 "### 교정 반영 내역"(3줄 이내)을 붙이세요. 고칠 게 없으면 원문 그대로 쓰고 반영 내역에 "고칠 점 없음".\n${CC_CHECK}\n\n[지시문]\n${text}`, getKey() ? false : 'ccFinal', (t) => { $('hoNotes').style.display = 'block'; $('hoNotes').textContent = `✏️ 교정 중… ${t.length.toLocaleString()}자`; }, null, true);
     const [body, notes] = splitNotes(out);
     hoUndo = text; $('hoText').value = body;
     $('hoNotes').innerHTML = `<b>🔍 리뷰어 교정 완료</b>${notes ? mdToHtml(notes.replace(/^#+\s*교정 반영 내역\s*/, '')) : '<p>반영 내역 없음</p>'}<button id="hoUndoBtn" class="ghostBtn">↩ 교정 전으로 되돌리기</button>`;
@@ -2301,42 +2309,6 @@ $('projEdit').onclick = () => {
 // =====================================================================
 // 13. UI 연결
 
-const PC_GUIDE = () => `<ol>
-<li><b>Ollama 설치</b>: <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a>에서 Windows용을 받아 설치해요. 작업 표시줄 오른쪽에 라마 아이콘이 생기면 성공.</li>
-<li><b>모델 받기</b>: 시작 → <b>터미널</b>(PowerShell)을 열고 아래 중 하나를 입력해요. (그래픽카드 8GB에 맞는 크기)<br><code>ollama pull exaone3.5:7.8b</code> 한국어에 강한 LG 모델<br><code>ollama pull qwen3:8b</code> 다양한 일에 무난<br><code>ollama pull gemma3:4b</code> 가볍고 빠름 · 스크린샷도 읽음</li>
-<li><b>이 사이트 허용</b>: 터미널에 아래 한 줄을 입력해요.<br><code>setx OLLAMA_ORIGINS "${location.origin}"</code><br>그다음 작업 표시줄의 라마 아이콘 → <b>Quit Ollama</b> → 시작 메뉴에서 Ollama를 다시 실행해요.</li>
-<li><b>이 PC에서 쓰기</b>: 위 [연결 테스트]를 누르고 모델을 골라요. 브라우저가 "로컬 네트워크 접근" 허용을 물으면 <b>허용</b>.</li>
-<li><b>휴대폰·학교 PC에서도 쓰기 (선택)</b>: PC와 휴대폰에 <a href="https://tailscale.com/download" target="_blank" rel="noopener">Tailscale</a>을 설치해 같은 계정으로 로그인 → PC 터미널에서<br><code>tailscale serve --bg http://localhost:11434</code><br>→ 나오는 <b>https://….ts.net</b> 주소를 다른 기기의 [내 PC 주소]에 넣어요. 내 기기끼리만 연결돼서 밖에서는 못 들어와요.<br><small>연결 테스트에서 403 오류가 나면: <code>setx OLLAMA_HOST "0.0.0.0"</code> 입력 후 Ollama를 다시 켜요. 윈도우 방화벽 창이 뜨면 <b>개인 네트워크만</b> 허용하세요.</small></li>
-<li><b>절전</b>: PC가 잠들면 AI도 멈춰요. 쓸 때만 켜 두면 전기료가 거의 들지 않고, 꺼져 있으면 자동 모드에서 Gemini가 대신해요.</li></ol>`;
-function showEngine() {
-  const e = getEngine(); document.querySelectorAll('[data-eng]').forEach((b) => b.classList.toggle('on', b.dataset.eng === e));
-  $('engNote').innerHTML = { auto: '평소엔 <b>내 PC</b>, 긴 작업·PDF 첨부나 PC가 꺼져 있을 땐 <b>Gemini</b>가 해요.', local: '모든 일을 <b>내 PC</b>에서 해요. 키·비용 없음. 긴 작업은 느릴 수 있어요.', gemini: '모든 일을 <b>Gemini</b>로 해요 (지금까지와 같음).' }[e];
-  refreshMode(); counts();
-}
-document.querySelectorAll('[data-eng]').forEach((b) => (b.onclick = () => { store.setL('eco_engine', b.dataset.eng); showEngine(); }));
-$('pcUrl').value = store.getL('eco_pcurl') || ''; $('pcMax').value = store.getL('eco_pcmax') || '7000';
-$('pcUrl').onchange = () => { const v = $('pcUrl').value.trim(); v ? store.setL('eco_pcurl', v) : store.del('eco_pcurl'); };
-$('pcMax').onchange = () => store.setL('eco_pcmax', $('pcMax').value);
-$('pcModel').onchange = () => { $('pcModel').value ? store.setL('eco_pcmodel', $('pcModel').value) : store.del('eco_pcmodel'); showEngine(); };
-function fillPcModels(list) {
-  const cur = pcModel(); const names = list.length ? list : cur ? [cur] : [];
-  $('pcModel').innerHTML = (names.length ? '' : '<option value="">— 받은 모델이 없어요 —</option>') + names.map((n) => `<option value="${esc(n)}"${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join('');
-  if (!cur && names[0]) { store.setL('eco_pcmodel', names[0]); } showEngine();
-}
-$('pcTest').onclick = async () => {
-  $('pcUrl').onchange(); $('pcStatus').textContent = '내 PC에 연결하는 중…';
-  try {
-    const r = await fetch(pcUrl() + '/api/tags'); if (!r.ok) throw new Error('응답 ' + r.status);
-    const list = ((await r.json()).models || []).map((m) => m.name); fillPcModels(list);
-    if (!list.length) { $('pcStatus').innerHTML = '<span class="warn">연결은 됐는데 받은 모델이 없어요. 아래 안내 2번을 해 주세요.</span>'; return; }
-    $('pcStatus').textContent = `연결 성공! 모델 ${list.length}개. ${pcModel()}로 짧게 답해 보는 중…`; const t0 = Date.now();
-    const out = await callOllama('haram', '짧게 답하세요.', '"준비됐어요" 한마디만 한국어로.', null);
-    $('pcStatus').innerHTML = `<span class="ok">✅ 내 PC AI 작동! "${esc(out.slice(0, 40))}" (${((Date.now() - t0) / 1000).toFixed(1)}초, 처음엔 모델을 불러오느라 느려요)</span>`;
-  } catch (e) {
-    $('pcStatus').innerHTML = `<span class="err">연결하지 못했어요: ${esc(e.message)}</span><br><small>① PC가 켜져 있고 Ollama가 실행 중인지 ② 안내 3번(사이트 허용)을 하고 Ollama를 다시 켰는지 ③ 다른 기기라면 Tailscale 주소(https)를 넣었는지 확인해 주세요.</small>`;
-  }
-};
-$('pcGuide').innerHTML = PC_GUIDE(); fillPcModels([]);
 // 옛 교무팀 진행 기록 정리 (한 번만)
 if (!store.getL('eco_v6')) { if (lastResult.edu && !lastResult.edu.project) { lastResult.edu = null; store.setL('eco_last', JSON.stringify(lastResult)); }
   try { const sj = JSON.parse(store.getL('eco_jobs') || '{}'); if (sj.edu && !sj.edu.project) { delete sj.edu; store.setL('eco_jobs', JSON.stringify(sj)); } } catch {}
@@ -2383,6 +2355,8 @@ $('delKey').onclick = () => { store.del('eco_key'); $('keyIn').value = ''; $('ke
 $('listModels').onclick = () => { $('saveKey').click(); refreshModels(false); };
 $('modelIn').onchange = () => { store.setL('eco_model', $('modelIn').value); fillModelSelects(); $('keyStatus').innerHTML = `<span class="ok">모델을 ${esc(getModel())}(으)로 바꿨어요.</span>`; syncButtons(); };
 $('fallbackSel').onchange = () => store.setL('eco_fallback', $('fallbackSel').value);
+$('liteSel').onchange = () => { store.setL('eco_lite', $('liteSel').value); fillModelSelects(); };
+$('saveMode').checked = saveMode(); $('saveMode').onchange = () => { store.setL('eco_save', $('saveMode').checked ? '1' : '0'); syncButtons(); };
 $('testKey').onclick = async () => {
   $('saveKey').click(); if (!getKey()) return; $('keyStatus').textContent = '실제로 짧게 호출해 보는 중…';
   try { const out = await callGemini('haram', '"연결 확인"이라고만 답하세요.'); $('keyStatus').innerHTML = `<span class="ok">✅ 연결 성공! (${esc(getModel())}) 응답: ${esc(out.slice(0, 40))}</span><br><small>오늘 이 브라우저에서 부른 횟수: ${callsToday}회</small>`; }
