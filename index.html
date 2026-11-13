@@ -100,6 +100,7 @@
   #ctrl .seg button { flex: 1; background: #1d2440; color: #ccd; border: 1px solid #3b4466; }
   #ctrl .seg button.on { background: #fff; color: #111; }
   #hwpRes, #vHwp, .hwpBtn { display: none !important; }
+  .pcHelp { margin-top: 10px; } .pcHelp summary { cursor: pointer; font-weight: 700; color: #c8ff2e; } #pcGuide ol { padding-left: 18px; line-height: 1.6; } #pcGuide code { background: #10101c; padding: 1px 5px; border-radius: 4px; font-size: 12px; word-break: break-all; }
   .projTag { display: block; font-size: 10px; opacity: .75; font-weight: 600; }
   #projRow select { flex: 1; min-width: 0; }
   .projLbl { font-size: 12px; font-weight: 800; white-space: nowrap; color: #c8a2ff; }
@@ -210,7 +211,7 @@
     <span><i style="background:#ffb020"></i><em id="cIdle" style="font-style:normal">대기 0</em></span>
     <span><i style="background:#c8ff2e"></i><em id="cDone" style="font-style:normal">완료 0</em></span>
     <span><i style="background:#4fc3f7"></i><em id="cWait" style="font-style:normal">확인 0</em></span>
-    <span id="usage">📞 오늘 0회</span>
+    <span id="usage">📞 오늘 0회</span><span id="pcChip" style="display:none"></span>
   </div>
   <small id="topicLbl">대기 중</small>
 </div>
@@ -328,7 +329,20 @@
     </div>
   </div>
   <div class="view" id="v-set">
-    <details class="setSec" id="d-key" open><summary>🔑 API 키 · 모델</summary>
+    <details class="setSec" id="d-pc" open><summary>🖥 AI 엔진 — 내 PC(Ollama) · Gemini</summary>
+    <label>어떤 AI로 일할까요?</label>
+    <div class="seg" id="engSeg"><button data-eng="auto">🔀 자동</button><button data-eng="local">🖥 내 PC만</button><button data-eng="gemini">☁️ Gemini만</button></div>
+    <div class="note" id="engNote" style="margin-top:4px"></div>
+    <label>내 PC 주소</label>
+    <input id="pcUrl" placeholder="http://localhost:11434 (다른 기기에서는 https://내PC이름.xxx.ts.net)" />
+    <label>내 PC 모델</label>
+    <div class="row"><select id="pcModel"><option value="">— 연결 테스트를 눌러 목록 불러오기 —</option></select><button id="pcTest" class="ghost fit">연결 테스트</button></div>
+    <label>자동일 때 Gemini로 보낼 긴 작업 기준</label>
+    <select id="pcMax"><option value="4000">4천 자 넘으면 (빠르게)</option><option value="7000">7천 자 넘으면 (보통)</option><option value="12000">1만 2천 자 넘으면 (내 PC 최대한)</option></select>
+    <div id="pcStatus" class="note"></div>
+    <details class="pcHelp"><summary>📖 윈도우 11 PC 설정 방법 (처음 한 번)</summary><div id="pcGuide"></div></details>
+    </details>
+    <details class="setSec" id="d-key"><summary>🔑 Gemini API 키 · 모델</summary>
     <label>Gemini API 키</label>
     <div class="row"><input id="keyIn" type="password" autocomplete="off" placeholder="AIza..." /><button id="eye" class="ghost fit">보기</button></div>
     <label>모델</label>
@@ -1214,15 +1228,52 @@ async function pickFallback(current) {
 }
 let callsToday = Number(store.getL('eco_calls_' + new Date().toDateString()) || 0);
 // 실시간 응답(스트리밍): onChunk(지금까지의 글)로 조금씩 알려 줌. files = [{mime, b64}]
+// ── AI 엔진: 내 PC(Ollama) / Gemini ──
+const getEngine = () => store.getL('eco_engine') || 'auto';
+const pcUrl = () => (store.getL('eco_pcurl') || 'http://localhost:11434').replace(/\/+$/, '');
+const pcModel = () => store.getL('eco_pcmodel') || '';
+const aiReady = () => !!getKey() || (getEngine() !== 'gemini' && !!pcModel());
+let pcCalls = Number(store.getL('eco_pccalls_' + new Date().toDateString()) || 0), pcDown = 0;
+async function callOllama(agentKey, sys, prompt, onChunk, files) {
+  const model = pcModel(); if (!model) throw new Error('설정에서 내 PC 모델을 골라 주세요');
+  const imgs = (files || []).filter((f) => (f.mime || '').startsWith('image/')).map((f) => f.b64);
+  const ctl = new AbortController(); let timer = setTimeout(() => ctl.abort(), 180000);
+  let r;
+  try {
+    r = await fetch(pcUrl() + '/api/chat', { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, stream: true, keep_alive: '30m', options: { num_ctx: 8192, temperature: .7 }, messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt, ...(imgs.length ? { images: imgs } : {}) }] }) });
+  } catch (e) { clearTimeout(timer); pcDown = Date.now(); throw new Error(e.name === 'AbortError' ? '내 PC가 너무 오래 답하지 않아요' : '내 PC에 연결할 수 없어요 (꺼져 있거나 주소·허용 설정 확인)'); }
+  if (!r.ok) { clearTimeout(timer); const t = await r.text(); throw new Error(`내 PC ${r.status}: ${t.slice(0, 160)}`); }
+  pcCalls++; store.setL('eco_pccalls_' + new Date().toDateString(), pcCalls);
+  let text = '', buf = ''; const rd = r.body.getReader(), dec = new TextDecoder();
+  const clean = (t) => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trimStart();
+  try {
+    for (;;) {
+      const { value, done } = await rd.read(); if (done) break;
+      clearTimeout(timer); timer = setTimeout(() => ctl.abort(), 120000);
+      buf += dec.decode(value, { stream: true }); const lines = buf.split('\n'); buf = lines.pop();
+      for (const l of lines) { if (!l.trim()) continue; try { const j = JSON.parse(l); if (j.error) throw new Error(j.error); text += j.message?.content || ''; onChunk?.(clean(text)); } catch (e) { if (e.message && !/JSON/.test(e.message)) throw e; } }
+    }
+  } finally { clearTimeout(timer); }
+  if (buf.trim()) try { text += JSON.parse(buf).message?.content || ''; } catch {}
+  return clean(text).trim() || '(빈 응답)';
+}
 async function callGemini(agentKey, prompt, mock, onChunk, files) {
   const key = getKey(), a = AGENT_DEF[agentKey];
-  if (mock || !key) { // 시연: 글자가 써지는 것처럼
+  if (mock || !aiReady()) { // 시연: 글자가 써지는 것처럼
     const t = MOCK[typeof mock === 'string' ? mock : agentKey]; await sleep(rnd(500, 900));
     for (let k = 8; k < t.length; k += 8) { onChunk?.(t.slice(0, k)); await sleep(60); }
     onChunk?.(t); return t;
   }
   const style = '';
   const sysText = a.role + '\n\n[맥락]\n' + getCtx() + style + '\n\n답변은 한국어 마크다운(제목 #, 목록 -, 표 |)으로, 바로 쓸 수 있는 완성형으로 작성하세요. 지금 맡은 역할 범위 안에서만 답하세요.';
+  const eng = getEngine(), long = sysText.length + prompt.length > Number(store.getL('eco_pcmax') || 7000), hasPdf = (files || []).some((f) => f.mime === 'application/pdf');
+  const useLocal = pcModel() && (eng === 'local' || (eng === 'auto' && (!key || (!long && !hasPdf && Date.now() - pcDown > 60000))));
+  if (useLocal) {
+    try { return await callOllama(agentKey, sysText, hasPdf ? prompt + '\n\n(첨부 PDF는 내 PC AI가 읽을 수 없어 빠졌어요)' : prompt, onChunk, files); }
+    catch (e) { if (eng === 'local' || !key) throw e; logLine('시스템', null, `🖥 ${e.message} → 이번 일은 ☁️ Gemini로 넘겼어요.`); }
+  }
+  if (!key) throw new Error('Gemini 키가 없어요. 설정에서 키를 넣거나 AI 엔진을 "내 PC"로 바꿔 주세요.');
   const parts = [{ text: prompt }, ...(files || []).map((f) => ({ inline_data: { mime_type: f.mime, data: f.b64 } }))];
   const body = JSON.stringify({ systemInstruction: { parts: [{ text: sysText }] }, contents: [{ role: 'user', parts }] });
   let model = getModel();
@@ -1634,7 +1685,7 @@ progress는 0.5 목표(배지 4개 구간 완성) 대비 전체 진행률(0~100)
 let logN = 0;
 function counts() {
   const all = Object.values(agents).filter((a) => a.key !== 'teacher' && !a.pet), w = all.filter((a) => a.state === 'working').length;
-  $('usage').textContent = `📞 오늘 ${callsToday}회`;
+  $('usage').textContent = `📞 오늘 ${callsToday}회`; if (pcModel()) { $('pcChip').style.display = ''; $('pcChip').textContent = `🖥 내 PC ${pcCalls}회`; }
   $('cWork').textContent = `일하는 중 ${w}`; $('cIdle').textContent = `대기 ${all.length - w}`; $('workLbl').textContent = `일하는 중 ${w}명`;
   $('agentPill').textContent = `에이전트 ${all.length}`;
 }
@@ -1652,7 +1703,7 @@ function logLine(fromName, toName, text, cls = '', detail = '', tmIn, restoring)
   $('logCount').textContent = ++logN; $('lastTime').textContent = tm; $('lastText').textContent = `${fromName}: ${text.slice(0, 22)}${text.length > 22 ? '…' : ''}`;
   while ($('logList').children.length > 60) $('logList').firstChild.remove();
 }
-function refreshMode() { $('mode').innerHTML = getKey() ? '' : '<span class="badge">키 없음 · 시연만</span>'; }
+function refreshMode() { const e = getEngine(); $('mode').innerHTML = !aiReady() ? '<span class="badge">AI 미연결 · 시연만</span>' : e === 'gemini' || !pcModel() ? '' : `<span class="badge" style="background:#3ddc84">${e === 'local' ? '🖥 내 PC' : '🔀 내 PC+Gemini'}</span>`; }
 
 function loadHist() { try { return JSON.parse(store.getL('eco_hist3') || store.getL('eco_hist2') || '[]'); } catch { return []; } }
 function saveHist(h) { store.setL('eco_hist3', JSON.stringify(h.slice(0, 50))); renderHist(); }
@@ -1772,7 +1823,7 @@ function startRevise() {
   const useMask = $('mask').checked, masker = useMask ? makeMasker() : NO_MASK;
   const lead = r.lead || (r.team === 'vibe' ? 'coder' : classify(r.topic, 'edu').lead);
   const topic = r.topic.startsWith('(수정) ') ? r.topic : '(수정) ' + r.topic;
-  const job = { id: Date.now(), kind: 'revise', team: r.team, project: r.project, topic, title: r.title || r.topic, lead, note: masker.mask(note), base: masker.mask(r.final), sent: '', mock: !getKey(), useMask, outputs: {}, done: 0, total: 1, si: 0, masker };
+  const job = { id: Date.now(), kind: 'revise', team: r.team, project: r.project, topic, title: r.title || r.topic, lead, note: masker.mask(note), base: masker.mask(r.final), sent: '', mock: !aiReady(), useMask, outputs: {}, done: 0, total: 1, si: 0, masker };
   $('reviseNote').value = ''; setTeam(r.team); execute(job);
 }
 
@@ -1936,7 +1987,7 @@ const WZ = [
     <ul><li>🎨 <b>기획 파트</b> — PD · 게임 기획 · 생태 고증 · 시나리오 · 아트·UI<br><small>몬스터·맵·대사·도트 가이드 같은 <b>게임 내용 문서</b>를 만들어요.</small></li>
     <li>🛠 <b>개발 파트</b> — 아키텍트 · 개발자 · QA · 리뷰어<br><small>기획 문서를 <b>Claude Code 지시문</b>으로 바꾸고, 구조 설계·테스트·리뷰를 해요.</small></li></ul>
     <p>흐름: <b>요청 → 담당 배정 → 초안 → 동료 검토 → (내 확인) → 최종본 → Claude Code로 넘기기</b>. 두 파트는 동시에 일할 수 있어요.</p>` },
-  { t: 'Gemini API 키', s: '2/3 — 키는 이 브라우저에만 저장돼요', body: () => `<p>Google AI Studio에서 받은 키를 넣어 주세요. 없으면 <b>건너뛰기</b>를 눌러 시연으로 둘러볼 수 있어요.</p><input id="wzKey" type="password" placeholder="AIza..." value="${esc(getKey())}" style="width:100%;padding:10px;font-size:15px;border:1px solid #bbb;border-radius:8px"><p class="note" style="color:#666">무료 키는 입력한 내용이 구글 서비스 개선에 쓰일 수 있어요.</p>` },
+  { t: 'Gemini API 키', s: '2/3 — 키는 이 브라우저에만 저장돼요', body: () => `<p>Google AI Studio에서 받은 키를 넣어 주세요. <b>내 PC(Ollama)</b>로만 쓸 거면 건너뛰고 설정 → 🖥 AI 엔진에서 연결하면 돼요.</p><input id="wzKey" type="password" placeholder="AIza..." value="${esc(getKey())}" style="width:100%;padding:10px;font-size:15px;border:1px solid #bbb;border-radius:8px"><p class="note" style="color:#666">무료 키는 입력한 내용이 구글 서비스 개선에 쓰일 수 있어요.</p>` },
   { t: '지금 만드는 게임', s: '3/3 — 팀원 모두가 이 내용을 읽고 일해요', body: () => `<label>어떤 게임 일을 먼저 할까요?</label><select id="wzProj" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px">${projects.map((p) => `<option value="${p.id}"${p.id === curProj().id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
     <label>지금 단계</label><input id="wzStatus" value="${esc(curProj().status || '')}" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:8px">
     <p class="note" style="color:#666">게임 맥락(폴더 구조, 알려진 문제 등)은 설정 → 🎮 게임 맥락에서 더 채울 수 있어요.</p>` },
@@ -2154,7 +2205,7 @@ function startRecheck() {
   if (jobs.vibe) return alert('바이브코딩팀이 다른 작업 중이에요. 끝난 뒤에 다시 교정해 주세요.');
   const [body] = splitNotes(r.final);
   const topic = r.topic.startsWith('(교정) ') ? r.topic : '(교정) ' + r.topic;
-  execute({ id: Date.now(), kind: 'recheck', team: 'vibe', project: r.project, topic, title: r.title || r.topic, base: body, sent: '', mock: !getKey(), useMask: false, outputs: {}, done: 0, total: 1, si: 0, masker: NO_MASK });
+  execute({ id: Date.now(), kind: 'recheck', team: 'vibe', project: r.project, topic, title: r.title || r.topic, base: body, sent: '', mock: !aiReady(), useMask: false, outputs: {}, done: 0, total: 1, si: 0, masker: NO_MASK });
 }
 
 // 넘기기 1단계에서 [AI로 다시 교정] (직접 고친 글도 교정)
@@ -2249,6 +2300,43 @@ $('projEdit').onclick = () => {
 
 // =====================================================================
 // 13. UI 연결
+
+const PC_GUIDE = () => `<ol>
+<li><b>Ollama 설치</b>: <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a>에서 Windows용을 받아 설치해요. 작업 표시줄 오른쪽에 라마 아이콘이 생기면 성공.</li>
+<li><b>모델 받기</b>: 시작 → <b>터미널</b>(PowerShell)을 열고 아래 중 하나를 입력해요. (그래픽카드 8GB에 맞는 크기)<br><code>ollama pull exaone3.5:7.8b</code> 한국어에 강한 LG 모델<br><code>ollama pull qwen3:8b</code> 다양한 일에 무난<br><code>ollama pull gemma3:4b</code> 가볍고 빠름 · 스크린샷도 읽음</li>
+<li><b>이 사이트 허용</b>: 터미널에 아래 한 줄을 입력해요.<br><code>setx OLLAMA_ORIGINS "${location.origin}"</code><br>그다음 작업 표시줄의 라마 아이콘 → <b>Quit Ollama</b> → 시작 메뉴에서 Ollama를 다시 실행해요.</li>
+<li><b>이 PC에서 쓰기</b>: 위 [연결 테스트]를 누르고 모델을 골라요. 브라우저가 "로컬 네트워크 접근" 허용을 물으면 <b>허용</b>.</li>
+<li><b>휴대폰·학교 PC에서도 쓰기 (선택)</b>: PC와 휴대폰에 <a href="https://tailscale.com/download" target="_blank" rel="noopener">Tailscale</a>을 설치해 같은 계정으로 로그인 → PC 터미널에서<br><code>tailscale serve --bg http://localhost:11434</code><br>→ 나오는 <b>https://….ts.net</b> 주소를 다른 기기의 [내 PC 주소]에 넣어요. 내 기기끼리만 연결돼서 밖에서는 못 들어와요.<br><small>연결 테스트에서 403 오류가 나면: <code>setx OLLAMA_HOST "0.0.0.0"</code> 입력 후 Ollama를 다시 켜요. 윈도우 방화벽 창이 뜨면 <b>개인 네트워크만</b> 허용하세요.</small></li>
+<li><b>절전</b>: PC가 잠들면 AI도 멈춰요. 쓸 때만 켜 두면 전기료가 거의 들지 않고, 꺼져 있으면 자동 모드에서 Gemini가 대신해요.</li></ol>`;
+function showEngine() {
+  const e = getEngine(); document.querySelectorAll('[data-eng]').forEach((b) => b.classList.toggle('on', b.dataset.eng === e));
+  $('engNote').innerHTML = { auto: '평소엔 <b>내 PC</b>, 긴 작업·PDF 첨부나 PC가 꺼져 있을 땐 <b>Gemini</b>가 해요.', local: '모든 일을 <b>내 PC</b>에서 해요. 키·비용 없음. 긴 작업은 느릴 수 있어요.', gemini: '모든 일을 <b>Gemini</b>로 해요 (지금까지와 같음).' }[e];
+  refreshMode(); counts();
+}
+document.querySelectorAll('[data-eng]').forEach((b) => (b.onclick = () => { store.setL('eco_engine', b.dataset.eng); showEngine(); }));
+$('pcUrl').value = store.getL('eco_pcurl') || ''; $('pcMax').value = store.getL('eco_pcmax') || '7000';
+$('pcUrl').onchange = () => { const v = $('pcUrl').value.trim(); v ? store.setL('eco_pcurl', v) : store.del('eco_pcurl'); };
+$('pcMax').onchange = () => store.setL('eco_pcmax', $('pcMax').value);
+$('pcModel').onchange = () => { $('pcModel').value ? store.setL('eco_pcmodel', $('pcModel').value) : store.del('eco_pcmodel'); showEngine(); };
+function fillPcModels(list) {
+  const cur = pcModel(); const names = list.length ? list : cur ? [cur] : [];
+  $('pcModel').innerHTML = (names.length ? '' : '<option value="">— 받은 모델이 없어요 —</option>') + names.map((n) => `<option value="${esc(n)}"${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  if (!cur && names[0]) { store.setL('eco_pcmodel', names[0]); } showEngine();
+}
+$('pcTest').onclick = async () => {
+  $('pcUrl').onchange(); $('pcStatus').textContent = '내 PC에 연결하는 중…';
+  try {
+    const r = await fetch(pcUrl() + '/api/tags'); if (!r.ok) throw new Error('응답 ' + r.status);
+    const list = ((await r.json()).models || []).map((m) => m.name); fillPcModels(list);
+    if (!list.length) { $('pcStatus').innerHTML = '<span class="warn">연결은 됐는데 받은 모델이 없어요. 아래 안내 2번을 해 주세요.</span>'; return; }
+    $('pcStatus').textContent = `연결 성공! 모델 ${list.length}개. ${pcModel()}로 짧게 답해 보는 중…`; const t0 = Date.now();
+    const out = await callOllama('haram', '짧게 답하세요.', '"준비됐어요" 한마디만 한국어로.', null);
+    $('pcStatus').innerHTML = `<span class="ok">✅ 내 PC AI 작동! "${esc(out.slice(0, 40))}" (${((Date.now() - t0) / 1000).toFixed(1)}초, 처음엔 모델을 불러오느라 느려요)</span>`;
+  } catch (e) {
+    $('pcStatus').innerHTML = `<span class="err">연결하지 못했어요: ${esc(e.message)}</span><br><small>① PC가 켜져 있고 Ollama가 실행 중인지 ② 안내 3번(사이트 허용)을 하고 Ollama를 다시 켰는지 ③ 다른 기기라면 Tailscale 주소(https)를 넣었는지 확인해 주세요.</small>`;
+  }
+};
+$('pcGuide').innerHTML = PC_GUIDE(); fillPcModels([]);
 // 옛 교무팀 진행 기록 정리 (한 번만)
 if (!store.getL('eco_v6')) { if (lastResult.edu && !lastResult.edu.project) { lastResult.edu = null; store.setL('eco_last', JSON.stringify(lastResult)); }
   try { const sj = JSON.parse(store.getL('eco_jobs') || '{}'); if (sj.edu && !sj.edu.project) { delete sj.edu; store.setL('eco_jobs', JSON.stringify(sj)); } } catch {}
