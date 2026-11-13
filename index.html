@@ -198,7 +198,7 @@
 
 <div id="topl">
   <div class="brand">AI OFFICE</div>
-  <div class="ttl"><span class="sq"></span><b>AI 오피스</b><span>생태몬스터 스튜디오 · 바이브코딩팀</span><span id="mode"></span></div>
+  <div class="ttl"><span class="sq"></span><b id="offTitle">AI 오피스</b><span id="offSub">생태몬스터 스튜디오 · 바이브코딩팀</span><span id="mode"></span></div>
   <div class="card">
     <div class="cardtop"><span><i></i><span id="pctLbl">전체 공정률</span></span><span id="pct">0<small>%</small></span></div>
     <div class="bar"><div id="barFill"></div></div>
@@ -418,7 +418,7 @@ const ROOMS = [
   { id: 'e_guide',  team: 'edu',  x: 0,  y: 9,  w: 6, h: 3, floor: 'peach',  rim: '#ff9f6b', label: '기획실',       lc: '#ff9f6b' },
   { id: 'e_parent', team: 'edu',  x: 0,  y: 12, w: 6, h: 3, floor: 'pink',   rim: '#f78fb3', label: '시나리오실',   lc: '#f78fb3' },
   { id: 'e_admin',  team: 'edu',  x: 0,  y: 15, w: 6, h: 3, floor: 'lav',    rim: '#9fa8ff', label: '아트실',       lc: '#9fa8ff' },
-  { id: 'deploy',   team: null,   x: 18, y: 12, w: 6, h: 6, floor: 'conc',   rim: '#ff6b6b', label: '배포실',       lc: '#ff6b6b' },
+  { id: 'deploy',   team: null,   x: 18, y: 12, w: 6, h: 6, floor: 'conc',   rim: '#ff6b6b', label: '출하장',       lc: '#ff6b6b' },
 ];
 for (const r of ROOMS) {
   if (r.y === 0 && r.x >= 6) { const dx = r.x + Math.floor(r.w / 2) + .5; r.doorOut = [dx, 6.7]; r.doorIn = [dx, 5.3]; }
@@ -449,8 +449,18 @@ function floorCol(style, x, y, sub) {
 // 3. 배경 그리기 (한 번만)
 // =====================================================================
 const TREES = [], BUSHES = [], FLOWERS = [];
+// 게임마다 다른 사무실 색감
+const TREE_PAL = { cherry: ['#c9668d', '#ec92b4', '#ffc4da'], autumn: ['#a85a22', '#d9772f', '#f4a650'], camellia: ['#1f5a35', '#2f7a45', '#e2394f'], pine: ['#1d4a34', '#2a6646', '#4f8f62'], ginkgo: ['#b8891c', '#e2b434', '#fbe28a'], maple: ['#9a2a1e', '#d0452c', '#f2875a'] };
+const BUSH_PAL = { cherry: ['#8c5a2b', '#c57b3a'], autumn: ['#9a5a26', '#cf8040'], camellia: ['#245a35', '#3a7a48'], pine: ['#2a5a3a', '#3f7a52'], ginkgo: ['#a07a24', '#d0a840'], maple: ['#8a3a22', '#c0583a'] };
+const THEMES = {
+  geoje: { title: '거제도 제작소', trees: ['camellia', 'pine'], grass: ['#7fb84e', '#9fc85e', '#8fbc56', '#97c35a'], rim: '#5f9a3e', water: ['#3f86d0', '#6fb2ee'] },
+  korea: { title: '대한민국 제작소', trees: ['ginkgo', 'maple'], grass: ['#c4ad5a', '#d6c26e', '#cbb562', '#d0bb68'], rim: '#a8903e', water: ['#5b8fd6', '#7fb2ee'] },
+  other: { title: '', trees: ['cherry', 'autumn'], grass: ['#b8c46c', '#a3b35c', '#aebb63', '#aebb63'], rim: '#8fb34e', water: ['#5b8fd6', '#7fb2ee'] },
+};
+let THEME = THEMES.other;
+const treePal = (t) => TREE_PAL[THEME.trees[t.k]] || TREE_PAL.cherry, bushPal = (t) => BUSH_PAL[THEME.trees[t.k]] || BUSH_PAL.cherry;
 function decorPlan() {
-  const add = (x, y) => { const k = hh(x, y); (k < .62 ? TREES : BUSHES).push({ x, y, kind: hh(y, x) < .5 ? 'cherry' : 'autumn' }); };
+  const add = (x, y) => { const k = hh(x, y); (k < .62 ? TREES : BUSHES).push({ x, y, k: hh(y, x) < .5 ? 0 : 1 }); };
   for (let x = -2; x <= W + 2; x += 2.6) add(x + hh(x, 1) * 1.2, H + 1.6 + hh(x, 2) * 1.4);           // 앞쪽
   for (let y = -2; y <= H; y += 2.8) if (y < 11 || y > 16) add(W + 1.6 + hh(3, y) * 1.4, y + hh(4, y));  // 오른쪽 (로켓 자리 비움)
   for (let x = -3; x <= W; x += 3.4) add(x + hh(x, 5), -2.4 - hh(x, 6) * .9);                           // 뒤쪽
@@ -463,13 +473,13 @@ function drawTree(t) {
   const [sx, sy] = iso(t.x, t.y);
   pixEllipse(sx, sy, 8, 3, 'rgba(40,70,30,.35)');
   pr(sx - 1, sy - 12, 3, 12, '#7a4a2a'); pr(sx + 1, sy - 12, 1, 12, '#5d361d');
-  const [d, m, l] = t.kind === 'cherry' ? ['#c9668d', '#ec92b4', '#ffc4da'] : ['#a85a22', '#d9772f', '#f4a650'];
+  const [d, m, l] = treePal(t);
   pixCircle(sx, sy - 17, 9, d); pixCircle(sx - 4, sy - 21, 7, m); pixCircle(sx + 4, sy - 20, 7, m); pixCircle(sx, sy - 25, 7, m);
   pixCircle(sx - 3, sy - 26, 3, l); pixCircle(sx + 4, sy - 22, 2, l); pixCircle(sx - 6, sy - 19, 2, l);
 }
 function drawBush(t) {
   const [sx, sy] = iso(t.x, t.y);
-  const [d, m] = t.kind === 'cherry' ? ['#8c5a2b', '#c57b3a'] : ['#9a5a26', '#cf8040'];
+  const [d, m] = bushPal(t);
   pixEllipse(sx, sy, 7, 3, 'rgba(40,70,30,.3)'); pixEllipse(sx, sy - 4, 7, 5, d); pixEllipse(sx - 1, sy - 6, 5, 3, m);
   pr(sx - 3, sy - 7, 1, 1, '#ffe0b0'); pr(sx + 2, sy - 5, 1, 1, '#ffe0b0');
 }
@@ -488,11 +498,11 @@ function drawIsland() {
     const sh = 14 + Math.floor(hh(x, y) * 12);
     box(x, y, 1, 1, sh, hh(y, x) < .5 ? '#6e6c86' : '#615f78', -14 - sh, .85, .7);
     box(x, y, 1, 1, 11, hh(x + 9, y) < .5 ? '#8c5b3b' : '#7f5134', -14, .9, .72);
-    box(x, y, 1, 1, 3, '#8fb34e', -3, .85, .75);
-    quad(x, y, 1, 1, (x + y) % 2 ? '#b8c46c' : (hh(x, y + 3) < .2 ? '#a3b35c' : '#aebb63'));
+    box(x, y, 1, 1, 3, THEME.rim, -3, .85, .75);
+    quad(x, y, 1, 1, (x + y) % 2 ? THEME.grass[0] : (hh(x, y + 3) < .2 ? THEME.grass[1] : THEME.grass[2]));
   }
   // 연못과 벤치 (왼쪽 앞)
-  let [sx, sy] = iso(-2.3, 14.2); pixEllipse(sx, sy, 13, 6, '#5b8fd6'); pixEllipse(sx - 2, sy - 1, 9, 4, '#7fb2ee'); pr(sx + 3, sy - 2, 3, 1, '#d6ecff');
+  let [sx, sy] = iso(-2.3, 14.2); pixEllipse(sx, sy, 13, 6, THEME.water[0]); pixEllipse(sx - 2, sy - 1, 9, 4, THEME.water[1]); pr(sx + 3, sy - 2, 3, 1, '#d6ecff');
 }
 
 function drawWalls() {
@@ -665,6 +675,10 @@ function renderBackground() {
   drawWalls();
   PROPS.sort((a, b) => a.d - b.d).forEach((p) => p.f());
 }
+function applyTheme() {
+  const p = typeof curProj === 'function' ? curProj() : null; THEME = (p && THEMES[p.id]) || THEMES.other;
+  renderBackground();
+}
 renderBackground();
 
 // =====================================================================
@@ -752,6 +766,34 @@ function drawMon(m, t) {
   ctx.drawImage(MON_IMG, (m.back ? 1 : 0) * MON_C, m.i * MON_C, MON_C, MON_C, -Math.floor(MON_C / 2), -MON_C + 3, MON_C, MON_C);
   ctx.restore();
 }
+// 만든 것 전시 — 완료한 일들이 휴게실 바닥에 이름표로 놓여요
+const EX_SLOTS = [[8.4, 7.6], [11.2, 7.8], [14.2, 7.7], [16.6, 9.2], [8.6, 12.6], [12.2, 13.6], [15.6, 12.4], [10.2, 16.2], [14, 16.4], [16.8, 15.2]];
+let EXHIBITS = [], EXHIBIT_AT = -1e9, EX_RECTS = [];
+function buildExhibits() {
+  const p = curProj(), out = [], seen = new Set();
+  for (const tk of (dashData?.status?.tasks || []).filter((x) => x.state === 'done').slice(0, 5)) out.push({ icon: '✅', text: tk.title, task: tk });
+  for (const h of loadHist().filter((x) => !x.demo && x.project && x.project.id === p.id)) { const t = (h.title || h.topic || '').replace(/^(아이디어 회의|Claude Code 지시):\s*/, ''); if (seen.has(t)) continue; seen.add(t); out.push({ icon: TEAM[h.team].icon, text: t, hist: h }); }
+  const slots = EX_SLOTS.filter(([x, y]) => { const [i, j] = cellOf(x, y); return freeCell(i, j); });
+  EXHIBITS = out.slice(0, slots.length).map((e, i) => ({ ...e, x: slots[i][0], y: slots[i][1] }));
+}
+function drawExhibitFloor() {
+  for (const e of EXHIBITS) { const [sx, sy] = iso(e.x, e.y); pixEllipse(Math.round(sx), Math.round(sy), 5, 2, e.task ? '#3ddc84' : e.hist?.team === 'vibe' ? '#4fc3f7' : '#ffd166'); pr(Math.round(sx) - 1, Math.round(sy) - 5, 2, 5, '#5d361d'); }
+}
+function drawExhibitOverlay(t) {
+  if (performance.now() - EXHIBIT_AT > 15000) { EXHIBIT_AT = performance.now(); buildExhibits(); }
+  EX_RECTS = []; if (Zs < 1.2) return;
+  g.font = `bold ${Math.round(10 + Zs)}px sans-serif`;
+  for (const e of EXHIBITS) {
+    const [x, y] = sc(...iso(e.x, e.y, 9)), txt = `${e.icon} ${e.text.length > 16 ? e.text.slice(0, 16) + '…' : e.text}`, w = g.measureText(txt).width + 12, h = 13 + Zs;
+    g.fillStyle = 'rgba(20,18,40,.82)'; g.fillRect(x - w / 2, y - h, w, h); g.fillStyle = '#fff'; g.fillText(txt, x - w / 2 + 6, y - 4);
+    EX_RECTS.push({ x0: x - w / 2, y0: y - h, x1: x + w / 2, y1: y, e });
+  }
+}
+function openExhibit(e) {
+  if (e.hist) { const r = e.hist; showResult(r); openViewer({ who: TN(r.team, 1) + ' 결과', sub: (r.topic || '') + ' · ' + (r.at || ''), md: r.final, result: r }); }
+  else openViewer({ who: '✅ 완료한 일', sub: dashData?.repo || '', md: `## ${e.task.title}\n\n- 상태: 완료\n- 담당: ${AGENT_DEF[e.task.owner]?.name || e.task.owner || '—'}` });
+}
+
 function drawMonOverlay(t) {
   for (const m of MONS) {
     const [x, y] = sc(...iso(m.x, m.y, 20 + monHop(m, t)));
@@ -878,6 +920,7 @@ cv.addEventListener('pointermove', (e) => {
 const endPtr = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) { if (drag && moved < 6) clickAt(e.clientX, e.clientY); drag = null; } };
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
 function clickAt(mx, my) {
+  for (const r of EX_RECTS) if (mx > r.x0 && mx < r.x1 && my > r.y0 && my < r.y1) return openExhibit(r.e);
   for (const m of MONS) { const [x, y] = sc(...iso(m.x, m.y, 12)); if (Math.hypot(mx - x, my - y) < 13 * Zs) { const t = performance.now(); for (let i = 0; i < 3; i++) m.hearts.push({ t: t + i * 150, dx: -8 + i * 8 }); m.tagUntil = t + 2600; m.hopUntil = t + 1400; m.nextWander = t + 1600; return; } }
   { const [x, y] = sc(...iso(pet.x, pet.y, 5)); if (Math.hypot(mx - x, my - y) < 8 * Zs) { for (let i = 0; i < 3; i++) pet.hearts.push({ t: performance.now() + i * 150, dx: -8 + i * 8 }); pet.sleepUntil = 0; say(agents.teacher, '갯냥이 귀여워 😺', 2000); return; } }
   { const [x1, y1] = sc(...iso(.6, 0, 32)), [x2, y2] = sc(...iso(4.2, 0, 12)); if (mx > Math.min(x1, x2) && mx < Math.max(x1, x2) && my > y1 - 4 && my < y2 + 4) { openPanel(); showTab('todo'); return; } }
@@ -953,7 +996,7 @@ function drawBoards() {
   if (todos.length > 3) lines.push({ t: `외 ${todos.length - 3}개`, c: '#99a' });
   wallText(lines, .8, 29.5);
   const st = dashData?.status, pg = st && typeof st.progress === 'number' ? st.progress + '%' : '—';
-  wallText([{ t: '게임 진행 ' + pg, c: '#c8ff2e' }], 20.6, 29, { size: 4.4 });
+  wallText([{ t: '게임 진행 ' + pg, c: '#c8ff2e' }, { t: '🚀 출하 ' + String(dashData?.deploys ?? 0).padStart(3, '0'), c: '#ffd166' }], 20.6, 29, { size: 4.4 });
 }
 function drawPetOverlay(t) {
   const [x, y] = sc(...iso(pet.x, pet.y, 12));
@@ -998,7 +1041,7 @@ function loop(t) {
   const dt = Math.min(.05, (t - last) / 1000); last = t;
   update(dt, t);
   ctx = bctx; bctx.clearRect(0, 0, BW, BH); bctx.drawImage(bg, 0, 0);
-  drawNeon(t);
+  drawNeon(t); drawExhibitFloor();
   for (const a of Object.values(agents)) if (a.state === 'working' && a.spot) { const [sx, sy] = iso(a.spot[0], a.spot[1] - 1.1, 13); pr(sx - 3, sy - 1, 6, 3, Math.floor(t / 300) % 2 ? '#8ff' : '#5cf'); }
   // 캐릭터와 겹치는 소품은 깊이 순서대로 다시 그려서 가구 뒤에 숨도록
   const items = Object.values(agents).map((a) => ({ d: a.x + a.y + .25, a })); items.push({ d: pet.x + pet.y + .2, a: pet }); for (const m of MONS) items.push({ d: m.x + m.y + .2, a: m });
@@ -1016,7 +1059,7 @@ function loop(t) {
   drawCloud(t);
   g.imageSmoothingEnabled = false; g.drawImage(buf, offX, offY, BW * Zs, BH * Zs);
   drawOverlay(t);
-  drawBoards(); drawPetOverlay(t); drawMonOverlay(t);
+  drawBoards(); drawExhibitOverlay(t); drawPetOverlay(t); drawMonOverlay(t);
   drawLeaves(t);
   requestAnimationFrame(loop);
 }
@@ -1512,11 +1555,12 @@ async function loadDash() {
   const api = async (p) => { const url = `https://api.github.com/repos/${repo}/${p}`, c = ETAG[url];
     const r = await fetch(url, { headers: c ? { ...headers, 'If-None-Match': c.etag } : headers });
     if (r.status === 304 && c) return c.data; if (!r.ok) throw r.status; const data = await r.json(); ETAG[url] = { etag: r.headers.get('ETag'), data }; return data; };
-  const [c, s] = await Promise.allSettled([api('commits?per_page=6'), api('contents/status.json')]);
+  const [c, s, dp] = await Promise.allSettled([api('commits?per_page=10'), api('contents/status.json'), countDeploys(repo, headers)]);
   let status = null;
   if (s.status === 'fulfilled') try { status = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.value.content.replace(/\n/g, '')), (ch) => ch.charCodeAt(0)))); } catch {}
   const commits = c.status === 'fulfilled' ? c.value : [];
-  dashData = { repo, status, commits };
+  dashData = { repo, status, commits, deploys: dp.status === 'fulfilled' ? dp.value : null };
+  playCommits(repo, commits); noteDeploys(repo, dashData.deploys);
   let h = '';
   if (c.status === 'rejected') h += `<div class="err">저장소를 읽지 못했어요 (${c.reason}). ${c.reason === 404 ? '이름이 맞는지, 비공개라면 토큰을 넣었는지' : c.reason === 401 ? '토큰이 맞는지' : '잠시 후 다시'} 확인해 주세요.</div>`;
   if (status) {
@@ -1526,22 +1570,48 @@ async function loadDash() {
     (status.tasks || []).slice().sort((a, b) => (order[a.state] ?? 3) - (order[b.state] ?? 3)).forEach((tk) =>
       h += `<div class="task"><span class="st st-${esc(tk.state)}">${lbl[tk.state] || esc(tk.state)}</span>${esc(tk.title)} <small>${tk.owner && AGENT_DEF[tk.owner] ? '· ' + AGENT_DEF[tk.owner].name : ''}</small></div>`);
   } else if (c.status === 'fulfilled') h += '<div class="warn">status.json이 아직 없어요. 아래 안내문을 Claude Code에 붙여 넣으면 할 일과 진행률이 나타나요.</div>';
+  if (dashData.deploys != null) h += `<div style="margin-top:8px">🚀 출하(배포) <b style="color:#c8ff2e">${dashData.deploys}회</b></div>`;
   if (commits.length) { h += '<div style="margin-top:10px;color:#fff;font-weight:700">최근 커밋</div>'; commits.forEach((cm) => h += `<div class="commit">• ${esc(cm.commit.message.split('\n')[0].slice(0, 70))} <small>${timeAgo(cm.commit.author.date)}</small></div>`); }
   $('dash').innerHTML = h; applyDash();
 }
+async function countDeploys(repo, headers) {
+  const r = await fetch(`https://api.github.com/repos/${repo}/deployments?environment=github-pages&per_page=1`, { headers });
+  if (!r.ok) throw r.status; const last = (r.headers.get('Link') || '').match(/[?&]page=(\d+)>;\s*rel="last"/);
+  return last ? Number(last[1]) : (await r.json()).length;
+}
+// 커밋 메시지로 누가 한 일인지 정해서 사무실에서 움직이게
+const COMMIT_ROLE = [[/fix|bug|버그|수정|오류|고침|hotfix/i, 'coder', 'qa'], [/test|테스트|검증|\bqa\b/i, 'qa', 'reviewer'], [/refactor|리팩|정리|cleanup|chore/i, 'reviewer', 'yejun'],
+  [/engine|엔진|구조|arch|save|세이브|모듈/i, 'yejun', 'coder'], [/\bui\b|화면|도트|sprite|스프라이트|아트|css|style|아이콘|icon/i, 'taeyun', 'coder'], [/대사|스토리|dialog|script|인트로|시나리오/i, 'sua', 'qa'],
+  [/monster|몬스터|도감|\bmap\b|맵|balance|밸런스|data|데이터|체육관/i, 'planner', 'yoonseul'], [/deploy|배포|release|버전|\bv\d/i, 'haram', 'qa'], [/docs|readme|문서|status/i, 'haram', 'reviewer']];
+const commitActor = (msg) => { for (const [re, a, b] of COMMIT_ROLE) if (re.test(msg)) return [a, b]; return ['coder', 'qa']; };
+function playCommits(repo, commits) {
+  if (!commits.length) return;
+  const key = 'eco_seen_' + repo, seen = store.getL(key), at = seen ? commits.findIndex((c) => c.sha === seen) : -1;
+  store.setL(key, commits[0].sha);
+  const fresh = !seen ? commits.slice(0, 1) : at < 0 ? commits.slice(0, 3) : commits.slice(0, at);
+  fresh.slice(0, 3).reverse().forEach((cm, i) => setTimeout(() => {
+    const msg = cm.commit.message.split('\n')[0].slice(0, 80), [ak, bk] = commitActor(msg), a = agents[ak], b = agents[bk];
+    logLine(a.name, b.name, `「${msg}」 올렸어요. ${bk === 'qa' ? '확인 부탁해요!' : '한번 봐 주세요.'}`, '', `${repo} · ${cm.sha.slice(0, 7)} · ${timeAgo(cm.commit.author.date)}\n\n${cm.commit.message}`);
+    if (!a.busy) { a.state = 'working'; a.task = msg; a.dashUntil = performance.now() + 25000; goTo(a, ...workSpot(ak)); say(a, '커밋: ' + msg.slice(0, 22), 8000); }
+    if (!b.busy) setTimeout(() => say(b, '확인할게요!', 4000), 2500);
+  }, 1500 + i * 4500));
+}
+function noteDeploys(repo, n) {
+  if (n == null) return; const key = 'eco_deploys_' + repo, before = Number(store.getL(key) || 0); store.setL(key, String(n));
+  if (before && n > before) { logLine(agents.haram.name, '디렉터(나)', `🚀 ${n}번째 출하(배포) 완료! 사이트에 반영됐어요.`, 'done'); say(agents.haram, `🚀 ${n}번째 출하!`, 8000); }
+}
 function applyDash() {
-  if (!dashData || jobs.vibe) return;
-  const { status, commits } = dashData;
-  for (const k of ['planner', 'coder', 'qa', 'reviewer']) { agents[k].state = 'idle'; agents[k].task = null; }
-  (status?.tasks || []).filter((t) => t.state === 'doing' && agents[t.owner] && AGENT_DEF[t.owner].team === 'vibe').forEach((t) => {
-    const a = agents[t.owner]; a.state = 'working'; a.task = t.title; goTo(a, ...workSpot(t.owner)); say(a, t.title, 9000);
+  if (!dashData) return;
+  const { status } = dashData, now = performance.now();
+  for (const a of Object.values(agents)) if (a.key !== 'teacher' && !a.busy && (a.dashUntil || 0) < now && a.task !== undefined) { if (a.state === 'working') a.state = 'idle'; a.task = null; }
+  (status?.tasks || []).filter((t) => t.state === 'doing' && agents[t.owner] && !agents[t.owner].busy).forEach((t) => {
+    const a = agents[t.owner]; if (a.state !== 'working' || a.task !== t.title) { a.state = 'working'; a.task = t.title; goTo(a, ...workSpot(t.owner)); say(a, t.title, 9000); }
   });
-  if (commits[0]) { const c = agents.coder; if (c.state !== 'working') say(c, '커밋: ' + commits[0].commit.message.split('\n')[0], 9000); }
   if (status && typeof status.progress === 'number' && !jobs.edu) { $('pctLbl').textContent = '게임 개발 진행률'; $('topicLbl').textContent = '💻 ' + dashData.repo; $('pct').innerHTML = `${status.progress}<small>%</small>`; $('barFill').style.width = status.progress + '%'; const ts = status.tasks || []; $('doneLbl').textContent = `${ts.filter((t) => t.state === 'done').length}/${ts.length}`; }
   counts();
 }
 let dashTick = 0; setInterval(() => { const m = Number($('dashEvery').value); if (m && store.getL('eco_repo') && ++dashTick % m === 0) loadDash(); }, 60000);
-setInterval(() => { if (dashData && !jobs.vibe) applyDash(); }, 12000);
+setInterval(() => { if (dashData) applyDash(); }, 12000);
 const CC_GUIDE = `이 저장소 루트에 status.json 파일을 만들고, 작업을 시작하거나 끝낼 때마다 갱신해서 함께 커밋해 줘.
 형식:
 {
@@ -1555,7 +1625,7 @@ const CC_GUIDE = `이 저장소 루트에 status.json 파일을 만들고, 작�
     { "title": "인트로 화면", "state": "done", "owner": "planner" }
   ]
 }
-규칙: state는 todo / doing / done 중 하나. owner는 기획=planner, 구현=coder, 테스트=qa, 리뷰·정리=reviewer.
+규칙: state는 todo / doing / done 중 하나. owner는 PD=haram, 게임 기획=planner, 생태 고증=yoonseul, 시나리오=sua, 아트·UI=taeyun, 구조 설계=yejun, 구현=coder, 테스트=qa, 리뷰·정리=reviewer.
 progress는 0.5 목표(배지 4개 구간 완성) 대비 전체 진행률(0~100).`;
 
 // =====================================================================
@@ -1925,7 +1995,9 @@ const loadDests = () => { try { return JSON.parse(store.getL('eco_dests') || '[]
 const saveDests = (d) => store.setL('eco_dests', JSON.stringify(d));
 let hoText = '', hoTitle = '', hoDest = null, hoProj = null;
 const hoRepo = () => (hoProj && projects.find((p) => p.id === hoProj.id)?.repo) || store.getL('eco_repo');
+const REPORT_TAIL = `\n\n---\n📡 진행 보고: 작업을 시작할 때와 끝낼 때 저장소 루트의 status.json을 갱신해서 함께 커밋해 줘. 형식 {"updated","version","progress"(0~100),"note","tasks":[{"title","state":"todo|doing|done","owner"}]}. owner는 haram(PD)·planner(기획)·yoonseul(고증)·sua(시나리오)·taeyun(아트)·yejun(설계)·coder(구현)·qa(테스트)·reviewer(리뷰) 중 하나.`;
 function hoOpen(text, title) {
+  if (store.getL('eco_repo') && store.getL('eco_report') !== '0' && !text.includes('status.json')) text += REPORT_TAIL;
   hoText = text; hoTitle = title; $('hoText').value = text; hoUndo = null; $('hoNotes').style.display = 'none'; $('hoNotes').innerHTML = ''; hoView(1); $('handoff').classList.add('show');
 }
 function hoView(n) {
@@ -2140,6 +2212,8 @@ const PH = {
 const projPH = (k) => (PH[curProj().id] || {})[k] || (k === 'idea' ? `예: 「${curProj().name}」 첫 지역 몬스터 아이디어 10개` : PH.korea[k]);
 function renderProj() {
   const p = curProj(), busy = !!(jobs.vibe || jobs.edu);
+  $('offTitle').textContent = (THEMES[p.id] || {}).title || `${p.short} 제작소`;
+  $('offSub').textContent = `${p.repo || '저장소 미연결'} · ${p.status || '바이브코딩팀'}`;
   $('projSel').innerHTML = projects.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
   $('projSel').value = p.id; $('projSel').disabled = busy; $('projAdd').disabled = $('projEdit').disabled = busy;
   $('projNote').innerHTML = busy ? '⏳ 일하는 중에는 게임을 바꿀 수 없어요.' : `<b>${esc(p.status || '단계 미정')}</b> · 두 파트 모두 이 게임 기준으로 일해요. 맥락${p.repo ? '·저장소' : ''}는 게임마다 따로 저장돼요.`;
@@ -2147,11 +2221,11 @@ function renderProj() {
 function switchProject(id, quiet) {
   if ((jobs.vibe || jobs.edu) && !quiet) { alert('팀이 일하는 중이에요. 끝난 뒤에 바꿔 주세요.'); return renderProj(); }
   const cur = curProj(); cur.repo = store.getL('eco_repo') || '';
-  store.setL('eco_project', id); const p = curProj();
+  store.setL('eco_project', id); const p = curProj(); applyTheme(); EXHIBIT_AT = -1e9;
   p.repo ? store.setL('eco_repo', p.repo) : store.del('eco_repo'); saveProjects();
   $('repoIn').value = p.repo || ''; dashData = null;
   $('dash').innerHTML = p.repo ? '' : `<span class="note">「${esc(p.name)}」 저장소를 적으면 개발 현황을 보여 줘요.</span>`;
-  if (p.repo) loadDash(); else if (!jobs.edu && !jobs.vibe) { $('pctLbl').textContent = '전체 공정률'; $('topicLbl').textContent = '🎮 ' + p.name; }
+  if (p.repo) loadDash(); else if (!jobs.edu && !jobs.vibe) { $('pctLbl').textContent = '전체 공정률'; $('topicLbl').textContent = '🎮 ' + p.name; $('pct').innerHTML = '0<small>%</small>'; $('barFill').style.width = '0%'; $('doneLbl').textContent = '0/0'; }
   showCtx(ctxTeam); setTeam(currentTeam);
   if (!quiet) { logLine('시스템', null, `🎮 팀 전체가 「${p.name}」 작업으로 바꿨어요.`); toast(`🎮 「${p.name}」로 바꿨어요`); }
 }
@@ -2303,7 +2377,7 @@ $('saveTodo').onclick = () => { store.setL('eco_todo', $('todoBox').value); $('t
 $('pullTodo').onclick = () => { const r = shownResult || lastResult.edu || lastResult.vibe; if (!r) return ($('todoStatus').innerHTML = '<span class="warn">아직 결과가 없어요.</span>');
   const items = r.final.split('\n').map((l) => l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/)).filter(Boolean).map((m) => m[1].replace(/\*\*/g, '').trim()).slice(0, 12);
   $('todoBox').value = [...getTodos(), ...items].join('\n'); $('saveTodo').click(); };
-setTeam('edu'); showCtx('vibe'); refreshMode(); renderHist(); counts(); refreshGate();
+setTeam('edu'); showCtx('vibe'); refreshMode(); applyTheme(); renderHist(); counts(); refreshGate();
 if (store.getL('eco_model') === 'gemini-2.5-flash') store.setL('eco_model', DEFAULT_MODEL), fillModelSelects();
 if (store.getL('eco_repo')) loadDash();
 if (!store.getL('eco_onboarded')) setTimeout(wzShow, 600);
