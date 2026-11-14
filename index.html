@@ -365,7 +365,7 @@
     <label>자동 새로고침</label><select id="dashEvery"><option value="1">1분마다</option><option value="3">3분마다</option><option value="10">10분마다</option><option value="0">끄기</option></select>
     <div id="dash" class="note"></div>
     <button id="copyCC" class="ghost wide">📋 Claude Code에 붙여넣을 안내문 복사</button>
-    <div class="note">게임 저장소에서 Claude Code가 <code>status.json</code>을 갱신하게 하면, 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.<br>토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 <b>그 저장소 하나만</b> 고르고 <b>Contents: Read-only</b>, (이슈로 보내기를 쓰려면) <b>Issues: Read and write</b>만 주세요. 이 브라우저에만 저장돼요.</div>
+    <div class="note">게임 저장소에서 Claude Code가 <code>tools/office.mjs</code>로 보고하게 하면(<code>office-status</code> 가지), 할 일과 진행률이 사무실 캐릭터에 그대로 나타나요.<br>토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 <b>그 저장소 하나만</b> 고르고 <b>Contents: Read-only</b>, (이슈로 보내기를 쓰려면) <b>Issues: Read and write</b>만 주세요. 이 브라우저에만 저장돼요.</div>
     </details>
     <details class="setSec" id="d-view"><summary>🅰 화면 · 소리</summary>
       <label>글자 크기</label>
@@ -777,6 +777,7 @@ let EXHIBITS = [], EXHIBIT_AT = -1e9, EX_RECTS = [];
 function buildExhibits() {
   const p = curProj(), out = [], seen = new Set();
   for (const tk of (dashData?.status?.tasks || []).filter((x) => x.state === 'done').slice(0, 5)) out.push({ icon: '✅', text: tk.title, task: tk });
+  for (const r of (dashData?.status?.agents || []).filter((x) => x.status === 'done' && x.task).slice(0, 4)) out.push({ icon: '✅', text: r.task, task: { title: r.task, owner: agentOf(r.id) } });
   for (const h of loadHist().filter((x) => !x.demo && x.project && x.project.id === p.id)) { const t = (h.title || h.topic || '').replace(/^(아이디어 회의|Claude Code 지시):\s*/, ''); if (seen.has(t)) continue; seen.add(t); out.push({ icon: TEAM[h.team].icon, text: t, hist: h }); }
   const slots = EX_SLOTS.filter(([x, y]) => { const [i, j] = cellOf(x, y); return freeCell(i, j); });
   EXHIBITS = out.slice(0, slots.length).map((e, i) => ({ ...e, x: slots[i][0], y: slots[i][1] }));
@@ -828,7 +829,7 @@ function drawCritter(a, t) {
   const fr = moving ? Math.floor(t / 140) % 2 : (a.state === 'working' ? Math.floor(t / 350) % 2 : 0);
   const flip = a.dir === 'left', side = a.dir === 'left' || a.dir === 'right', back = a.dir === 'back';
   const float = a.kind === 'jelly' ? Math.round(Math.sin(t / 300 + a.x) * 1.5) - 2 : 0;
-  const bob = (moving ? fr : 0) - float;
+  const bob = (moving ? fr : 0) - float + ((a.hopUntil || 0) > t ? Math.round(Math.abs(Math.sin(t / 95)) * 5) : 0);
   const p = (x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(sx + (flip ? -x - w : x), sy + y - bob, w, h); };
   const rows = L.rows, R = rows.length, y0 = -2 - R, O = shade(L.body, .5), dark = '#1b1b2b';
   pixEllipse(sx, sy, 5, 2, 'rgba(0,0,0,.28)');
@@ -925,6 +926,7 @@ cv.addEventListener('pointermove', (e) => {
 const endPtr = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) { if (drag && moved < 6) clickAt(e.clientX, e.clientY); drag = null; } };
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
 function clickAt(mx, my) {
+  if (BB.rect && mx > BB.rect[0] && mx < BB.rect[2] && my > BB.rect[1] && my < BB.rect[3]) return openShot(BB.i);
   for (const r of EX_RECTS) if (mx > r.x0 && mx < r.x1 && my > r.y0 && my < r.y1) return openExhibit(r.e);
   for (const m of MONS) { const [x, y] = sc(...iso(m.x, m.y, 12)); if (Math.hypot(mx - x, my - y) < 13 * Zs) { const t = performance.now(); for (let i = 0; i < 3; i++) m.hearts.push({ t: t + i * 150, dx: -8 + i * 8 }); m.tagUntil = t + 2600; m.hopUntil = t + 1400; m.nextWander = t + 1600; return; } }
   { const [x, y] = sc(...iso(pet.x, pet.y, 5)); if (Math.hypot(mx - x, my - y) < 8 * Zs) { for (let i = 0; i < 3; i++) pet.hearts.push({ t: performance.now() + i * 150, dx: -8 + i * 8 }); pet.sleepUntil = 0; say(agents.teacher, '갯냥이 귀여워 😺', 2000); return; } }
@@ -978,7 +980,9 @@ function drawOverlay(t) {
       if (icon) { g.font = '12px sans-serif'; g.fillText(icon, x - 10, by2 + 14); g.fillStyle = '#222'; for (let i = 0; i < 2; i++) g.fillRect(x + 6 + i * 5, by2 + 9 + (Math.floor(t / 200) % 2 === i ? -2 : 0), 3, 3); }
       else { g.fillStyle = '#222'; for (let i = 0; i < 3; i++) g.fillRect(x - 7 + i * 5, by2 + 8 + (Math.floor(t / 200) % 3 === i ? -2 : 0), 3, 3); }
     }
-    if (a.state === 'waiting') { const by2 = y0 - 15 * fs - 24; roundRect(x - 11, by2, 22, 20, 6, Math.floor(t / 400) % 2 ? '#4fc3f7' : '#8fdcff', '#222'); g.fillStyle = '#111'; g.font = 'bold 14px sans-serif'; g.fillText('?', x - 4, by2 + 15); }
+    if (a.state === 'waiting') { const ls = a.live?.status, bad = ls === 'failed' || ls === 'blocked', by2 = y0 - 15 * fs - 24 - (bad ? Math.abs(Math.sin(t / 160)) * 3 : 0);
+      roundRect(x - 11, by2, 22, 20, 6, bad ? (ls === 'failed' ? '#ff5d5d' : '#ffb020') : Math.floor(t / 400) % 2 ? '#4fc3f7' : '#8fdcff', '#222'); g.fillStyle = '#111'; g.font = 'bold 14px sans-serif'; g.fillText(ls === 'failed' ? '✖' : ls === 'blocked' ? '!' : ls === 'waiting' ? '…' : '?', x - (ls === 'waiting' ? 6 : 4), by2 + 15); }
+    if (a.live?.progress != null && a.state === 'working') { roundRect(x - 11, y0 + 3, 22, 4, 2, '#1b1830'); roundRect(x - 11, y0 + 3, Math.max(2, 22 * a.live.progress), 4, 2, '#c8ff2e'); }
     if (a.bubble && t < a.bubbleUntil) {
       g.font = 'bold 12px sans-serif'; const txt = a.bubble.length > 30 ? a.bubble.slice(0, 30) + '…' : a.bubble;
       const bw = g.measureText(txt).width + 18, byy = y0 - 15 * fs - (a.state === 'working' ? 54 : 34);
@@ -1000,7 +1004,7 @@ function drawBoards() {
   const lines = [{ t: '📋 오늘 할 일', c: '#c0392b' }].concat(todos.length ? todos.slice(0, 3).map((x) => ({ t: (x.startsWith('✓') ? '' : '• ') + cut(x, 10), c: x.startsWith('✓') ? '#9aa' : '#223' })) : [{ t: '[할 일] 탭에 적기', c: '#99a' }]);
   if (todos.length > 3) lines.push({ t: `외 ${todos.length - 3}개`, c: '#99a' });
   wallText(lines, .8, 29.5);
-  const st = dashData?.status, pg = st && typeof st.progress === 'number' ? st.progress + '%' : '—';
+  const st = dashData?.status, lp = livePct(st), pg = lp != null ? lp + '%' : '—';
   wallText([{ t: '게임 진행 ' + pg, c: '#c8ff2e' }, { t: '🚀 출하 ' + String(dashData?.deploys ?? 0).padStart(3, '0'), c: '#ffd166' }], 20.6, 29, { size: 4.4 });
 }
 function drawPetOverlay(t) {
@@ -1046,7 +1050,7 @@ function loop(t) {
   const dt = Math.min(.05, (t - last) / 1000); last = t;
   update(dt, t);
   ctx = bctx; bctx.clearRect(0, 0, BW, BH); bctx.drawImage(bg, 0, 0);
-  drawNeon(t); drawExhibitFloor();
+  drawNeon(t); drawExhibitFloor(); drawBillboard(t); drawRocket(t);
   for (const a of Object.values(agents)) if (a.state === 'working' && a.spot) { const [sx, sy] = iso(a.spot[0], a.spot[1] - 1.1, 13); pr(sx - 3, sy - 1, 6, 3, Math.floor(t / 300) % 2 ? '#8ff' : '#5cf'); }
   // 캐릭터와 겹치는 소품은 깊이 순서대로 다시 그려서 가구 뒤에 숨도록
   const items = Object.values(agents).map((a) => ({ d: a.x + a.y + .25, a })); items.push({ d: pet.x + pet.y + .2, a: pet }); for (const m of MONS) items.push({ d: m.x + m.y + .2, a: m });
@@ -1064,7 +1068,7 @@ function loop(t) {
   drawCloud(t);
   g.imageSmoothingEnabled = false; g.drawImage(buf, offX, offY, BW * Zs, BH * Zs);
   drawOverlay(t);
-  drawBoards(); drawExhibitOverlay(t); drawPetOverlay(t); drawMonOverlay(t);
+  drawBoards(); drawExhibitOverlay(t); drawPetOverlay(t); drawMonOverlay(t); drawLiveOverlay(t);
   drawLeaves(t);
   requestAnimationFrame(loop);
 }
@@ -1617,17 +1621,20 @@ async function loadDash() {
   let status = null;
   if (s.status === 'fulfilled') try { status = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.value.content.replace(/\n/g, '')), (ch) => ch.charCodeAt(0)))); } catch {}
   const commits = c.status === 'fulfilled' ? c.value : [];
+  if (LIVE && Date.now() - LIVE_AT < 5 * 60e3) status = LIVE;
   dashData = { repo, status, commits, deploys: dp.status === 'fulfilled' ? dp.value : null };
   playCommits(repo, commits); noteDeploys(repo, dashData.deploys);
   let h = '';
   if (c.status === 'rejected') h += `<div class="err">저장소를 읽지 못했어요 (${c.reason}). ${c.reason === 404 ? '이름이 맞는지, 비공개라면 토큰을 넣었는지' : c.reason === 401 ? '토큰이 맞는지' : '잠시 후 다시'} 확인해 주세요.</div>`;
   if (status) {
-    h += `<div style="margin:6px 0"><b style="color:#fff">${esc(status.version ? 'v' + status.version + ' · ' : '')}진행률 ${Number(status.progress) || 0}%</b> <small>${status.updated ? timeAgo(status.updated) + ' 갱신' : ''}</small></div>`;
+    h += `<div style="margin:6px 0"><b style="color:#fff">${esc(status.version ? 'v' + status.version + ' · ' : '')}진행률 ${livePct(status) ?? 0}%</b>${status.schema === 2 ? ' <small style="color:#c8ff2e">📡 실시간 보고</small>' : ''} <small>${status.updated ? timeAgo(status.updated) + ' 갱신' : ''}</small></div>`;
     if (status.note) h += `<div style="color:#dde;margin-bottom:6px">${esc(status.note)}</div>`;
     const order = { doing: 0, todo: 1, done: 2 }, lbl = { doing: '진행 중', todo: '할 일', done: '완료' };
+    const SL = { working: '진행 중', waiting: '대기', blocked: '막힘', failed: '실패', done: '완료', idle: '쉬는 중' };
+    (status.agents || []).forEach((r) => h += `<div class="task"><span class="st st-${r.status === 'done' ? 'done' : r.status === 'working' ? 'doing' : 'todo'}">${SL[r.status] || esc(r.status || '')}</span>${esc(nameOf(r.id))} · ${esc(r.task || '')} <small>${r.at ? timeAgo(new Date(Number(r.at)).toISOString()) : ''}</small></div>`);
     (status.tasks || []).slice().sort((a, b) => (order[a.state] ?? 3) - (order[b.state] ?? 3)).forEach((tk) =>
       h += `<div class="task"><span class="st st-${esc(tk.state)}">${lbl[tk.state] || esc(tk.state)}</span>${esc(tk.title)} <small>${tk.owner && AGENT_DEF[tk.owner] ? '· ' + AGENT_DEF[tk.owner].name : ''}</small></div>`);
-  } else if (c.status === 'fulfilled') h += '<div class="warn">status.json이 아직 없어요. 아래 안내문을 Claude Code에 붙여 넣으면 할 일과 진행률이 나타나요.</div>';
+  } else if (c.status === 'fulfilled') h += '<div class="warn">아직 보고가 없어요. 아래 안내문을 Claude Code에 붙여 넣으면 할 일과 진행률이 나타나요.</div>';
   if (dashData.deploys != null) h += `<div style="margin-top:8px">🚀 출하(배포) <b style="color:#c8ff2e">${dashData.deploys}회</b></div>`;
   if (commits.length) { h += '<div style="margin-top:10px;color:#fff;font-weight:700">최근 커밋</div>'; commits.forEach((cm) => h += `<div class="commit">• ${esc(cm.commit.message.split('\n')[0].slice(0, 70))} <small>${timeAgo(cm.commit.author.date)}</small></div>`); }
   $('dash').innerHTML = h; applyDash();
@@ -1661,30 +1668,30 @@ function noteDeploys(repo, n) {
 function applyDash() {
   if (!dashData) return;
   const { status } = dashData, now = performance.now();
-  for (const a of Object.values(agents)) if (a.key !== 'teacher' && !a.busy && (a.dashUntil || 0) < now && a.task !== undefined) { if (a.state === 'working') a.state = 'idle'; a.task = null; }
-  (status?.tasks || []).filter((t) => t.state === 'doing' && agents[t.owner] && !agents[t.owner].busy).forEach((t) => {
+  for (const a of Object.values(agents)) if (a.key !== 'teacher' && !a.busy && !a.live && (a.dashUntil || 0) < now && a.task !== undefined) { if (a.state === 'working') a.state = 'idle'; a.task = null; }
+  if (Array.isArray(status?.agents)) applyLive(status);
+  else (status?.tasks || []).filter((t) => t.state === 'doing' && agents[t.owner] && !agents[t.owner].busy).forEach((t) => {
     const a = agents[t.owner]; if (a.state !== 'working' || a.task !== t.title) { a.state = 'working'; a.task = t.title; goTo(a, ...workSpot(t.owner)); say(a, t.title, 9000); }
   });
-  if (status && typeof status.progress === 'number' && !jobs.edu) { $('pctLbl').textContent = '게임 개발 진행률'; $('topicLbl').textContent = '💻 ' + dashData.repo; $('pct').innerHTML = `${status.progress}<small>%</small>`; $('barFill').style.width = status.progress + '%'; const ts = status.tasks || []; $('doneLbl').textContent = `${ts.filter((t) => t.state === 'done').length}/${ts.length}`; }
+  const pg = livePct(status);
+  if (status && pg != null && !jobs.edu) { $('pctLbl').textContent = '게임 개발 진행률'; $('topicLbl').textContent = '🎮 ' + (status.note || dashData.repo); $('pct').innerHTML = `${pg}<small>%</small>`; $('barFill').style.width = pg + '%';
+    const ts = status.tasks || [], ag = (status.agents || []).filter((r) => r.status && r.status !== 'idle'); $('doneLbl').textContent = ts.length ? `${ts.filter((t) => t.state === 'done').length}/${ts.length}` : `${ag.filter((r) => r.status === 'done').length}/${ag.length}`; }
   counts();
 }
 let dashTick = 0; setInterval(() => { const m = Number($('dashEvery').value); if (m && store.getL('eco_repo') && ++dashTick % m === 0) loadDash(); }, 60000);
 setInterval(() => { if (dashData) applyDash(); }, 12000);
-const CC_GUIDE = `이 저장소 루트에 status.json 파일을 만들고, 작업을 시작하거나 끝낼 때마다 갱신해서 함께 커밋해 줘.
-형식:
-{
-  "updated": "2026-11-12T10:00:00+09:00",
-  "version": "0.5",
-  "progress": 40,
-  "note": "지금 하고 있는 일 한 줄 요약",
-  "tasks": [
-    { "title": "배틀 화면 HP바 애니메이션", "state": "doing", "owner": "coder" },
-    { "title": "배지 4개 구간 밸런스 점검", "state": "todo", "owner": "qa" },
-    { "title": "인트로 화면", "state": "done", "owner": "planner" }
-  ]
-}
-규칙: state는 todo / doing / done 중 하나. owner는 PD=haram, 게임 기획=planner, 생태 고증=yoonseul, 시나리오=sua, 아트·UI=taeyun, 구조 설계=yejun, 구현=coder, 테스트=qa, 리뷰·정리=reviewer.
-progress는 0.5 목표(배지 4개 구간 완성) 대비 전체 진행률(0~100).`;
+const CC_GUIDE = () => `생태몬스터 AI 오피스에 작업 상황을 보고해 줘. (사무실 화면: ${location.origin}${location.pathname})
+1) 처음 한 번: 저장소에 tools/office.mjs 가 없으면 ${location.origin}${location.pathname.replace(/[^/]*$/, '')}tools/office.mjs 를 받아 tools/office.mjs 로 저장하고 커밋해 줘.
+   이 도구는 'office-status' 가지에만 커밋·푸시하고, 지금 작업 폴더와 main 가지는 건드리지 않아.
+2) 단계가 바뀔 때마다 한 줄씩 보고해 (실패해도 작업은 계속, 본 명령과 && 로 묶지 말 것):
+   node tools/office.mjs report --agent coder --station dev --task "지금 하는 일 한 줄" --progress 0.4
+   막히면 --blocked, 테스트·빌드가 깨지면 --failed, 끝나면 --done --task "결과 한 줄"
+3) 일을 넘기거나 받을 때: node tools/office.mjs report --agent coder --say "QA님 1번 도로 확인 부탁해요" --to qa
+4) 화면을 확인했으면 캡처를 올려 줘: --shot <png 경로> --shot-label "무슨 화면"
+5) 전체 진행률이 바뀌면: --overall 0~1 --version 0.5 --note "지금 단계 한 줄"
+6) 실제로 배포·출시했을 때만: node tools/office.mjs launch "0.5 클로즈베타"
+에이전트 id: haram(PD) planner(게임 기획) yoonseul(생태 고증) sua(시나리오) taeyun(아트·UI) yejun(아키텍트) coder(개발자) qa(QA) reviewer(리뷰어)
+방: plan(계획) dev(구현) test(시험) review(리뷰) ship(배포). 개인정보·비밀 값·긴 로그는 적지 마.`;
 
 // =====================================================================
 // 12. 화면 반영 · 대화 카드 · 기록
@@ -1856,7 +1863,7 @@ async function sendIssue() {
     const res = await fetch(`https://api.github.com/repos/${repo}/issues`, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify({ title, body }) });
     const j = await res.json();
     if (!res.ok) throw new Error(res.status === 403 || res.status === 404 ? '토큰에 이 저장소의 Issues 쓰기 권한이 없어요' : (j.message || res.status));
-    const cmd = `GitHub 이슈 #${j.number} (${j.html_url}) 읽고 처리해 줘. 끝나면 status.json 갱신하고 이슈에 결과 댓글 달아 줘.`;
+    const cmd = `GitHub 이슈 #${j.number} (${j.html_url}) 읽고 처리해 줘. 단계마다 node tools/office.mjs 로 오피스에 보고하고, 끝나면 이슈에 결과 댓글 달아 줘.`;
     $('issueStatus').innerHTML = `<span class="ok">✅ 이슈 #${j.number}를 올렸어요.</span> <a href="${esc(j.html_url)}" target="_blank" style="color:#4fc3f7">열기</a><br>Claude Code에 이렇게 말하세요: <code>${esc(cmd)}</code> <button class="ghost mini" id="copyCmd">복사</button>`;
     $('copyCmd').onclick = () => navigator.clipboard?.writeText(cmd).then(() => ($('copyCmd').textContent = '복사됨'));
     logLine(agents.planner.name, null, `GitHub 이슈 #${j.number}로 Claude Code에 넘겼어요!`); say(agents.planner, `이슈 #${j.number} 보냈어요!`, 5000);
@@ -2053,9 +2060,9 @@ const loadDests = () => { try { return JSON.parse(store.getL('eco_dests') || '[]
 const saveDests = (d) => store.setL('eco_dests', JSON.stringify(d));
 let hoText = '', hoTitle = '', hoDest = null, hoProj = null;
 const hoRepo = () => (hoProj && projects.find((p) => p.id === hoProj.id)?.repo) || store.getL('eco_repo');
-const REPORT_TAIL = `\n\n---\n📡 진행 보고: 작업을 시작할 때와 끝낼 때 저장소 루트의 status.json을 갱신해서 함께 커밋해 줘. 형식 {"updated","version","progress"(0~100),"note","tasks":[{"title","state":"todo|doing|done","owner"}]}. owner는 haram(PD)·planner(기획)·yoonseul(고증)·sua(시나리오)·taeyun(아트)·yejun(설계)·coder(구현)·qa(테스트)·reviewer(리뷰) 중 하나.`;
+const REPORT_TAIL = `\n\n---\n📡 오피스 보고: 단계가 바뀔 때마다 \`node tools/office.mjs report --agent coder --station <plan|dev|test|review> --task "한 줄"\`, 막히면 --blocked, 실패하면 --failed, 끝나면 --done --task "결과 한 줄". 도구가 없으면 ${location.origin}${location.pathname.replace(/[^/]*$/, '')}tools/office.mjs 를 받아 tools/ 에 저장·커밋(office-status 가지에만 기록함). 보고가 실패해도 작업은 계속.`;
 function hoOpen(text, title) {
-  if (store.getL('eco_repo') && store.getL('eco_report') !== '0' && !text.includes('status.json')) text += REPORT_TAIL;
+  if (store.getL('eco_repo') && store.getL('eco_report') !== '0' && !text.includes('office.mjs')) text += REPORT_TAIL;
   hoText = text; hoTitle = title; $('hoText').value = text; hoUndo = null; $('hoNotes').style.display = 'none'; $('hoNotes').innerHTML = ''; hoView(1); $('handoff').classList.add('show');
 }
 function hoView(n) {
@@ -2113,7 +2120,7 @@ $('hoGo').onclick = async () => {
   } else {
     try {
       const j = await createIssue(hoTitle, text);
-      const cmd = `GitHub 이슈 #${j.number} (${j.html_url}) 읽고 처리해 줘. 끝나면 status.json 갱신하고 이슈에 결과 댓글 달아 줘.`;
+      const cmd = `GitHub 이슈 #${j.number} (${j.html_url}) 읽고 처리해 줘. 단계마다 node tools/office.mjs 로 오피스에 보고하고, 끝나면 이슈에 결과 댓글 달아 줘.`;
       try { await navigator.clipboard.writeText(cmd); } catch {}
       $('handoff').classList.remove('show');
       saveHo({ at, dest: '이슈 #' + j.number, url: j.html_url, title: hoTitle, text: cmd });
@@ -2172,7 +2179,7 @@ async function runCC(job) {
 ## 완료 조건 (- [ ] 체크리스트)
 ## 확인 방법 (브라우저·휴대폰에서 어떻게 테스트하는지)
 ## 주의 (하지 말 것, 기존 기능 유지, 반응형·터치)
-마지막 줄: 작업이 끝나면 status.json을 갱신하고 바꾼 내용을 요약해 줘.
+마지막 줄: 작업이 끝나면 바꾼 내용을 요약해 줘.
 
 [디렉터 요청]
 ${job.sent}`, quick ? null : 'reviewer', () => quick ? 'Claude Code 지시문 다듬었어요! 확인하고 넘겨 주세요 🤖' : '지시문 초안이에요. 교정 부탁해요!', { attach: true, mockKey: 'cc' });
@@ -2307,6 +2314,144 @@ $('projEdit').onclick = () => {
 };
 
 // =====================================================================
+// 26. 실시간 보고 — Claude Code가 office-status 가지에 남긴 보고를 사무실 움직임으로
+// (구조는 LOP CODE FACTORY 스킬을 참고. 캐릭터·이름은 가져오지 않음)
+// =====================================================================
+const OBRANCH = () => store.getL('eco_obranch') || 'office-status';
+const AG_ALIAS = { pd: 'haram', producer: 'haram', lead: 'haram', designer: 'planner', planner: 'planner', eco: 'yoonseul', ecology: 'yoonseul', story: 'sua', writer: 'sua', scenario: 'sua', art: 'taeyun', ui: 'taeyun', arch: 'yejun', architect: 'yejun', dev: 'coder', coder: 'coder', claude: 'coder', qa: 'qa', test: 'qa', tester: 'qa', review: 'reviewer', reviewer: 'reviewer' };
+const agentOf = (id) => { const k = String(id || ''); return AGENT_DEF[k] && k !== 'teacher' ? k : AG_ALIAS[k.toLowerCase()] || null; };
+const nameOf = (id) => (id === 'director' || id === 'me' ? '디렉터(나)' : agentOf(id) ? AGENT_DEF[agentOf(id)].name : id || '알림');
+const SHIP_SPOT = [20.6, 14.6];
+let LIVE = null, LIVE_AT = 0;
+const seenKey = () => 'eco_live_seen_' + (store.getL('eco_repo') || '');
+const loadSeen = () => { try { return JSON.parse(store.getL(seenKey()) || 'null'); } catch { return null; } };
+function livePct(st) {
+  if (!st) return null; let p = st.progress;
+  if (typeof p === 'number') return Math.round(p <= 1 && !Array.isArray(st.tasks) ? p * 100 : p);
+  const ag = (st.agents || []).filter((r) => r.status && r.status !== 'idle'); if (!ag.length) return null;
+  return Math.round(ag.reduce((n, r) => n + (r.status === 'done' ? 1 : r.status === 'waiting' ? 0 : r.progress != null ? (r.progress > 1 ? r.progress / 100 : r.progress) : .4), 0) / ag.length * 100);
+}
+async function pollLive() {
+  const repo = store.getL('eco_repo'); if (!repo || document.hidden) return;
+  try {
+    const r = await fetch(`https://raw.githubusercontent.com/${repo}/${OBRANCH()}/status.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) { if (LIVE) { LIVE = null; } return; }
+    LIVE = await r.json(); LIVE_AT = Date.now();
+    dashData = { ...(dashData || { repo, commits: [] }), repo, status: LIVE }; applyDash(); ingestLive(LIVE);
+  } catch {}
+}
+setInterval(pollLive, 30000); setTimeout(pollLive, 2500);
+function stationSpot(k, st) { return /^(ship|deploy|release|launch)$/.test(st || '') ? [SHIP_SPOT[0] + rnd(-1, 1), SHIP_SPOT[1] + rnd(-1, 1)] : workSpot(k); }
+function applyLive(st) {
+  const now = Date.now(), tnow = performance.now(), seenIds = new Set();
+  for (const r of st.agents || []) {
+    const k = agentOf(r.id); if (!k) continue; seenIds.add(k); const a = agents[k]; if (a.busy) continue;
+    const at = Number(r.at) || Date.parse(st.updated || '') || now; let s = r.status || 'working';
+    if (now - at > 30 * 60e3 && s !== 'done') s = 'idle'; if (s === 'done' && now - at > 30 * 60e3) s = 'idle';
+    const prev = a.live?.status, key = [s, r.task, r.station].join('|');
+    a.live = { status: s, task: r.task || '', progress: r.progress != null ? (r.progress > 1 ? r.progress / 100 : r.progress) : null, station: r.station };
+    if (a.liveKey === key) continue; a.liveKey = key; a.dashUntil = 0;
+    if (s === 'working') { a.state = 'working'; a.task = r.task; goTo(a, ...stationSpot(k, r.station)); say(a, r.task || '작업 시작!', 7000); }
+    else if (s === 'waiting' || s === 'blocked' || s === 'failed') {
+      a.state = 'waiting'; a.task = r.task; const [x, y] = workSpot(k); goTo(a, x + .7, y + .7); say(a, r.task || (s === 'waiting' ? '차례 기다리는 중…' : '막혔어요…'), 7000);
+      if (s !== 'waiting' && prev !== s) { // 한가한 동료가 도우러 와요
+        const h = Object.values(agents).filter((o) => o.key !== 'teacher' && o.key !== k && !o.busy && o.state === 'idle' && o.team === a.team)[0];
+        if (h) { goTo(h, x + 1.3, y + .2); h.nextWander = tnow + 25000; setTimeout(() => say(h, '같이 볼게요 💡', 5000), 2500); }
+      }
+    } else if (s === 'done') { a.state = 'idle'; a.task = null; a.hopUntil = tnow + 2600; burst(a.x, a.y, 18); say(a, (r.task ? r.task.slice(0, 18) + ' ' : '') + '끝! 🎉', 6000); a.nextWander = tnow + 3500; }
+    else { a.state = 'idle'; a.task = null; }
+  }
+  for (const a of Object.values(agents)) if (a.live && !seenIds.has(a.key) && !a.busy) { a.live = null; a.liveKey = null; if (a.state !== 'idle') { a.state = 'idle'; a.task = null; } }
+  counts();
+}
+function ingestLive(st) {
+  let seen = loadSeen(); const first = !seen; seen = seen || { chat: [], log: [], launch: [] };
+  const fresh = (arr, key, keyOf) => { const out = []; for (const x of arr || []) { const kk = keyOf(x); if (!kk || seen[key].includes(kk)) continue; seen[key].push(kk); out.push(x); } seen[key] = seen[key].slice(-200); return out; };
+  const chats = fresh(st.chat, 'chat', (c) => c.id && c.text ? String(c.id) : null);
+  const logs = fresh(st.log, 'log', (l) => l.text ? (l.at || '') + '|' + l.text : null);
+  const launch = st.launch && st.launch.id && !seen.launch.includes(String(st.launch.id)) ? st.launch : null; if (launch) seen.launch.push(String(launch.id));
+  store.setL(seenKey(), JSON.stringify(seen));
+  if (first) return; // 처음 연결할 때는 지난 이야기를 다시 틀지 않아요
+  chats.slice(-6).forEach((c, i) => setTimeout(() => playChat(c), i * 1800));
+  logs.slice(-4).forEach((l) => logLine(l.agent ? nameOf(l.agent) : '시스템', null, l.text, ''));
+  if (launch && Date.now() - (Number(launch.at) || Date.now()) < 20 * 60e3) startLaunch(launch.name || '새 버전');
+  if (st.billboard?.items) setBillboard(st.billboard.items);
+}
+// 대화: 말풍선 → 쪽지가 날아가고 → 받은 쪽이 끄덕
+const FLY = [];
+function playChat(c) {
+  const fk = agentOf(c.from), tk = c.to && c.to !== 'all' ? agentOf(c.to) : null, fa = fk && agents[fk], ta = tk && agents[tk];
+  logLine(nameOf(c.from), c.to && c.to !== 'all' ? nameOf(c.to) : '모두', c.text, '');
+  if (fa) say(fa, c.text, 6000);
+  if (fa && ta) { FLY.push({ f: fa, to: ta, t0: performance.now() + 700, dur: 1500 }); setTimeout(() => say(ta, '!', 1500), 2300); setTimeout(() => say(ta, '네! 👍', 3000), 3900); }
+}
+// 완료 꽃가루 · 불꽃
+const PARTS = [];
+function burst(x, y, n, z = 14) { const t = performance.now(); for (let i = 0; i < n; i++) PARTS.push({ x, y, z, t, vx: rnd(-40, 40), vy: rnd(-70, -20), c: ['#ff6b8a', '#ffd166', '#4fc3f7', '#7bd389', '#c8ff2e'][i % 5], life: rnd(900, 1600) }); }
+// 런칭: 띠 → 모두 출하장으로 → 10부터 카운트다운 → 발사
+let LAUNCH = null;
+function startLaunch(name) {
+  if (LAUNCH) return; const t = performance.now(); LAUNCH = { name, t0: t };
+  logLine(agents.haram.name, '모두', `🚀 「${name}」 런칭! 다들 출하장으로 모여요!`, 'done'); toast(`🚀 「${name}」 런칭!`, null);
+  Object.values(agents).filter((a) => !a.busy && a.key !== 'teacher').slice(0, 9).forEach((a, i) => { setTimeout(() => { goTo(a, SHIP_SPOT[0] - 2.5 + (i % 3) * 1.1, SHIP_SPOT[1] - 2.2 + Math.floor(i / 3) * .9); a.nextWander = performance.now() + 22000; }, i * 250); });
+  setTimeout(() => { LAUNCH = null; }, 24000);
+}
+function drawRocket(t) {
+  if (!LAUNCH) return; const k = (t - LAUNCH.t0) / 1000, lift = k > 14 ? (k - 14) ** 2 * 30 : 0;
+  const [sx0, sy0] = iso(SHIP_SPOT[0] + 1.6, SHIP_SPOT[1] + 1.6), sx = Math.round(sx0), sy = Math.round(sy0);
+  pr(sx - 7, sy - 2, 14, 3, '#555c66'); pr(sx - 6, sy - 3, 12, 1, '#8a93a0');
+  const y = sy - 22 - lift; if (y < -40) return;
+  pr(sx - 3, y, 6, 18, '#f4f4f8'); pr(sx - 2, y - 3, 4, 3, '#ff5d5d'); pr(sx - 1, y - 5, 2, 2, '#ff5d5d'); pr(sx - 1, y + 4, 2, 2, '#4fc3f7');
+  pr(sx - 5, y + 13, 2, 5, '#ff5d5d'); pr(sx + 3, y + 13, 2, 5, '#ff5d5d');
+  if (k > 13) { const f = Math.floor(t / 70) % 2; pr(sx - 2, y + 18, 4, 4 + f * 2, '#ffd166'); pr(sx - 1, y + 21, 2, 3 + f * 3, '#ff6b3d'); }
+}
+function drawLiveOverlay(t) {
+  // 날아가는 쪽지
+  for (let i = FLY.length - 1; i >= 0; i--) { const f = FLY[i], k = (t - f.t0) / f.dur; if (k < 0) continue; if (k > 1) { FLY.splice(i, 1); continue; }
+    const [x1, y1] = sc(...iso(f.f.x, f.f.y, 22)), [x2, y2] = sc(...iso(f.to.x, f.to.y, 22)), x = x1 + (x2 - x1) * k, y = y1 + (y2 - y1) * k - Math.sin(k * Math.PI) * 40 * Zs / 3;
+    g.font = `${Math.round(12 + Zs * 2)}px sans-serif`; g.fillText('💌', x - 8, y); }
+  // 꽃가루
+  for (let i = PARTS.length - 1; i >= 0; i--) { const q = PARTS[i], k = (t - q.t) / q.life; if (k < 0) continue; if (k > 1) { PARTS.splice(i, 1); continue; }
+    const [x, y] = sc(...iso(q.x, q.y, q.z)), dt = (t - q.t) / 1000; g.globalAlpha = 1 - k; g.fillStyle = q.c; g.fillRect(x + q.vx * dt * Zs / 2, y + (q.vy * dt + 90 * dt * dt) * Zs / 2, 3, 3); g.globalAlpha = 1; }
+  if (!LAUNCH) return;
+  const k = (t - LAUNCH.t0) / 1000, W2 = cv.width / 2, fs = Math.max(.75, Math.min(1.25, Zs / 2));
+  g.save(); g.textAlign = 'center';
+  if (k < 3 || k > 16) { g.font = `bold ${Math.round(18 * fs)}px sans-serif`; const txt = k < 3 ? `🚀 ${LAUNCH.name} 런칭!` : `🎉 ${LAUNCH.name} 발사 성공!`, w = g.measureText(txt).width + 40;
+    roundRect(W2 - w / 2, 90, w, 40 * fs, 12, '#c8ff2e', '#111'); g.fillStyle = '#111'; g.fillText(txt, W2, 90 + 27 * fs); }
+  if (k >= 3 && k < 13) { const n = 10 - Math.floor(k - 3), f = (k - 3) % 1; g.globalAlpha = 1 - f * .6; g.font = `bold ${Math.round(90 * fs)}px sans-serif`; g.fillStyle = '#fff'; g.strokeStyle = '#111'; g.lineWidth = 6;
+    g.strokeText(n, W2, cv.height / 2); g.fillText(n, W2, cv.height / 2); g.globalAlpha = .5 * (1 - f); g.strokeStyle = '#c8ff2e'; g.beginPath(); g.arc(W2, cv.height / 2 - 30 * fs, 60 * fs + f * 80, 0, 7); g.stroke(); g.globalAlpha = 1;
+    if (Math.floor(k * 10) !== LAUNCH.lastN) { LAUNCH.lastN = Math.floor(k * 10); if (Math.floor(k - 3) !== LAUNCH.said) { LAUNCH.said = Math.floor(k - 3); const ag = Object.values(agents).filter((a) => a.key !== 'teacher' && !a.busy); ag.forEach((a) => say(a, String(n), 900)); } } }
+  if (k > 14 && k < 20 && !LAUNCH.fw) { LAUNCH.fw = 1; for (let i = 0; i < 6; i++) setTimeout(() => burst(SHIP_SPOT[0] + rnd(-4, 2), SHIP_SPOT[1] + rnd(-4, 2), 22, rnd(60, 110)), i * 350); }
+  g.restore();
+}
+// 전광판: 검수 중인 화면 캡처를 간판 위 도트 LED로
+const BB = { items: [], imgs: {}, i: 0, at: 0, rect: null };
+function setBillboard(items) {
+  const repo = store.getL('eco_repo'); BB.items = (items || []).slice(-8).map((it) => ({ ...it, url: /^https?:/.test(it.file || '') ? it.file : `https://raw.githubusercontent.com/${repo}/${OBRANCH()}/${String(it.file || '').replace(/^\/+/, '')}` }));
+  for (const it of BB.items) if (!BB.imgs[it.url]) { const im = new Image(); im.src = it.url; BB.imgs[it.url] = im; }
+  BB.i = Math.max(0, BB.items.length - 1); BB.at = performance.now();
+}
+function drawBillboard(t) {
+  BB.rect = null; if (!BB.items.length) return;
+  if (t - BB.at > 8000 && BB.items.length > 1) { BB.i = (BB.i + 1) % BB.items.length; BB.at = t; }
+  const it = BB.items[BB.i], im = BB.imgs[it.url]; const [cx, cy] = iso(11.5, -0.9, 44), w = 66, h = 40, x = Math.round(cx - w / 2), y = Math.round(cy - h);
+  pr(x + w / 2 - 1, y + h, 2, 18, '#3a3f4a'); pr(x - 3, y - 3, w + 6, h + 6, '#20232c'); pr(x - 2, y - 2, w + 4, h + 4, '#3a3f4a'); pr(x, y, w, h, '#0a0d12');
+  if (im && im.complete && im.naturalWidth) { const s = Math.min(w / im.naturalWidth, h / im.naturalHeight), dw = Math.round(im.naturalWidth * s), dh = Math.round(im.naturalHeight * s);
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(im, x + Math.round((w - dw) / 2), y + Math.round((h - dh) / 2), dw, dh); }
+  for (let yy = 1; yy < h; yy += 2) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(x, y + yy, w, 1); }
+  const sweep = ((t - BB.at) / 900) % 1; if (t - BB.at < 900) pr(x, y + Math.floor(sweep * h), w, 2, 'rgba(200,255,46,.5)');
+  pr(x + 2, y + h + 1, 2, 1, Math.floor(t / 500) % 2 ? '#ff5d5d' : '#5d1d1d');
+  for (let i = 0; i < BB.items.length; i++) pr(x + w - 4 - i * 3, y + h + 1, 2, 1, i === BB.i ? '#c8ff2e' : '#555');
+  const [X0, Y0] = sc(x, y), [X1, Y1] = sc(x + w, y + h); BB.rect = [X0, Y0, X1, Y1];
+}
+function openShot(i) {
+  const it = BB.items[i]; if (!it) return;
+  openViewer({ who: '📺 전광판 · ' + (it.label || '화면 캡처'), sub: `${nameOf(it.agent)} · ${it.at ? timeAgo(new Date(Number(it.at)).toISOString()) : ''}`, md: '' });
+  $('vBody').innerHTML = `<img src="${esc(it.url)}" alt="${esc(it.label || '')}" style="max-width:100%;image-rendering:auto;border-radius:8px">${BB.items.length > 1 ? `<div class="row" style="margin-top:8px"><button class="ghost mini" id="shotPrev">← 이전</button><button class="ghost mini" id="shotNext">다음 →</button></div>` : ''}`;
+  if ($('shotPrev')) { $('shotPrev').onclick = () => openShot((i - 1 + BB.items.length) % BB.items.length); $('shotNext').onclick = () => openShot((i + 1) % BB.items.length); }
+}
+
+// =====================================================================
 // 13. UI 연결
 
 // 옛 교무팀 진행 기록 정리 (한 번만)
@@ -2383,7 +2528,7 @@ $('repoIn').value = store.getL('eco_repo') || ''; $('ghToken').value = store.get
 $('loadRepo').onclick = loadDash;
 $('ghToken').onchange = () => { const v = $('ghToken').value.trim(); v ? store.setL('eco_ghtoken', v) : store.del('eco_ghtoken'); };
 $('repoIn').onchange = () => { const v = $('repoIn').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, ''); v ? store.setL('eco_repo', v) : store.del('eco_repo'); projSaveRepo(); };
-$('copyCC').onclick = () => navigator.clipboard?.writeText(CC_GUIDE).then(() => ($('copyCC').textContent = '✅ 복사됐어요! Claude Code에 붙여 넣으세요'));
+$('copyCC').onclick = () => navigator.clipboard?.writeText(CC_GUIDE()).then(() => ($('copyCC').textContent = '✅ 복사됐어요! Claude Code에 붙여 넣으세요'));
 
 // 작업
 $('go').onclick = () => runJob(false);
